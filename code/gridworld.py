@@ -16,102 +16,131 @@ class GridWorld():
 		self.name = param.env_name 
 		self.timestep = 0
 		self.observation = []
-		self.init_agents()
-
-		# for plots
-		# self.customer_history = [] # list of xy pos of customer locations
-
-
-	def init_random_variables(self):
-		self.eta_w = random(size=(self.param.env_ncell,self.param.env_ncell))*(self.param.wmax-self.param.wmin)+self.param.wmin
-		self.eta_phi = random(size=(self.param.env_ncell,self.param.env_ncell))*(self.param.phimax-self.param.phimin)+self.param.phimin
-		self.c_w = random(size=(self.param.env_nx,self.param.env_ny))*(self.param.wmax-self.param.wmin)+self.param.wmin
-		self.c_phi = random(size=(self.param.env_nx,self.param.env_ny))*(self.param.phimax-self.param.phimin)+self.param.phimin
-		return [self.eta_w,self.eta_phi,self.c_w,self.c_phi]
-
+		self.init_cm()
 
 	def init_agents(self):
-
 		# initialize list of agents  
 		self.agents = []
 		for i in range(self.param.ni):
 			x,y = utilities.random_position_in_world()
-			self.agents.append(Agent(i,x,y))
+			# x,y = [1.5,.75]
+			self.agents.append(Agent(i,x,y,self.v0))
 
 
-	def render(self):
+	def render(self,title=None):
 		time=self.param.sim_times[self.timestep]
 
 		fig,ax = plotter.make_fig()
 		ax.set_xticks(self.param.env_x)
 		ax.set_yticks(self.param.env_y)
 		ax.set_xlim(self.param.env_xlim)
-		ax.set_ylim(self.param.env_xlim)
+		ax.set_ylim(self.param.env_ylim)
 		ax.set_aspect('equal')
-		ax.set_title('t={}/{}'.format(time,self.param.sim_times[-1]))
+		if title is None:
+			ax.set_title('t={}/{}'.format(time,self.param.sim_times[-1]))
+		else:
+			ax.set_title(title)
 		ax.grid(True)
 
 		# state space
 		for agent in self.agents:
+			
 			color = self.param.plot_agent_mode_color[agent.mode]
 			plotter.plot_circle(agent.x,agent.y,self.param.plot_r_agent,fig=fig,ax=ax,color=color)
-			plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
+			
+			if agent.i == 0:
+				plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
 
-			if agent.mode == 1:
+			if agent.mode == 0 and self.param.plot_arrows_on:	
+				plotter.plot_arrow(agent.x,agent.y,agent.action[0],agent.action[1],fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
+
+			elif agent.mode == 1:
 				plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
 					self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
+				plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
+
 			elif agent.mode == 2:
 				plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
 					self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
+				plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
 
 		for service in self.observation:
 			print('service: ', service)
 			plotter.plot_rectangle(service.x_p,service.y_p,self.param.plot_r_customer,fig=fig,ax=ax,\
 				color=self.param.plot_customer_color[0],angle=45)
 
-		# make customer distribution
-		if False:
-			im_customer = self.customer_distribution_matrix(time)
-			fig,ax = plotter.make_fig()
-			ax.set_title('Customer Distribution')
-			ax.set_xticks(self.param.env_x)
-			ax.set_yticks(self.param.env_y)
-			ax.set_xlim(self.param.env_xlim)
-			ax.set_ylim(self.param.env_xlim)
-			ax.set_aspect('equal')
-			ax.grid(True)		
-			axim=ax.imshow(im_customer,cmap='gray_r',vmin=0,vmax=1,\
-				extent=[self.param.env_xlim[0],self.param.env_xlim[1],self.param.env_ylim[0],self.param.env_ylim[1]])
-			fig.colorbar(axim)
-
-			# make agent distribution
+		if self.param.plot_distribution_error_on:
+			
+			# customer distribution
+			im_customer = self.eval_cm(self.timestep)
+			
+			# agent distribution 
 			im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
-			for agent in self.agents:
-				xcell = np.where( self.param.env_x < agent.x)[0][-1]
-				ycell = np.where( self.param.env_ylim[1]-self.param.env_y > agent.y)[0][-1]
-				im_agent[ycell,xcell] += 1
+			# for agent in self.agents:
+			# 	xcell,ycell = utilities.coordinate_to_xy_cell_index(agent.x,agent.y)
+			# 	im_agent[xcell,ycell] += 1
+			# im_agent /= len(self.agents)
 
-			im_agent /= len(self.agents)
+			# error
+			im_err = np.abs(im_agent-im_customer)
+
+			# align axis with image coordinate system 
+			im_err = im_err.T
+			im_err = np.flipud(im_err)
+
+			# plot
 			fig,ax = plotter.make_fig()
-			ax.set_title('Agent Distribution')
+			ax.set_title('Distribution Error')
 			ax.set_xticks(self.param.env_x)
 			ax.set_yticks(self.param.env_y)
 			ax.set_xlim(self.param.env_xlim)
-			ax.set_ylim(self.param.env_xlim)	
+			ax.set_ylim(self.param.env_ylim)
 			ax.set_aspect('equal')
 			ax.grid(True)
-			axim=ax.imshow(im_agent,cmap='gray_r',vmin=0,vmax=1,\
+			axim=ax.imshow(im_err,cmap='gray_r',vmin=0,vmax=1, 
 				extent=[self.param.env_xlim[0],self.param.env_xlim[1],self.param.env_ylim[0],self.param.env_ylim[1]])
 			fig.colorbar(axim)
+
+		if self.param.plot_value_fnc_on:
+
+			v = self.agents[0].v
+
+			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
+			for i in range(self.param.env_ncell):
+				i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
+				im_v[i_x,i_y] = v[i]
+
+			# print('v: ', v)
+
+			im_v = im_v.T
+			im_v = np.flipud(im_v)
+
+			# print('im_v: ', im_v)
+
+			fig,ax = plotter.make_fig()
+			ax.set_title('Value Function')
+			ax.set_xticks(self.param.env_x)
+			ax.set_yticks(self.param.env_y)
+			ax.set_xlim(self.param.env_xlim)
+			ax.set_ylim(self.param.env_ylim)
+			ax.set_aspect('equal')
+			ax.grid(True)
+			axim=ax.imshow(im_v,cmap='gray_r',vmin=-1,vmax=0, 
+				extent=[self.param.env_xlim[0],self.param.env_xlim[1],self.param.env_ylim[0],self.param.env_ylim[1]])
+			fig.colorbar(axim)
+
+			# plotter.show_figs()
+			# exit()
+
+	def reset(self):
+		self.timestep = 0
+		self.observation = []
+		self.init_agents()
 
 
 	def observe(self):
 		t0 = self.param.sim_times[self.timestep]
 		t1 = self.param.sim_times[self.timestep+1]
-		# print('t0: ',t0)
-		# print('t1: ',t1)
-		# print('self.dataset: ',self.dataset)
-		# print('self.dataset[:,0]:',self.dataset[:,0])
 		idxs = np.multiply(self.dataset[:,0] >= t0, self.dataset[:,0] < t1, dtype=bool)
 		customer_requests = self.dataset[idxs,:]
 		for i in range(customer_requests.shape[0]):
@@ -139,32 +168,105 @@ class GridWorld():
 		agent_state = AgentState._make((agent_operation,agent_locations,agent_q_values))
 
 		self.timestep += 1
-		
+
 		return reward, agent_state
 
 	def eta_cell(self,i,j,t):
 		# expected time of arrival between two states (i,j), at given time (t)
-		x_i,y_i = utilities.cell_index_to_coordinate(i)
-		x_j,y_j = utilities.cell_index_to_coordinate(j)
+		x_i,y_i = utilities.cell_index_to_cell_coordinate(i)
+		x_j,y_j = utilities.cell_index_to_cell_coordinate(j)
+		x_i += self.param.env_dx/2
+		x_j += self.param.env_dx/2
+		y_i += self.param.env_dy/2
+		y_j += self.param.env_dy/2
 		return self.eta(x_i,y_i,x_j,y_j,t)
 
 	def eta(self,x_i,y_i,x_j,y_j,t):
-		# expected time of arrival between two locations ([x_i,y_i],[x_j,y_j]), at given time (t)
-		i = utilities.coordinate_to_cell_index(x_i,y_i)
-		j = utilities.coordinate_to_cell_index(x_j,y_j)
-
-		# print('x_i,y_i: {}, {}'.format(x_i,y_i))
-		# print('x_j,y_j: {}, {}'.format(x_j,y_j))
-		# print('i,j: {}, {}: '.format(i,j))
-		
-		d_ij = np.linalg.norm([x_i-x_j,y_i-y_j])
-		tau = t/self.param.sim_times[-1]
-		dist = d_ij + np.sin(self.eta_w[i,j]*tau+self.eta_phi[i,j]) + 1
-		return dist/self.param.average_taxi_speed
+		dist = np.linalg.norm([x_i-x_j,y_i-y_j])
+		return dist/self.param.taxi_speed
 
 
-	def customer_distribution_matrix(self,t):
-		tau = t/self.param.sim_times[-1]
-		c = np.sin(self.c_w*tau + self.c_phi) + 1
-		c = c/np.sum(np.sum(c))
-		return c
+	def init_cm(self):
+
+		class Gaussian:
+			def __init__(self,i,x,y,s,v):
+				self.i = i
+				self.s = s
+				self.v = v 
+				self.x = np.empty(nt)
+				self.y = np.empty(nt)
+				self.x[0] = x
+				self.y[0] = y
+				# print('self.x: ', self.x)
+				# print('self.y: ', self.y)
+
+			def move(self,p,timestep):
+				self.x[timestep+1] = self.x[timestep] + p[0]
+				self.y[timestep+1] = self.y[timestep] + p[1]
+
+			def sample(self,timestep):
+				x,y = np.random.normal([self.x[timestep],self.y[timestep]],self.s)
+				return x,y
+
+		# make customer model list
+		nt = len(self.param.sim_times) 
+		cgm_lst = []
+		for i in range(self.param.cm_ng):
+			x0,y0 = utilities.random_position_in_world()
+			# x0,y0 = [self.param.env_x[1]/2, self.param.env_y[-1]/2]
+			# print('cgm (x0,y0) = ({},{})'.format(x0,y0))
+			cgm_lst.append(
+				Gaussian(i,x0,y0,self.param.cm_sigma,self.param.cm_speed))
+
+		self.cgm_lst = cgm_lst
+
+
+	def sample_cm(self,timestep):
+		# sample multimodal gaussian model
+
+		# weight vector 
+		w = np.ones((self.param.cm_ng))/self.param.cm_ng
+		# sample w 
+		i = np.random.choice(self.param.cm_ng,p=w)
+		# sample ith gaussian model of cgm_lst
+		x,y = self.cgm_lst[i].sample(timestep)
+		return x,y
+
+
+	def move_cm(self,timestep):
+		# move gaussians
+
+		dt = self.param.sim_dt 
+		for cgm in self.cgm_lst:
+			th = np.random.random()*2*np.pi
+			unit_vec = np.array([np.cos(th),np.sin(th)])
+			move = cgm.v*dt*unit_vec
+			p = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
+			p = utilities.environment_barrier(p)
+			safe_move = [p[0] - cgm.x[timestep], p[1] - cgm.y[timestep]]
+			cgm.move(safe_move,timestep)
+
+	def run_cm_model(self):
+		for step,t in enumerate(self.param.sim_times[:-1]):
+			self.move_cm(step)
+
+	def eval_cm(self,timestep):
+		# input: 
+		# 	- self : env
+		# 	- t : time
+		# output: 
+		# 	- cm : customer model probability matrix with shape: (env_nx,env_ny), where sum(sum(cm)) = 1 
+
+		# for cgm in self.cgm_lst:
+		# 	print('(cgm.x,cgm.y) = ({},{})'.format(cgm.x,cgm.y))
+
+		cm = np.zeros((self.param.env_nx,self.param.env_ny))
+		for i in range(self.param.cm_nsample_cm):
+			x,y = self.sample_cm(timestep)
+			x,y = utilities.environment_barrier([x,y])
+			i_x,i_y = utilities.coordinate_to_xy_cell_index(x,y)
+			cm[i_x,i_y] += 1
+
+		# normalize
+		cm = cm/sum(sum(cm))
+		return cm 

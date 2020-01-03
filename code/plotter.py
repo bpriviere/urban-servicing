@@ -3,7 +3,8 @@
 import matplotlib.pyplot as plt 
 import os, subprocess
 import matplotlib.patches as patches
-from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np 
+from matplotlib.backends.backend_pdf import PdfPages 
 
 from param import Param 
 
@@ -38,6 +39,10 @@ def make_fig(axlim = None):
 	return fig, ax
 
 
+def show_figs():
+	plt.show()
+
+
 def plot_circle(x,y,r,fig=None,ax=None,title=None,label=None,color=None):
 	if fig is None or ax is None:
 		fig, ax = plt.subplots()
@@ -53,6 +58,38 @@ def plot_circle(x,y,r,fig=None,ax=None,title=None,label=None,color=None):
 
 	ax.add_artist(circle)
 	return circle 
+
+
+def plot_arrow(x,y,dx,dy,fig=None,ax=None,color=None,label=None):
+
+	if fig is None or ax is None:
+		fig, ax = plt.subplots()
+
+	scale = param.plot_arrow_length/np.linalg.norm([dx,dy])
+	dx *= scale
+	dy *= scale
+
+	line = ax.arrow(x,y,dx,dy,width=param.plot_arrow_width,head_width=param.plot_arrow_head_width,head_length=param.plot_arrow_head_length)
+
+	if color is not None:
+		line.set_color(color)
+	if label is not None:
+		line.set_label(label)
+	return line 
+
+
+def plot_line(x1,y1,x2,y2,fig=None,ax=None,color=None,label=None): 
+
+	if fig is None or ax is None:
+		fig, ax = plt.subplots()
+
+	line = ax.plot([x1,x2],[y1,y2],ls='--')[0]
+
+	if color is not None:
+		line.set_color(color)
+	if label is not None:
+		line.set_label(label)
+	return line	
 
 def plot_dashed(x,y,r,fig=None,ax=None,title=None,label=None,color=None):
 	if fig is None or ax is None:
@@ -78,6 +115,9 @@ def plot_rectangle(x,y,r,fig=None,ax=None,title=None,label=None,color=None,angle
 	if angle is not None:
 		rect = patches.Rectangle((x,y),height=r,width=r,angle=angle)
 	else:
+		shift = r/2
+		x -= shift
+		y -= shift
 		rect = patches.Rectangle((x,y),height=r,width=r)
 		
 	if color is not None:
@@ -117,6 +157,12 @@ def plot_gridworld_dataset(env):
 
 
 			
-	# plots customer requests, cell index by ???
+def plot_sim_rewards(sim_results):
 
-
+	fig1,ax1 = make_fig()
+	fig2,ax2 = make_fig()
+	for sim_result in sim_results:
+		ax1.plot(sim_result.times, sim_result.rewards, label=sim_result.name)
+		ax2.plot(sim_result.times, np.cumsum(sim_result.rewards), label=sim_result.name)
+	ax1.legend()
+	ax2.legend()

@@ -2,17 +2,20 @@
 
 import numpy as np 
 
+import utilities
 from param import Param
 
 
 param = Param()
 
 class Agent:
-	def __init__(self,i,x,y):
+	def __init__(self,i,x,y,v):
 		self.i = i
 		self.x = x
 		self.y = y
+		self.v = v 
 		self.mode = 0 # [idle, servicing, pickup]
+		self.action = [0,0]
 		# self.q_values = np.zeros(param.nq)
 
 	def step(self,action,env):
@@ -57,8 +60,12 @@ class Agent:
 
 		elif isinstance(action,IdleMove):
 			self.x = self.x + action.x
-			self.y = self.y + action.y 
-
+			self.y = self.y + action.y
+			self.action = [action.x,action.y]
+			
+			# make sure you don't leave environment
+			self.x,self.y = utilities.environment_barrier([self.x,self.y])
+			
 
 		elif isinstance(action,Empty):
 			

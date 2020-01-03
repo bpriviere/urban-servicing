@@ -1,0 +1,48 @@
+
+
+
+todo list:	
+	make render graphics super consistent (check that if you just drop dt problem goes away)
+	gradient step
+	make RHC baseline
+	real taxi datasets
+	writeup
+	you need justification for why matching value function to agent distribution leads to a minimumizing cost fnc aka customer wait time .... has to do with optimal minimizing distribution dis
+
+	
+done: 
+	add decay of tau parameter in blll to force convergence
+	solve mdp solution as part of training dataset 
+	make mdp solver more robust/debug mdp solver error message:
+	numerically stable blll 
+	change R(s,a) to take into account 'a'	
+	make customer demand and eta time varying with gaussians - debug
+	fix value function such that game theory does what its supposed to 
+	fix J calc to be local wrt actions 
+	make sure 'coordinate_to_cell_index' and 'coordinate_to_xy_cell_index' are working 
+
+
+
+title:
+~online optimal dispatch with distributed reinforcement learning 
+	tabular (finite dimensional state/action space -> consensus methods) 
+	distributed cell based mdp 
+	temporal difference methods (you need to address that math paper that just came out...)
+
+
+scratch thinking:
+how to design game theory such that local (wrt to a single agent) optimal solutions have some globally optimality propoerties (ie probabilistically converge to high-value nash equillibria)
+
+	local marginal utility fnc where the sum of all marginal utilities gives the global potential fnc of the game 
+
+	if you use the spatial distribution of agents, and compare with the value fnc, you obviously capture the desired trends: 
+		high value fnc drives agents there
+		high number of agents drive agents away
+
+	mathematical justification?? 
+
+	can you do better with the q value in marginal utility instead of V? 
+
+	i feeeeeel like i should be using the local spatial distribution of the swarm, but idk  
+
+
