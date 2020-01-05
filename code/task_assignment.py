@@ -10,10 +10,25 @@ def binary_log_learning(env,agents):
 	n_agents = len(agents)
 	cell_assignments = []
 
-	# assign random actions to each agent
+	# assign best/random actions to each agent
 	for agent in agents:
 		random_action = np.random.randint(0,env.param.env_naction)
-		agent.action = random_action
+
+		state = utilities.coordinate_to_cell_index(agent.x,agent.y)
+		local = utilities.get_local_states(env,state)
+		best_action = np.argmax(agent.v[local])
+
+		# print()
+		# print(local)
+		# print(utilities.coordinate_to_cell_index(agent.x,agent.y))
+		# print(best_action)
+		# print(agent.v)
+		# exit()
+
+		if False:
+			agent.cell_action = random_action
+		else:
+			agent.cell_action = best_action
 
 	converged = np.zeros(n_agents,dtype=bool)
 	same_action_count = np.zeros(n_agents)
@@ -26,28 +41,41 @@ def binary_log_learning(env,agents):
 		c_idx = np.random.randint(0,sum(np.logical_not(converged)))
 		a_idx = np.where(converged == 0)[0][c_idx]
 		agent = agents[a_idx]
+		state = utilities.coordinate_to_cell_index(agent.x,agent.y)
+		next_state = utilities.get_next_state(env,state,agent.cell_action)
 		
 		# propose a random action 
 		action_p = np.random.randint(0,env.param.env_naction)
-		while action_p == agent.action:
+		next_state_proposed = utilities.get_next_state(env,state,action_p)
+		while next_state == next_state_proposed:
 			action_p = np.random.randint(0,env.param.env_naction)
+			next_state_proposed = utilities.get_next_state(env,state,action_p)
+
+			# print('utilities.coordinate_to_cell_index(agent.x,agent.y):',utilities.coordinate_to_cell_index(agent.x,agent.y))
+			# print('agent.cell_action:',agent.cell_action)
+			# print('action_p:',action_p)
+			# print('next_state: ',next_state)
+			# print('next_state_proposed: ',next_state_proposed)
 
 		# calculate marginal utility of local action sets
 		# NOTE: we calculate marginal cost instead, and flip sign convention
-		J = calc_J(env,agent,agent.action,agents)
+		J = calc_J(env,agent,agent.cell_action,agents)
 		J_p = calc_J(env,agent,action_p,agents)
 
 		# assign action probability with binary log-linear learning algorithm
-		# P_i = np.exp(J/tau)/(np.exp(J/tau) + np.exp(J_p/tau)) check more numerically stable ver below 
+		# P_i = np.exp(J/tau)/(np.exp(J/tau) + np.exp(J_p/tau)) 
+
+		# is this more numerically stable ???
 		P_inv = np.exp((J_p/tau)-(J/tau))+1
 		P_i = 1/P_inv
 
 		# print('agent.i: ', agent.i)		
-		# print('agent.action: ', agent.action)
+		# print('agent.cell_action: ', agent.cell_action)
 		# print('action_p: ', action_p)
 		# print('J: ',J)
 		# print('J_p: ', J_p)
 		# print('P_i: ', P_i)
+		# exit()
 
 		# check convergence
 		rand = np.random.random()
@@ -56,7 +84,7 @@ def binary_log_learning(env,agents):
 			if same_action_count[a_idx] > env.param.ta_converged:
 				converged[a_idx] = True
 		else:
-			agent.action = action_p 
+			agent.cell_action = action_p 
 			same_action_count[a_idx] = 0
 
 		count += 1 
@@ -71,36 +99,45 @@ def binary_log_learning(env,agents):
 
 	print('blll count: ',count)
 	for agent in agents:
-		cell_assignments.append((agent,agent.action))
+		cell_assignments.append((agent,agent.cell_action))
 	return cell_assignments
 
 
 def calc_J(env,agent_i,action_i,agents):
 
-	# local state indices
-	local = []
-	P = utilities.get_MDP_P(env)
-	s = utilities.coordinate_to_cell_index(agent_i.x,agent_i.y)
-	for a in range(env.param.env_naction):
-		next_state = np.where(P[a,s,:] == 1)[0][0]
-		if not next_state in local:
-			local.append(next_state)
+	# get local q values
+	local_q = utilities.get_local_q_values(env,agent_i)
+	local_q_dist = utilities.value_to_probability(local_q)
 
+	# get local agent distribution
+	state = utilities.coordinate_to_cell_index(agent_i.x,agent_i.y)
+	local_s_idx = utilities.get_local_states(env,state)
 	H = make_H(env,agents)
+	A = get_joint_action(env,agent_i,action_i,agents)	
+	local_agent_dist = np.matmul(H,A)[local_s_idx]
+
+	# marginal cost 
+	J = np.linalg.norm(local_agent_dist - local_q_dist)
+
+	# debug 
+	# local_v = utilities.value_to_probability(agent_i.v[local_s_idx])
+	# J2 = np.linalg.norm(local_agent_dist - local_v)
+
+	# print('J: ', J)
+	# print('J2: ', J2)
+	# exit()
+	return J 
+
+
+def get_joint_action(env,agent_i,action_i,agents):
 	A = np.zeros((env.param.env_naction*len(agents)))
 	for j,agent_j in enumerate(agents):
 		if agent_i is agent_j:
 			idx = j*env.param.env_naction + action_i
 		else:
-			idx = j*env.param.env_naction + agent_j.action 
+			idx = j*env.param.env_naction + agent_j.cell_action 
 		A[idx] = 1
-
-	local_HA = np.matmul(H,A)[local]
-	local_S = make_S(env,agents)[local]
-	local_V = agent_i.v[local]
-	J = np.linalg.norm(local_S + local_HA - local_V)
-	return J 
-
+	return A 
 
 def centralized_linear_program(env,agents):
 	# input: 
@@ -113,7 +150,7 @@ def centralized_linear_program(env,agents):
 	if not len(agents) == 0:
 		H = make_H(env,agents)
 		S = make_S(env,agents)
-		V = env.agents[0].v
+		V = utilities.value_to_probability(env.agents[0].v)
 		a = cp.Variable(env.param.env_naction*len(agents), integer=True)
 
 		obj = cp.Minimize( cp.sum_squares( S + H@a - V ))
@@ -149,9 +186,12 @@ def make_S(env,agents):
 
 
 def make_H(env,agents):
+	# output is a matrix in ncell, naction*n_agents
+	# H[i,j] describes S[i] under A[j]
 	
 	n_agents = len(agents)
 	H = np.zeros((env.param.env_ncell,env.param.env_naction*n_agents))
+	# P = utilities.get_MDP_P(env)
 	P = utilities.get_MDP_P(env)
 	for step,agent in enumerate(agents):
 		idx = step*env.param.env_naction

@@ -2,13 +2,12 @@
 
 
 todo list:	
-	make render graphics super consistent (check that if you just drop dt problem goes away)
+
 	gradient step
 	make RHC baseline
 	real taxi datasets
 	writeup
-	you need justification for why matching value function to agent distribution leads to a minimumizing cost fnc aka customer wait time .... has to do with optimal minimizing distribution dis
-
+	
 	
 done: 
 	add decay of tau parameter in blll to force convergence
@@ -20,7 +19,10 @@ done:
 	fix value function such that game theory does what its supposed to 
 	fix J calc to be local wrt actions 
 	make sure 'coordinate_to_cell_index' and 'coordinate_to_xy_cell_index' are working 
-
+	make render graphics super consistent (check that if you just drop dt problem goes away)	
+	add dispatch mode
+	debug dispatch mode 
+	you need justification for why matching value function to agent distribution leads to a minimumizing cost fnc aka customer wait time .... has to do with optimal minimizing distribution dis
 
 
 title:
@@ -44,5 +46,7 @@ how to design game theory such that local (wrt to a single agent) optimal soluti
 	can you do better with the q value in marginal utility instead of V? 
 
 	i feeeeeel like i should be using the local spatial distribution of the swarm, but idk  
+
+	I think using softmax on q values is common for probabilistically choosing action. Then, if we consider the perspective of a global user, we want to pick actions according to the distribution softmax(q). So, we drive the agent distribution to the softmax(q) distribution. good news: we can calculate this locally! game over
 
 

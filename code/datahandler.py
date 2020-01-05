@@ -5,7 +5,6 @@ import numpy as np
 # import pandas as pd
 # import requests
 
-from eta import ETA 
 from gridworld import GridWorld
 from param import Param 
 import utilities
@@ -72,67 +71,25 @@ class DataHandler:
 				x_p,y_p = env.sample_cm(timestep)
 				x_d,y_d = utilities.random_position_in_world()
 				time_to_complete = env.eta(x_p,y_p,x_d,y_d,time)
-				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))			
-
-
-		# dataset = []
-		# customer_time_array = np.arange(-tf_train,tf_sim,1,dtype=int)
-		# for step,time in enumerate(customer_time_array):
-			
-		# 	print('step,time: {},{}'.format(step,time))
-
-		# 	if time<0:
-		# 		timestep = 0
-		# 	else:
-		# 		timestep = step
-
-		# 	for customer in range(self.param.n_customers_per_time):
-		# 		time_of_request = time + np.random.random()
-		# 		x_p,y_p = env.sample_cm(step)
-		# 		x_d,y_d = utilities.random_position_in_world()
-		# 		time_to_complete = env.eta(x_p,y_p,x_d,y_d,time)
-
-		# 		print('   x_p,y_p: {}, {}'.format(x_p,y_p))
-		# 		print('   x_d,y_d: {}, {}'.format(x_d,y_d))
-		# 		print('   time_of_request: ', time_of_request)
-		# 		print('   time_to_complete: ', time_to_complete)
-		# 		# exit()
-
-		# 		dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
-
-		# 	if time>0:
-		# 		env.move_cm(step)
-
-		# print(dataset)
-		# exit()
-		# print([data[0] for data in dataset])
-		# exit()
+				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
 
 		# solve mdp
 		dataset = np.array(dataset)
 		train_dataset = dataset[dataset[:,0]<0,:]
-		v = utilities.solve_MDP(env,train_dataset)
-		# v = 
-		v = v/abs(sum(v))
-
+		v,q = utilities.solve_MDP(env,train_dataset)
+		
 		self.dataset = dataset
 		self.v = v
-		# self.random_variables = random_variables
-
+		self.q = q 
+		
 
 	def write_gridworld_dataset(self,env):
 		with open("../data/gridworld/customer_requests.npy", "wb") as f:
 			np.save(f, self.dataset)
 		with open("../data/gridworld/value_fnc_training.npy", "wb") as f:
 			np.save(f, self.v)	
-		# with open("../data/gridworld/eta_w.npy", "wb") as f:
-		# 	np.save(f, self.random_variables[0])
-		# with open("../data/gridworld/eta_phi.npy", "wb") as f:
-		# 	np.save(f, self.random_variables[1])
-		# with open("../data/gridworld/c_w.npy", "wb") as f:
-		# 	np.save(f, self.random_variables[2])
-		# with open("../data/gridworld/c_phi.npy", "wb") as f:
-		# 	np.save(f, self.random_variables[3])
+		with open("../data/gridworld/q_values_training.npy", "wb") as f:
+			np.save(f, self.q)
 
 
 	def load_gridworld_dataset(self,env):
@@ -140,16 +97,10 @@ class DataHandler:
 		env.dataset = np.load(f)
 		f = "../data/gridworld/value_fnc_training.npy"
 		env.v0 = np.load(f)
-		# f = "../data/gridworld/eta_w.npy"
-		# env.eta_w = np.load(f)
-		# f = "../data/gridworld/eta_phi.npy"
-		# env.eta_phi = np.load(f)
-		# f = "../data/gridworld/c_w.npy"
-		# env.c_w = np.load(f)
-		# f = "../data/gridworld/c_phi.npy"
-		# env.c_phi = np.load(f)
-
+		f = "../data/gridworld/q_values_training.npy"
+		env.q0 = np.load(f)
 	
+
 	def write_sim_results(self, results):
 		pass 
 

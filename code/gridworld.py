@@ -18,13 +18,21 @@ class GridWorld():
 		self.observation = []
 		self.init_cm()
 
+		# x = np.array([-1,-2,-4])
+		# softmax_x = utilities.softmax(x)
+		# print(x)
+		# print(softmax_x)
+		# exit()
+
 	def init_agents(self):
 		# initialize list of agents  
 		self.agents = []
 		for i in range(self.param.ni):
 			x,y = utilities.random_position_in_world()
 			# x,y = [1.5,.75]
-			self.agents.append(Agent(i,x,y,self.v0))
+			self.agents.append(Agent(i,x,y,self.v0,self.q0))
+
+			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
 
 	def render(self,title=None):
@@ -50,19 +58,24 @@ class GridWorld():
 			
 			if agent.i == 0:
 				plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
-
-			if agent.mode == 0 and self.param.plot_arrows_on:	
-				plotter.plot_arrow(agent.x,agent.y,agent.action[0],agent.action[1],fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
-
-			elif agent.mode == 1:
+		
+			# pickup 
+			if agent.mode == 1:
 				plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
 					self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
 				plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
 
+			# dropoff 
 			elif agent.mode == 2:
 				plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
 					self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
 				plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
+
+			# on dispatch 
+			elif agent.mode == 3 and self.param.plot_arrows_on:	
+				dx = agent.dispatch.x - agent.x
+				dy = agent.dispatch.y - agent.y
+				plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
 
 		for service in self.observation:
 			print('service: ', service)
@@ -103,7 +116,8 @@ class GridWorld():
 
 		if self.param.plot_value_fnc_on:
 
-			v = self.agents[0].v
+			# v = self.agents[0].v
+			v = utilities.q_value_to_value_fnc(self.agents[0].q)
 
 			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
 			for i in range(self.param.env_ncell):
@@ -125,7 +139,9 @@ class GridWorld():
 			ax.set_ylim(self.param.env_ylim)
 			ax.set_aspect('equal')
 			ax.grid(True)
-			axim=ax.imshow(im_v,cmap='gray_r',vmin=-1,vmax=0, 
+			# axim=ax.imshow(im_v,cmap='gray_r',vmin=-1,vmax=0, 
+			# 	extent=[self.param.env_xlim[0],self.param.env_xlim[1],self.param.env_ylim[0],self.param.env_ylim[1]])
+			axim=ax.imshow(im_v,
 				extent=[self.param.env_xlim[0],self.param.env_xlim[1],self.param.env_ylim[0],self.param.env_ylim[1]])
 			fig.colorbar(axim)
 
@@ -163,7 +179,7 @@ class GridWorld():
 		for agent in self.agents:
 			agent_operation[agent.i] = agent.mode
 			agent_locations[agent.i,:] = [agent.x,agent.y]
-			agent_q_values[agent.i,:] = agent.v
+			agent_q_values[agent.i,:] = agent.q
 
 		agent_state = AgentState._make((agent_operation,agent_locations,agent_q_values))
 
@@ -212,11 +228,13 @@ class GridWorld():
 		nt = len(self.param.sim_times) 
 		cgm_lst = []
 		for i in range(self.param.cm_ng):
-			x0,y0 = utilities.random_position_in_world()
-			# x0,y0 = [self.param.env_x[1]/2, self.param.env_y[-1]/2]
+			# x0,y0 = utilities.random_position_in_world()
+			x0,y0 = [self.param.env_x[1]/2, self.param.env_y[-1]/2]
 			# print('cgm (x0,y0) = ({},{})'.format(x0,y0))
 			cgm_lst.append(
 				Gaussian(i,x0,y0,self.param.cm_sigma,self.param.cm_speed))
+
+			print('cgm {} initialized at (x,y) = ({},{})'.format(i,x0,y0))
 
 		self.cgm_lst = cgm_lst
 
@@ -238,7 +256,8 @@ class GridWorld():
 
 		dt = self.param.sim_dt 
 		for cgm in self.cgm_lst:
-			th = np.random.random()*2*np.pi
+			# th = np.random.random()*2*np.pi
+			th = 0 
 			unit_vec = np.array([np.cos(th),np.sin(th)])
 			move = cgm.v*dt*unit_vec
 			p = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]

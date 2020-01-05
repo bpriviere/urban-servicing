@@ -29,10 +29,12 @@ class Sim():
 			action = controller.policy(observation)
 			reward,agent_state = env.step(action)
 
-			# for agent in env.agents:
-			# 	print('agent {}: (x,y) = ({},{})'.format(agent.i,agent.x,agent.y))
-			# 	print('agent {}: v = {}'.format(agent.i,agent.v))
-			# for cgm in env.cgm_lst:
+			for agent in env.agents:
+				# print('agent {}: (x,y) = ({},{})'.format(agent.i,agent.x,agent.y))
+				# print('agent {}: v = {}'.format(agent.i,agent.v))
+				print('agent {}: q = {}'.format(agent.i,agent.q))
+
+				# for cgm in env.cgm_lst:
 			# 	print('cgm {}: (x,y) = ({},{})'.format(cgm.i,cgm.x,cgm.y))
 			
 			time_lst.append(time)

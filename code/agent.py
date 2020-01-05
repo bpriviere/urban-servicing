@@ -9,15 +9,16 @@ from param import Param
 param = Param()
 
 class Agent:
-	def __init__(self,i,x,y,v):
+	def __init__(self,i,x,y,v,q):
 		self.i = i
 		self.x = x
 		self.y = y
 		self.v = v 
+		self.q = q 
 		self.mode = 0 # [idle, servicing, pickup]
-		self.action = [0,0]
-		# self.q_values = np.zeros(param.nq)
-
+		self.update = False
+		self.p = param.initial_covariance 
+		
 	def step(self,action,env):
 
 		wait_time = 0 
@@ -26,6 +27,7 @@ class Agent:
 			time = env.param.sim_times[env.timestep] 
 			eta = env.eta(self.x,self.y,self.service.x_p,self.service.y_p,time) 
 			wait_time = eta + self.service.time_before_assignment
+			self.update = True
 
 			# initialize service
 			self.mode = 1
@@ -58,13 +60,48 @@ class Agent:
 				self.y = self.y + self.pickup_vector[1]*self.pickup_speed*dt
 
 
-		elif isinstance(action,IdleMove):
-			self.x = self.x + action.x
-			self.y = self.y + action.y
-			self.action = [action.x,action.y]
-			
-			# make sure you don't leave environment
-			self.x,self.y = utilities.environment_barrier([self.x,self.y])
+		elif isinstance(action,Dispatch):
+
+			# new 
+			if param.new_on:
+
+				self.dispatch = action 
+				self.mode = 3
+
+				# print('Dispatch')
+				# print('agent {}: (x,y) = ({},{})'.format(self.i,self.x,self.y))
+				# print('(dispatch.x,dispatch.y) = ({},{}): '.format(action.x,action.y))
+				# exit()
+
+				# assign dispatch move 
+				time = env.param.sim_times[env.timestep] 
+				eta = env.eta(self.x,self.y,self.dispatch.x,self.dispatch.y,time)
+				self.move_vector = np.array([self.dispatch.x - self.x, self.dispatch.y-self.y])
+				self.move_dist = np.linalg.norm(self.move_vector)
+				self.move_vector = self.move_vector/self.move_dist
+				self.move_speed = self.move_dist/eta 
+				self.move_finish = time+eta 
+
+				# start moving 
+				next_time = env.param.sim_times[env.timestep+1]
+				if next_time > self.move_finish:
+					self.x = self.dispatch.x
+					self.y = self.dispatch.y
+					self.mode = 0
+				else:
+					dt = next_time-time
+					self.x = self.x + self.move_vector[0]*self.move_speed*dt
+					self.y = self.y + self.move_vector[1]*self.move_speed*dt
+
+				# self.x,self.y = utilities.environment_barrier([self.x,self.y])
+
+			else:
+				self.x = self.x + action.x
+				self.y = self.y + action.y
+				self.dispatch = [action.x,action.y]
+				
+				# make sure you don't leave environment
+				self.x,self.y = utilities.environment_barrier([self.x,self.y])
 			
 
 		elif isinstance(action,Empty):
@@ -93,13 +130,24 @@ class Agent:
 					self.x = self.x + self.dropoff_vector[0]*self.dropoff_speed*dt
 					self.y = self.y + self.dropoff_vector[1]*self.dropoff_speed*dt
 
+			# dispatch mode 
+			elif self.mode == 3:
+				if next_time > self.move_finish:
+					self.x = self.dispatch.x
+					self.y = self.dispatch.y
+					self.mode = 0
+				else:
+					dt = next_time-time
+					self.x = self.x + self.move_vector[0]*self.move_speed*dt
+					self.y = self.y + self.move_vector[1]*self.move_speed*dt
+
 		return wait_time 
 
 class Empty:
 	def __init__(self):
 		pass
 
-class IdleMove:
+class Dispatch:
 	def __init__(self,x,y):
 		self.x = x
 		self.y = y 
