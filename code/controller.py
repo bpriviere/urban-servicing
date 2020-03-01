@@ -3,7 +3,8 @@
 import numpy as np 
 
 import utilities
-from agent import Dispatch, Service, Empty
+from helper_classes import Dispatch, Service, Empty
+# from agent import Dispatch, Service, Empty
 from task_assignment import centralized_linear_program, binary_log_learning
 
 
@@ -24,9 +25,13 @@ class Controller():
 		elif dispatch_algorithm in ['ctd']:
 			self.name = 'ctd'
 			self.dispatch = self.ctd
-		elif dispatch_algorithm in['rhc']:
+		elif dispatch_algorithm in ['rhc']:
 			self.name = 'rhc'
 			self.dispatch = self.rhc
+		elif dispatch_algorithm in ['bellman']:
+			self.name = 'bellman'
+			self.dispatch = self.bellman		
+
 		else:
 			exit('fatal error: param.controller_name not recognized')
 		
@@ -136,9 +141,27 @@ class Controller():
 
 	def rhc(self,agents):
 		# receding horizon control 
-		cell_assignments = centralized_linear_program(self.env,agents)
+		# no update
+		# task assignment 
+		cell_assignments = binary_log_learning(self.env,agents)
+		# assignment 
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
-		return move_assignments
+		return move_assignments 
+
+
+	def bellman(self,agents):
+		# belllman iteration update law
+		
+		# update
+		v,q = utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
+		for agent in agents:
+			agent.q = q
+
+		# task assignment 
+		cell_assignments = binary_log_learning(self.env,agents)
+		# assignment 
+		move_assignments = self.cell_to_move_assignments(cell_assignments)
+		return move_assignments 
 
 
 	def empty(self,agents):
@@ -170,20 +193,14 @@ class Controller():
 		for agent,cell in cell_assignments:
 			i = np.where(transition[cell,utilities.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
 			
-			# x,y = utilities.random_position_in_cell(i)
-			x,y = utilities.cell_index_to_cell_coordinate(i)
-			x += self.param.env_dx/2
-			y += self.param.env_dy/2
-
-			if self.env.param.new_on:
-				move_vector = np.array([x,y])
-
-			else: 
-				move_vector = np.array([x-agent.x,y-agent.y])
-				scale = self.param.taxi_speed*self.param.sim_dt/np.linalg.norm(move_vector)
-				if scale < 1:
-					move_vector = move_vector*scale
-
+			if False:
+				x,y = utilities.random_position_in_cell(i)
+			else:
+				x,y = utilities.cell_index_to_cell_coordinate(i)
+				x += self.param.env_dx/2
+				y += self.param.env_dy/2
+			
+			move_vector = np.array([x,y])
 			move = Dispatch(move_vector[0],move_vector[1])
 			move_assignments.append((agent,move))
 
@@ -194,103 +211,115 @@ class Controller():
 		
 		measurements = self.get_measurements()
 
-		measurement_update = np.zeros(self.param.nq)
-		for agent_i,measurement_i in measurements:
-			for k,measurement_ik in enumerate(measurement_i):
-				if not measurement_ik==0:
-					alpha = self.get_learning_rate(agent_i,k)
-					measurement_update[k] += alpha*measurement_i[k]
+		# get matrices
+		F = np.eye(self.param.nq)
+		Q = self.param.process_noise*np.eye(self.param.nq)
+		R = self.param.measurement_noise*np.eye(self.param.nq)
+		invF = np.eye(self.param.nq)
+		invQ = 1.0/self.param.process_noise*np.eye(self.param.nq)
+		invR = 1.0/self.param.measurement_noise*np.eye(self.param.nq)
 
-		for a in self.env.agents:
-			a.q = a.q + measurement_update 
+		H = np.zeros((self.param.nq,self.param.nq,self.param.ni),dtype=np.float32)
+		for i,(agent_i,measurement_i) in enumerate(measurements):
+			if np.count_nonzero(measurement_i) > 0:
+				H[:,:,i] = np.eye(self.param.nq)
 
+		# information transformation
+		Y_km1km1 = 1/self.env.agents[0].p * np.eye(self.param.nq) 
+		y_km1km1 = np.dot(Y_km1km1,self.env.agents[0].q)
+
+		# predict
+		M = np.dot(invF.T, np.dot(Y_km1km1,invF))
+		C = np.dot(M, np.linalg.pinv(M + invQ))
+		L = np.eye(self.param.nq) - C 
+		Y_kkm1 = np.dot(L,np.dot(M,L.T)) + np.dot(C,np.dot(invQ,C.T))
+		y_kkm1 = np.dot(L,np.dot(invF.T,y_km1km1))
+
+		# innovate
+		sum_I = np.zeros((self.param.nq,self.param.nq))
+		sum_i = np.zeros((self.param.nq))
+		for i, (agent_i, measurement_i) in enumerate(measurements):
+			sum_I += np.dot(H[:,:,i].T, np.dot(invR, H[:,:,i]))
+			sum_i += np.dot(H[:,:,i].T, np.dot(invR, measurement_i))
+
+		# invert information transformation
+		Y_kk = Y_kkm1 + sum_I
+		y_kk = y_kkm1 + sum_i
+		P_k = np.linalg.pinv(Y_kk)
+		q_k = np.dot(P_k,y_kk)
+	
+		for agent in self.env.agents:
+			agent.q = q_k
+			agent.p = P_k[0][0]
 
 
 	def dkif(self):
 		
 		measurements = self.get_measurements()
 		adjacency_matrix = self.make_adjacency_matrix()
-		q_tp1 = np.zeros((self.param.nq,self.param.ni))
+		q_kp1 = np.zeros((self.param.nq,self.param.ni))
+		p_kp1 = np.zeros((self.param.ni))
 
-		for agent_i,measurement_i in measurements:
+		# get matrices
+		F = np.eye(self.param.nq)
+		Q = self.param.process_noise*np.eye(self.param.nq)
+		R = self.param.measurement_noise*np.eye(self.param.nq)
+		invF = np.eye(self.param.nq)
+		invQ = 1.0/self.param.process_noise*np.eye(self.param.nq)
+		invR = 1.0/self.param.measurement_noise*np.eye(self.param.nq)
 
-			measurement_update = np.zeros(self.param.nq)
+		for i, (agent_i,measurement_i) in enumerate(measurements):
+
+			H = np.zeros((self.param.nq,self.param.nq))
+			if np.count_nonzero(measurement_i) > 0:
+				H = np.eye(self.param.nq)
+
+			# information transformation
+			Y_km1km1 = 1/self.env.agents[0].p * np.eye(self.param.nq) 
+			y_km1km1 = np.dot(Y_km1km1,self.env.agents[0].q)
+
+			# predict
+			M = np.dot(invF.T, np.dot(Y_km1km1,invF))
+			C = np.dot(M, np.linalg.pinv(M + invQ))
+			L = np.eye(self.param.nq) - C 
+			Y_kkm1 = np.dot(L,np.dot(M,L.T)) + np.dot(C,np.dot(invQ,C.T))
+			y_kkm1 = np.dot(L,np.dot(invF.T,y_km1km1))
+
+			# innovate
+			mat_I = np.dot(H.T, np.dot(invR, H))
+			vec_i = np.dot(H.T, np.dot(invR, measurement_i))
+
+			# add consensus term
 			consensus_update = np.zeros((self.param.nq))
-			for k,measurement_ik in enumerate(measurement_i):
-				if not measurement_ik==0:
-					# measurement update
-					alpha_i = self.get_learning_rate(agent_i,k)
-					measurement_update[k] = alpha_i*measurement_ik
+			for agent_j,measurement_j in measurements:
+				if np.count_nonzero(measurement_j) > 0:
+					consensus_update += adjacency_matrix[agent_i.i,agent_j.i]*(agent_j.q-agent_i.q)
 
-					# consensus update 
-					# for agent_j,measurement_j in measurements:
-					# 	for l,measurement_jl in enumerate(measurement_i):
-					# 		if not measurement_jl==0:
-					# 			consensus_update[l] += adjacency_matrix[agent_i.i,agent_j.i]*(agent_j.q[l]-agent_i.q[l])
+			# invert information transformation
+			Y_kk = Y_kkm1 + mat_I
+			y_kk = y_kkm1 + vec_i
+			P_k = np.linalg.pinv(Y_kk)
+			q_kp1[:,i] = np.dot(P_k,y_kk) + consensus_update
+			p_kp1[i] = P_k[0][0]
 
-			q_tp1[:,agent_i.i] = agent_i.q + measurement_update + consensus_update
-		
-		for agent in self.env.agents:
-			agent.q = q_tp1[:,agent.i]
-
-
-	def get_learning_rate(self,agent,q_idx):
-
-		# predict
-		p_kkm1 = agent.p + self.param.process_noise
-
-		# innovate 
-		s = p_kkm1 + self.param.measurement_noise 
-
-		# gain
-		alpha = p_kkm1/s 
-
-		# update agent covariance
-		agent.p = (1-alpha)*p_kkm1 
-
-		print('alpha: ', alpha)
-		print('agent.p ', agent.p)
-
-		return alpha 
+		for i,agent in enumerate(self.env.agents):
+			agent.q = q_kp1[:,i]
+			agent.p = p_kp1[i]
 
 	def make_adjacency_matrix(self):
 
-		# A = np.zeros((self.param.ni,self.param.ni))
-		# for agent_i in self.env.agents:
-		# 	p_i = np.array([agent_i.x,agent_i.y])
-		# 	for agent_j in self.env.agents:
-		# 		if not agent_i is agent_j:
-		# 			p_j = np.array([agent_j.x,agent_j.y])
-		# 			dist = np.linalg.norm(p_i-p_j)
-		# 			if dist < self.param.r_comm:
-		# 				A[agent_i.i,agent_j.i] = 1
-
-		A = np.ones((self.param.ni,self.param.ni))
-
-		# for agent_i in self.env.agents:
-		# 	i_nn = sum(A[agent_i.i,:])
-		# 	for agent_j in self.env.agents:
-		# 		j_nn = sum(A[agent_j.i,:])
-		# for i in range(self.param.ni):
-		# 	A[i,:] = A[i,:]/sum(A[i,:])
-
-		# 	print('A[i,:]:',A[i,:])
-		# 	print('A[:,i]:',A[:,i])
-		# exit()
+		A = np.zeros((self.param.ni,self.param.ni))
+		for agent_i in self.env.agents:
+			p_i = np.array([agent_i.x,agent_i.y])
+			for agent_j in self.env.agents:
+				if not agent_i is agent_j:
+					p_j = np.array([agent_j.x,agent_j.y])
+					dist = np.linalg.norm(p_i-p_j)
+					if dist < self.param.r_comm:
+						A[agent_i.i,agent_j.i] = 1
 
 		A = A/self.param.ni
 		return A
-
-	# def get_measurement_model(self,agent,measurements):
-	# 	for a,m in measurements:
-	# 		if agent is a:
-	# 			break
-	# 	h_diag = [1 if not m_i==0 else 0 for m_i in m] 
-	# 	h_i = np.diag(h_diag)
-		
-	# 	print('h_i: ',h_i)
-	# 	print('m: ',m)
-	# 	return h_i 
 
 	def get_measurements(self):
 		measurements = []
@@ -304,20 +333,19 @@ class Controller():
 				px = agent.service.x_p
 				py = agent.service.y_p
 				time_of_request = agent.service.time
+				time_diff = self.param.sim_times[self.env.timestep] - time_of_request
 
-				global_state_update = False
+				global_state_update = True
 				if global_state_update:
 					for s in range(self.param.env_ncell):
 						for a in range(self.param.env_naction):
-							next_state = utilities.get_next_state(self.env,s,a)
-							next_state_x,next_state_y = utilities.cell_index_to_cell_coordinate(next_state)
-							wait_cost = self.env.eta(px,py,next_state_x,next_state_y,time_of_request)
-							action_cost = self.param.lambda_a*(not a==0)
-							reward_instance = -1*(wait_cost+action_cost)
 
+							next_state = utilities.get_next_state(self.env,s,a)
 							q_idx = utilities.sa_to_q_idx(s,a)
 							prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
-							measurement[q_idx] = reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
+
+							reward_instance = utilities.reward_instance(self.env,s,a,px,py,time_diff)
+							measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 
 				else:
 
@@ -328,15 +356,12 @@ class Controller():
 						prev_sx,prev_sy = utilities.cell_index_to_cell_coordinate(prev_s)
 						q_idx = utilities.sa_to_q_idx(prev_s,prev_a)
 
-						# this method requires knowledge of the ETA model, whereas previously we only had samples from it.... 
-						wait_cost = self.env.eta(px,py,prev_sx,prev_sy,time_of_request)
-						action_cost = self.param.lambda_a*(not prev_a==0)
-						reward_instance = -1*(wait_cost+action_cost)
+						reward_instance = utilities.reward_instance(self.env,prev_s,prev_a,px,py,0)
 
 						prime_idxs = state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 						prev_idx = prev_s*self.param.env_naction + prev_a
 
-						measurement[q_idx] = reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[prev_idx]
+						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[prev_idx]
 
 			measurements.append((agent,measurement))
 

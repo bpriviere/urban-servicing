@@ -28,14 +28,6 @@ class Sim():
 			observation = env.observe()
 			action = controller.policy(observation)
 			reward,agent_state = env.step(action)
-
-			for agent in env.agents:
-				# print('agent {}: (x,y) = ({},{})'.format(agent.i,agent.x,agent.y))
-				# print('agent {}: v = {}'.format(agent.i,agent.v))
-				print('agent {}: q = {}'.format(agent.i,agent.q))
-
-				# for cgm in env.cgm_lst:
-			# 	print('cgm {}: (x,y) = ({},{})'.format(cgm.i,cgm.x,cgm.y))
 			
 			time_lst.append(time)
 			reward_lst.append(reward)
@@ -46,7 +38,13 @@ class Sim():
 		if not param.env_render_on:
 			env.render()
 
-		return time_lst,reward_lst,agent_operation_lst,agent_locations_lst,agent_q_values_lst
+		times = np.asarray(time_lst)
+		rewards = np.asarray(reward_lst)
+		agent_operations = np.asarray(agent_operation_lst)
+		agent_locations = np.asarray(agent_locations_lst)
+		agent_q_values = np.asarray(agent_q_values_lst)
+
+		return times,rewards,agent_operations,agent_locations,agent_q_values
 
 
 if __name__ == '__main__':
@@ -88,7 +86,12 @@ if __name__ == '__main__':
 		sim_result = SimResult._make((controller_name,)+sim.run(controller))
 		sim_results.append(sim_result)
 
+
+	for sim_result in sim_results:
+		plotter.plot_distribution_over_time(sim_result, env)
+
 	plotter.plot_sim_rewards(sim_results)
+
 	plotter.save_figs(param.plot_fn)
 	plotter.open_figs(param.plot_fn)
 

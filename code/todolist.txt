@@ -2,14 +2,30 @@
 
 
 todo list:	
-
-	gradient step
+	speed up code
 	make RHC baseline
+	make bellman baseline
+	Why does ctd perform worse than dtd? ( -> too small of an experiment?? , )
+	distributed auction task assignment
+	better vis: 
+		- new customer distribution at each timestep
+		- compare to q value distribution at each timestep
+		- compare to agent density distribution at each timestep 
+		- one colorbar
+		
+
 	real taxi datasets
 	writeup
 	
-	
 done: 
+	minor refactoring (step -> env)
+	gradient step
+		- compare against mdp calc of q at each timestep
+		- check ckif
+		- use plotting tool to plot q values of ckif next to dkif
+		- check dkif
+		- implement plotting of various sim results 
+	request extension
 	add decay of tau parameter in blll to force convergence
 	solve mdp solution as part of training dataset 
 	make mdp solver more robust/debug mdp solver error message:
@@ -26,10 +42,10 @@ done:
 
 
 title:
-~online optimal dispatch with distributed reinforcement learning 
+~"optimal dispatch of urban taxi fleets with distributed online reinforcement learning"
 	tabular (finite dimensional state/action space -> consensus methods) 
 	distributed cell based mdp 
-	temporal difference methods (you need to address that math paper that just came out...)
+	temporal difference methods (you need to address that math paper that just came out that does D-TD...)
 
 
 scratch thinking:

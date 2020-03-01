@@ -97,7 +97,7 @@ def binary_log_learning(env,agents):
 			break
 			exit('blll not converging')
 
-	print('blll count: ',count)
+	print('   blll count: ',count)
 	for agent in agents:
 		cell_assignments.append((agent,agent.cell_action))
 	return cell_assignments

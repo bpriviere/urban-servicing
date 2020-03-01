@@ -19,7 +19,8 @@ class DataHandler:
 
 	def make_dataset(self,env):
 		if env.name is 'gridworld':
-			self.make_gridworld_dataset(env)
+			# self.make_gridworld_dataset(env)
+			env.make_dataset()
 			return 
 		elif env.name is 'chicago':
 			self.make_chicago_dataset(env)
@@ -39,58 +40,13 @@ class DataHandler:
 		elif self.param.env_name is 'chicago':
 			return self.load_chicago_dataset(env)
 
-
-	def make_gridworld_dataset(self,env):
-		# make dataset that will be used for training and testing
-		# training time: [tf_train,0]
-		# testing time:  [0,tf_sim]
-
-		tf_train = int(self.param.n_training_data/self.param.n_customers_per_time)
-		tf_sim = max(1,int(self.param.sim_times[-1]))
-
-		# 'move' gaussians around for full simulation time 
-		env.run_cm_model()
-
-		# training dataset part 
-		dataset = []
-		customer_time_array_train = np.arange(-tf_train,0,1,dtype=int)
-		for time in customer_time_array_train:
-			for customer in range(self.param.n_customers_per_time):
-				time_of_request = time + np.random.random()
-				x_p,y_p = env.sample_cm(0)
-				x_d,y_d = utilities.random_position_in_world()
-				time_to_complete = env.eta(x_p,y_p,x_d,y_d,time)
-				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
-
-		# testing dataset part 
-		customer_time_array_sim = np.arange(0,tf_sim,1,dtype=int)
-		for time in customer_time_array_sim:
-			for customer in range(self.param.n_customers_per_time):
-				timestep = int(np.floor(time/env.param.sim_dt))
-				time_of_request = time + np.random.random()
-				x_p,y_p = env.sample_cm(timestep)
-				x_d,y_d = utilities.random_position_in_world()
-				time_to_complete = env.eta(x_p,y_p,x_d,y_d,time)
-				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
-
-		# solve mdp
-		dataset = np.array(dataset)
-		train_dataset = dataset[dataset[:,0]<0,:]
-		v,q = utilities.solve_MDP(env,train_dataset)
-		
-		self.dataset = dataset
-		self.v = v
-		self.q = q 
-		
-
 	def write_gridworld_dataset(self,env):
 		with open("../data/gridworld/customer_requests.npy", "wb") as f:
-			np.save(f, self.dataset)
+			np.save(f, env.dataset)
 		with open("../data/gridworld/value_fnc_training.npy", "wb") as f:
-			np.save(f, self.v)	
+			np.save(f, env.v0)	
 		with open("../data/gridworld/q_values_training.npy", "wb") as f:
-			np.save(f, self.q)
-
+			np.save(f, env.q0)
 
 	def load_gridworld_dataset(self,env):
 		f = "../data/gridworld/customer_requests.npy"

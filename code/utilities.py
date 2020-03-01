@@ -58,8 +58,8 @@ def random_position_in_cell(i):
 
 
 def random_position_in_world():	
-	x = random()*(param.env_x[-1]-param.env_x[0]) + param.env_x[0]
-	y = random()*(param.env_y[-1]-param.env_y[0]) + param.env_y[0]
+	x = random()*(param.env_dx+param.env_x[-1]-param.env_x[0]) + param.env_x[0]
+	y = random()*(param.env_dy+param.env_y[-1]-param.env_y[0]) + param.env_y[0]
 	return x,y 
 
 
@@ -76,11 +76,6 @@ def softmax(x):
 
 
 def value_to_probability(x):
-	# print(x)
-	# print(x/abs(sum(x)))
-	# print(softmax(x))
-	# print(softmax(x/abs(sum(x))))
-	# exit()
 	x = x/abs(sum(x))
 	x = softmax(x)
 	return x
@@ -131,15 +126,27 @@ def get_local_states(env,s):
 	return local 
 
 
+def reward_instance(env,s,a,px,py,time_diff):
+	sp = get_next_state(env,s,a)
+	sx,sy = cell_index_to_cell_coordinate(sp)
+	sx += param.env_dx/2
+	sy += param.env_dy/2
+	cwt = env.eta(px,py,sx,sy)
+	action_cost = param.lambda_a*(not a==0)
+	cost = cwt + action_cost 
+	reward = -1*cost*param.lambda_r**(np.abs(time_diff))
+	return reward
+
+
 # mdp stuff 
-def solve_MDP(env,dataset):
+def solve_MDP(env,dataset,curr_time):
 	print('solve_MDP:')
 
 	print('   get_MDP_P...')
 	P = get_MDP_P(env) # in AxSxS
 	print('   get_MDP_P complete')
 	print('   get_MDP_R...')
-	R = get_MDP_R(env,dataset) # in SxA
+	R = get_MDP_R(env,dataset,curr_time) # in SxA
 	print('   get_MDP_R complete')	
 	print('   value iteration...')
 	mdp = ValueIteration(P,R,env.param.mdp_gamma,env.param.mdp_eps,env.param.mdp_max_iter)
@@ -169,7 +176,7 @@ def get_MDP_Q(env,R,V,gamma):
 			Q[idx] = R[s,a] + gamma*V[next_state]
 	return Q 
 
-def q_value_to_value_fnc(q):
+def q_value_to_value_fnc(env,q):
 	v = np.zeros(param.env_ncell)
 	for s in range(env.param.env_ncell):
 		idx = s*param.env_naction + np.arange(0,param.env_naction)
@@ -225,41 +232,28 @@ def get_MDP_P(env):
 	return P  
 
 
-def get_MDP_R(env,dataset):
+def get_MDP_R(env,dataset,curr_time):
 	# R in SxA
 	R = np.zeros((env.param.env_ncell,env.param.env_naction))
 	P = get_MDP_P(env)
 
+	count = 0
 	for data in dataset:
 		
 		tor = data[0]
+		time_diff = curr_time - tor
+
+		if time_diff < 0:
+			break
+
+		count += 1
 		px = data[2]
 		py = data[3]
 
-		# print('(px,py): ({},{})'.format(px,py))
-
 		for s in range(env.param.env_ncell):
 			for a in range(env.param.env_naction):
-				next_state = np.where(P[a,s,:] == 1)[0][0]
-				sx,sy = cell_index_to_cell_coordinate(next_state)
-				sx += env.param.env_dx/2
-				sy += env.param.env_dy/2
-				cwt = env.eta(px,py,sx,sy,tor)
-				action_cost = param.lambda_a*(not a==0)
-				cost = cwt + action_cost 
-				R[s,a] += -1*cost*env.param.mdp_lambda_r**(np.abs(tor))
-				# R[s,a] += -1*cwt
+				R[s,a] += reward_instance(env,s,a,px,py,time_diff)
 
-				# print('(s,a,next_state): ({},{},{})'.format(s,a,next_state))
-				# print('(sx,sy): ({},{})'.format(sx,sy))
-				# print('cwt: ', cwt)
-
-	# R /= len(dataset)
-
-	# for s in range(env.param.env_ncell):
-	# 	print('s: ',s)
-	# 	print('P[:,s,:]: ',P[:,s,:])
-	# print('R: ',R)
-	# exit()
-
+	if count > 0 :
+		R /= count
 	return R  
