@@ -1,23 +1,39 @@
 
 
+TODOOOOOOOOOOOOOOOOOOOOOO
+	- turn off peptide logic computer and set up turn on system
+	- send meeting followup email 
+
 
 todo list:	
-	speed up code
+	
+	debug value function: each algorithm values should track the customer distribution 
+
+	make sim_result a python dictionary 
+
+	distributed auction task assignment
+	
+	debug task assignment: agent distribution should track value func distribution (close to q value) 
+
+	grayscale colorbar
+
+	refactoring:
+		- easy to add stuff to sim_results, make a results object? 
+		- easy to plot from object? 
+
+	Why does ctd perform worse than dtd? ( -> too small of an experiment?? , one of infinitely many bugs.... ask yourself again after full debugging)
+
+	make real taxi dataset environment real taxi datasets
+	writeup
+	
+done: 
 	make RHC baseline
 	make bellman baseline
-	Why does ctd perform worse than dtd? ( -> too small of an experiment?? , )
-	distributed auction task assignment
 	better vis: 
 		- new customer distribution at each timestep
 		- compare to q value distribution at each timestep
 		- compare to agent density distribution at each timestep 
 		- one colorbar
-		
-
-	real taxi datasets
-	writeup
-	
-done: 
 	minor refactoring (step -> env)
 	gradient step
 		- compare against mdp calc of q at each timestep

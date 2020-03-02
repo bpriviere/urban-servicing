@@ -11,14 +11,26 @@ from controller import Controller
 import plotter 
 
 class Sim():
+	# this class should interface high level python code with low level input/outputs i.e. npy files
+
+
 	def __init__(self,param,env):
 		self.param = param
 		self.env = env
 		
 	def run(self,controller):
-		
-		time_lst,reward_lst,agent_operation_lst,agent_locations_lst,agent_q_values_lst = [],[],[],[],[]
+			
+		results = dict()
+		results["times"] = []
+		results["rewards"] = []
+		for key in self.param.state_keys:
+			results[key] = [] 
+
 		env.reset()
+		
+		if not param.env_render_on:
+			env.render()
+
 		for step,time in enumerate(param.sim_times[:-1]):
 			print('t = {}/{}'.format(time,param.sim_times[-1]))
 	
@@ -27,24 +39,14 @@ class Sim():
 
 			observation = env.observe()
 			action = controller.policy(observation)
-			reward,agent_state = env.step(action)
-			
-			time_lst.append(time)
-			reward_lst.append(reward)
-			agent_operation_lst.append(agent_state.agent_operation)
-			agent_locations_lst.append(agent_state.agent_locations)
-			agent_q_values_lst.append(agent_state.agent_q_values)
+			reward,state = env.step(action)
 
-		if not param.env_render_on:
-			env.render()
+			results["times"].append(time)
+			results["rewards"].append(reward)
+			for key in self.param.state_keys:
+				results[key].append(state[key])
 
-		times = np.asarray(time_lst)
-		rewards = np.asarray(reward_lst)
-		agent_operations = np.asarray(agent_operation_lst)
-		agent_locations = np.asarray(agent_locations_lst)
-		agent_q_values = np.asarray(agent_q_values_lst)
-
-		return times,rewards,agent_operations,agent_locations,agent_q_values
+		return results
 
 
 if __name__ == '__main__':
@@ -72,9 +74,8 @@ if __name__ == '__main__':
 	print('loading dataset...')
 	datahandler.load_dataset(env)
 
-	# controller/sim 
-	SimResult = namedtuple('SimResult',['name','times','rewards','agent_operation','agent_locations','agent_q_values'])	
-	sim_results = []
+	# sim each controller
+	sim_results = dict()
 	for controller_name in param.controllers:
 
 		# policy 
@@ -83,14 +84,13 @@ if __name__ == '__main__':
 
 		# simulation 
 		sim = Sim(param,env)
-		sim_result = SimResult._make((controller_name,)+sim.run(controller))
-		sim_results.append(sim_result)
+		sim_results[controller_name] = sim.run(controller)
 
+	for controller_name, sim_result in sim_results.items():
+		plotter.sim_plot_over_time(controller_name,sim_result)
+		print(env.dataset)
 
-	for sim_result in sim_results:
-		plotter.plot_distribution_over_time(sim_result, env)
-
-	plotter.plot_sim_rewards(sim_results)
+	# plotter.plot_sim_rewards(sim_results)
 
 	plotter.save_figs(param.plot_fn)
 	plotter.open_figs(param.plot_fn)

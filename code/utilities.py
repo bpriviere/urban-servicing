@@ -126,35 +126,51 @@ def get_local_states(env,s):
 	return local 
 
 
-def reward_instance(env,s,a,px,py,time_diff):
+def reward_instance(env,s,a,px,py):
+
+	# input 
+	# 	-env: 
+	#	-s: current state
+	# 	-a: action
+	# 	-px,py: x,y position of customer data
+	# output
+	# 	-reward: customer waiting time 
+	
 	sp = get_next_state(env,s,a)
-	sx,sy = cell_index_to_cell_coordinate(sp)
+	spx,spy = cell_index_to_cell_coordinate(sp)
+	spx += param.env_dx/2
+	spy += param.env_dy/2
+	sx,sy = cell_index_to_cell_coordinate(s)
 	sx += param.env_dx/2
 	sy += param.env_dy/2
-	cwt = env.eta(px,py,sx,sy)
-	action_cost = param.lambda_a*(not a==0)
-	cost = cwt + action_cost 
-	reward = -1*cost*param.lambda_r**(np.abs(time_diff))
-	return reward
 
+	time_s_to_sp = env.eta(sx,sy,spx,spy)
+	time_sp_to_c = env.eta(spx,spy,px,py)
+	reward = -1*(time_s_to_sp + time_sp_to_c)
+	
+	# action_cost = param.lambda_a*(not a==0)
+	# cost = cwt + action_cost 
+
+	return reward
 
 # mdp stuff 
 def solve_MDP(env,dataset,curr_time):
-	print('solve_MDP:')
 
-	print('   get_MDP_P...')
+	# print('solve_MDP:')
+
+	# print('   get_MDP_P...')
 	P = get_MDP_P(env) # in AxSxS
-	print('   get_MDP_P complete')
-	print('   get_MDP_R...')
+	# print('   get_MDP_P complete')
+	# print('   get_MDP_R...')
 	R = get_MDP_R(env,dataset,curr_time) # in SxA
-	print('   get_MDP_R complete')	
-	print('   value iteration...')
+	# print('   get_MDP_R complete')	
+	# print('   value iteration...')
 	mdp = ValueIteration(P,R,env.param.mdp_gamma,env.param.mdp_eps,env.param.mdp_max_iter)
 	# mdp = ValueIterationGS(P, R, env.param.mdp_gamma, epsilon=env.param.mdp_eps, max_iter=env.param.mdp_max_iter)
-	mdp.setVerbose()
+	# mdp.setVerbose()
 	mdp.run()
-	print('   value iteration complete')
-	print('mdp.V: ',mdp.V)
+	# print('   value iteration complete')
+	# print('mdp.V: ',mdp.V)
 	# print('mdp: ',mdp)
 	# print('mdp.policy: ',mdp.policy)
 	# exit()
@@ -238,6 +254,7 @@ def get_MDP_R(env,dataset,curr_time):
 	P = get_MDP_P(env)
 
 	count = 0
+	time_discount_sum = np.ones(R.shape)
 	for data in dataset:
 		
 		tor = data[0]
@@ -252,8 +269,14 @@ def get_MDP_R(env,dataset,curr_time):
 
 		for s in range(env.param.env_ncell):
 			for a in range(env.param.env_naction):
-				R[s,a] += reward_instance(env,s,a,px,py,time_diff)
+				
+				time_discount = env.param.lambda_r**time_diff
+				R[s,a] += reward_instance(env,s,a,px,py)*time_discount
+				time_discount_sum[s,a] += time_discount
 
 	if count > 0 :
 		R /= count
+
+	R = R/time_discount_sum
+
 	return R  

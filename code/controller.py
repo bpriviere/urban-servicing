@@ -81,7 +81,7 @@ class Controller():
 				observation.remove(service)
 				available_agents.remove(self.env.agents[assignment])
 			else:
-				print('    not serviced: ', service)
+				# print('    not serviced: ', service)
 				service.time_before_assignment += self.param.sim_dt
 
 
@@ -153,9 +153,27 @@ class Controller():
 		# belllman iteration update law
 		
 		# update
-		v,q = utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
-		for agent in agents:
-			agent.q = q
+		v,q_bellman = utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
+
+		# print(v.shape)
+		# print(q_bellman.shape)
+
+		# for i_a,agent in enumerate(agents):
+		# 	if i_a > 0:
+		# 		print('q_i - q_j = ', agent.q - last_q)
+		# 	last_q = agent.q
+
+		for agent in self.env.agents:
+			agent.q = q_bellman
+
+			# print('controller.bellman: agent {} q {}'.format(agent.i,agent.q))
+
+		# for i_a,agent in enumerate(agents):
+		# 	if i_a > 0:
+		# 		print('q_i - q_j = ', agent.q - last_q)
+		# 	last_q = agent.q
+		# exit()
+
 
 		# task assignment 
 		cell_assignments = binary_log_learning(self.env,agents)
@@ -344,24 +362,25 @@ class Controller():
 							q_idx = utilities.sa_to_q_idx(s,a)
 							prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 
-							reward_instance = utilities.reward_instance(self.env,s,a,px,py,time_diff)
+							reward_instance = utilities.reward_instance(self.env,s,a,px,py)
+
 							measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 
-				else:
+				# else:
 
-					state = utilities.coordinate_to_cell_index(agent.x,agent.y)
-					prev_sa_lst = utilities.get_prev_sa_lst(self.env,state)
+				# 	state = utilities.coordinate_to_cell_index(agent.x,agent.y)
+				# 	prev_sa_lst = utilities.get_prev_sa_lst(self.env,state)
 
-					for prev_s,prev_a in prev_sa_lst:
-						prev_sx,prev_sy = utilities.cell_index_to_cell_coordinate(prev_s)
-						q_idx = utilities.sa_to_q_idx(prev_s,prev_a)
+				# 	for prev_s,prev_a in prev_sa_lst:
+				# 		prev_sx,prev_sy = utilities.cell_index_to_cell_coordinate(prev_s)
+				# 		q_idx = utilities.sa_to_q_idx(prev_s,prev_a)
 
-						reward_instance = utilities.reward_instance(self.env,prev_s,prev_a,px,py,0)
+				# 		reward_instance = utilities.reward_instance(self.env,prev_s,prev_a,px,py)
 
-						prime_idxs = state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
-						prev_idx = prev_s*self.param.env_naction + prev_a
+				# 		prime_idxs = state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
+				# 		prev_idx = prev_s*self.param.env_naction + prev_a
 
-						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[prev_idx]
+				# 		measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[prev_idx]
 
 			measurements.append((agent,measurement))
 

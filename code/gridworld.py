@@ -27,21 +27,6 @@ class GridWorld():
 			self.agents.append(Agent(i,x,y,self.v0,self.q0))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
-	# def init_cm(self):
-	# 	# initialize customer model GMM
-	# 	nt = len(self.param.sim_times) 
-	# 	cgm_lst = []
-	# 	for i in range(self.param.cm_ng):
-	# 		if False:
-	# 			x0,y0 = utilities.random_position_in_world()
-	# 		else:
-	# 			x0,y0 = [self.param.env_x[1]/2, self.param.env_dy/2]
-	# 		cgm_lst.append(
-	# 			Gaussian(i,x0,y0,self.param.cm_sigma,self.param.cm_speed, nt))
-	# 		print('cgm {} initialized at (x,y) = ({},{})'.format(i,x0,y0))
-	# 	self.cgm_lst = cgm_lst
-
-
 	def render(self,title=None):
 		time=self.param.sim_times[self.timestep]
 
@@ -106,6 +91,7 @@ class GridWorld():
 
 	def step(self,actions):
 
+		# update environment
 		time = self.param.sim_times[self.timestep]
 		wait_time = 0 
 		for i_agent, agent in enumerate(self.agents):
@@ -113,20 +99,39 @@ class GridWorld():
 			wait_time += self.agent_step(agent,action)
 		reward = -wait_time 
 		
-		AgentState = namedtuple('AgentState',['agent_operation','agent_locations','agent_q_values'])
-		agent_operation = np.empty(self.param.ni)
-		agent_locations = np.empty((self.param.ni,2))
-		agent_q_values = np.empty((self.param.ni,self.param.nq))
+		# extract state with numpy arrays
+		# - agent states
+		agents_operation = np.empty(self.param.ni)
+		agents_location = np.empty((self.param.ni,2))
+		agents_value_fnc_vector = np.empty((self.param.ni,self.param.env_ncell))
+
 		for agent in self.agents:
-			agent_operation[agent.i] = agent.mode
-			agent_locations[agent.i,:] = [agent.x,agent.y]
-			agent_q_values[agent.i,:] = agent.q
+			agents_operation[agent.i] = agent.mode
+			agents_location[agent.i,:] = [agent.x,agent.y]
+			agents_value_fnc_vector[agent.i,:] = utilities.q_value_to_value_fnc(self,agent.q)
 
-		agent_state = AgentState._make((agent_operation,agent_locations,agent_q_values))
+			# print('gridworld.reward: agent {} q {}'.format(agent.i,agent.q))
 
+		# - customer states
+		customers_location = self.get_curr_customer_locations()
+
+		# - distributions 
+		gmm_distribution = self.get_curr_im_gmm()
+		agents_distribution = self.get_curr_im_agents()
+		agents_value_fnc_distribution = self.get_curr_im_value()
+
+		# put desired numpy arrays into dictionary
+		state = dict()
+		for state_key in self.param.state_keys:
+			# print(state_key)
+			# print(eval(state_key))
+			state[state_key] = eval(state_key)
+
+		# print('state: ', state)
+
+		# increment timestep
 		self.timestep += 1
-
-		return reward, agent_state
+		return reward, state
 
 	def eta_cell(self,i,j,t):
 		# expected time of arrival between two states (i,j), at given time (t)
@@ -141,59 +146,6 @@ class GridWorld():
 	def eta(self,x_i,y_i,x_j,y_j):
 		dist = np.linalg.norm([x_i-x_j,y_i-y_j])
 		return dist/self.param.taxi_speed
-
-	# def sample_cm(self,timestep):
-	# 	# sample multimodal gaussian model
-
-	# 	# weight vector 
-	# 	w = np.ones((self.param.cm_ng))/self.param.cm_ng
-	# 	# sample w 
-	# 	i = np.random.choice(self.param.cm_ng,p=w)
-	# 	# sample ith gaussian model of cgm_lst
-	# 	x,y = self.cgm_lst[i].sample(timestep)
-	# 	return x,y
-
-
-	# def move_cm(self,timestep):
-	# 	# move gaussians
-
-	# 	dt = self.param.sim_dt 
-	# 	for cgm in self.cgm_lst:
-	# 		if False:
-	# 			th = np.random.random()*2*np.pi
-	# 		else:
-	# 			th = 0 
-	# 		unit_vec = np.array([np.cos(th),np.sin(th)])
-	# 		move = cgm.v*dt*unit_vec
-	# 		p = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
-	# 		p = utilities.environment_barrier(p)
-	# 		safe_move = [p[0] - cgm.x[timestep], p[1] - cgm.y[timestep]]
-	# 		cgm.move(safe_move,timestep)
-
-	# def run_cm_model(self):
-	# 	for step,t in enumerate(self.param.sim_times[:-1]):
-	# 		self.move_cm(step)
-
-	# def eval_cm(self,timestep):
-	# 	# input: 
-	# 	# 	- self : env
-	# 	# 	- t : time (OR TIMESTEP???)
-	# 	# output: 
-	# 	# 	- cm : customer model probability matrix with shape: (env_nx,env_ny), where sum(sum(cm)) = 1 
-
-	# 	# for cgm in self.cgm_lst:
-	# 	# 	print('(cgm.x,cgm.y) = ({},{})'.format(cgm.x,cgm.y))
-
-	# 	cm = np.zeros((self.param.env_nx,self.param.env_ny))
-	# 	for i in range(self.param.cm_nsample_cm):
-	# 		x,y = self.sample_cm(timestep)
-	# 		x,y = utilities.environment_barrier([x,y])
-	# 		i_x,i_y = utilities.coordinate_to_xy_cell_index(x,y)
-	# 		cm[i_x,i_y] += 1
-
-	# 	# normalize
-	# 	cm = cm/sum(sum(cm))
-	# 	return cm 
 
 	def make_dataset(self):
 		# make dataset that will be used for training and testing
@@ -341,30 +293,170 @@ class GridWorld():
 		return wait_time
 
 
-	def get_im_v(self,timestep,results):
+	# def get_im_v(self,timestep,results):
 
-		agent_idx = 0
-		q_values = results.agent_q_values[timestep,agent_idx,:]
+	# 	agent_idx = 0
+	# 	q_values = results.agent_q_values[timestep,agent_idx,:]
 		
+	# 	# im is [nx,ny] where im[0,0] is bottom left
+	# 	v = utilities.q_value_to_value_fnc(self,q_values)
+	# 	# normalize here
+	# 	# v = v/min(v) 
+	# 	v = (v-min(v))/(max(v)-min(v))
+		
+	# 	im_v = np.zeros((self.param.env_nx,self.param.env_ny))
+	# 	for i in range(self.param.env_ncell):
+	# 		i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
+	# 		im_v[i_x,i_y] = v[i]
+		
+	# 	im_v = im_v.T
+	# 	im_v = np.flipud(im_v)
+	# 	return im_v
+
+	# def get_im_gmm(self,timestep):
+
+	# 	# im is [nx,ny] where im[0,0] is bottom left
+	# 	im_gmm = self.cm.eval_cm(timestep)
+		
+	# 	# im coordinates
+	# 	im_gmm = im_gmm.T
+	# 	im_gmm = np.flipud(im_gmm)
+
+	# 	return im_gmm
+
+	# def get_im_agent(self,timestep):
+
+	# 	locs = np.zeros((self.param.ni,2))
+	# 	for agent in self.agents:
+
+
+	# 	locs = results.agent_locations[timestep,:,:]
+
+	# 	# im is [nx,ny] where im[0,0] is bottom left
+	# 	im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
+	# 	for agent in self.agents:
+	# 		i = agent.i
+	# 		idx_x,idx_y = utilities.coordinate_to_xy_cell_index(
+	# 			locs[agent.i,0],
+	# 			locs[agent.i,1])
+	# 		im_agent[idx_x][idx_y] += 1
+
+	# 	# normalize
+	# 	im_agent = im_agent / self.param.ni
+
+	# 	# im coordinates
+	# 	im_agent = im_agent.T
+	# 	im_agent = np.flipud(im_agent)
+
+	# 	return im_agent
+
+	# def get_im_free_agent(self,timestep):
+
+	# 	locs = results.agent_locations[timestep,:,:]
+	# 	modes = results.agent_operation[timestep,:]
+
+	# 	# im is [nx,ny] where im[0,0] is bottom left
+	# 	im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
+	# 	count_agent = 0
+	# 	for agent in self.agents:
+	# 		i = agent.i
+	# 		if modes[i] in [0,3]:
+	# 			idx_x,idx_y = utilities.coordinate_to_xy_cell_index(
+	# 				locs[agent.i,0],
+	# 				locs[agent.i,1])
+	# 			im_agent[idx_x][idx_y] += 1
+	# 			count_agent += 1
+
+	# 	# normalize
+	# 	if count_agent > 0:
+	# 		im_agent = im_agent / count_agent
+
+	# 	# im coordinates
+	# 	im_agent = im_agent.T
+	# 	im_agent = np.flipud(im_agent)
+
+	# 	return im_agent
+
+	# def get_im_customer(self,timestep):
+		
+	# 	im_cd = env.get_im_customer(timestep)
+
+	# 	# todo... add customer locations to results??
+
+	# 	locs = results.agent_locations[timestep,:,:]
+	# 	modes = results.agent_operation[timestep,:]
+
+	# 	# im is [nx,ny] where im[0,0] is bottom left
+	# 	im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
+	# 	count_agent = 0
+	# 	for agent in self.agents:
+	# 		i = agent.i
+	# 		if modes[i] in [0,3]:
+	# 			idx_x,idx_y = utilities.coordinate_to_xy_cell_index(
+	# 				locs[agent.i,0],
+	# 				locs[agent.i,1])
+	# 			im_agent[idx_x][idx_y] += 1
+	# 			count_agent += 1
+
+	# 	# normalize
+	# 	if count_agent > 0:
+	# 		im_agent = im_agent / count_agent
+
+	# 	# im coordinates
+	# 	im_agent = im_agent.T
+	# 	im_agent = np.flipud(im_agent)
+
+	# 	return im_agent
+
+	# def get_customer_locations(self,timestep):
+		
+	# 	# customer_locations = np.zeros((self.param.env_nx,self.param.env_ny))
+	# 	customer_locations = []
+	# 	t0 = self.param.sim_times[timestep]
+	# 	t1 = self.param.sim_times[timestep+1]
+	# 	idxs = np.multiply(self.dataset[:,0] >= t0, self.dataset[:,0] < t1, dtype=bool)
+	# 	count = 0 
+	# 	for data in self.dataset[idxs,:]:
+	# 		count += 1
+
+	# 		tor = data[0]
+	# 		px = data[2]
+	# 		py = data[3]
+
+	# 		customer_locations.append([px,py])
+
+	# 	customer_locations = np.asarray(customer_locations)
+
+	# 	if count > 0 :
+	# 		customer_locations /= count
+
+	# 	return customer_locations
+
+	def get_curr_im_value(self):
+
+		value_fnc_ims = np.zeros((self.param.ni,self.param.env_ny,self.param.env_nx))
+		for agent in self.agents:
+
+			# get value
+			value_fnc_i = utilities.q_value_to_value_fnc(self,agent.q)
+			# normalize
+			value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
+			# convert to im
+			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
+			for i in range(self.param.env_ncell):
+				i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
+				im_v[i_x,i_y] = value_fnc_i[i]
+			# convert to im coordinates ? 
+			im_v = im_v.T
+			im_v = np.flipud(im_v)
+			# add
+			value_fnc_ims[agent.i,:,:] = im_v
+		return value_fnc_ims
+
+	def get_curr_im_gmm(self):
+
 		# im is [nx,ny] where im[0,0] is bottom left
-		v = utilities.q_value_to_value_fnc(self,q_values)
-		# normalize here
-		# v = v/min(v) 
-		v = (v-min(v))/(max(v)-min(v))
-		
-		im_v = np.zeros((self.param.env_nx,self.param.env_ny))
-		for i in range(self.param.env_ncell):
-			i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
-			im_v[i_x,i_y] = v[i]
-		
-		im_v = im_v.T
-		im_v = np.flipud(im_v)
-		return im_v
-
-	def get_im_gmm(self,timestep):
-
-		# im is [nx,ny] where im[0,0] is bottom left
-		im_gmm = self.cm.eval_cm(timestep)
+		im_gmm = self.cm.eval_cm(self.timestep)
 		
 		# im coordinates
 		im_gmm = im_gmm.T
@@ -372,9 +464,12 @@ class GridWorld():
 
 		return im_gmm
 
-	def get_im_agent(self,timestep,results):
+	def get_curr_im_agents(self):
 
-		locs = results.agent_locations[timestep,:,:]
+		locs = np.zeros((self.param.ni,2))
+		for agent in self.agents:
+			locs[0] = agent.x
+			locs[1] = agent.y
 
 		# im is [nx,ny] where im[0,0] is bottom left
 		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
@@ -394,10 +489,14 @@ class GridWorld():
 
 		return im_agent
 
-	def get_im_free_agent(self,timestep,results):
+	def get_curr_im_free_agents(self,timestep):
 
-		locs = results.agent_locations[timestep,:,:]
-		modes = results.agent_operation[timestep,:]
+		locs = np.zeros((self.param.ni,2))
+		modes = np.zeros((self.param.ni))
+		for agent in self.agents:
+			locs[agent.i,0] = agent.x
+			locs[agent.i,1] = agent.y
+			modes[agent.i] = agent.mode
 
 		# im is [nx,ny] where im[0,0] is bottom left
 		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
@@ -420,3 +519,27 @@ class GridWorld():
 		im_agent = np.flipud(im_agent)
 
 		return im_agent
+
+	def get_curr_customer_locations(self):
+		
+		# customers_location = np.zeros((self.param.env_nx,self.param.env_ny))
+		customers_location = []
+		t0 = self.param.sim_times[self.timestep]
+		t1 = self.param.sim_times[self.timestep+1]
+		idxs = np.multiply(self.dataset[:,0] >= t0, self.dataset[:,0] < t1, dtype=bool)
+		count = 0 
+		for data in self.dataset[idxs,:]:
+			count += 1
+
+			tor = data[0]
+			px = data[2]
+			py = data[3]
+
+			customers_location.append([px,py])
+
+		customers_location = np.asarray(customers_location)
+
+		if count > 0 :
+			customers_location /= count
+
+		return customers_location	
