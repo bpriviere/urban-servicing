@@ -170,9 +170,9 @@ def plot_sim_rewards(sim_results):
 
 	fig1,ax1 = make_fig()
 	fig2,ax2 = make_fig()
-	for sim_result in sim_results:
-		ax1.plot(sim_result.times, sim_result.rewards, label=sim_result.name)
-		ax2.plot(sim_result.times, np.cumsum(sim_result.rewards), label=sim_result.name)
+	for controller_name, sim_result in sim_results.items():
+		ax1.plot(sim_result["times"], sim_result["rewards"], label=controller_name)
+		ax2.plot(sim_result["times"], np.cumsum(sim_result["rewards"]), label=controller_name)
 	ax1.legend()
 	ax2.legend()
 	ax1.set_title('Reward at each timestep')
@@ -240,13 +240,11 @@ def sim_plot(controller_name,results,timestep):
 	fig.suptitle('{} at t/T = {}/{}'.format(controller_name,t,T))
 
 def plot_distribution_over_time(results,env):
-
 	for timestep,time in enumerate(results.times):
 		plot_distribution(results, timestep, env)
 
 def sim_plot_over_time(controller_name,sim_result):
 	for timestep,time in enumerate(sim_result["times"]):
-		print('plot timestep',timestep)
 		sim_plot(controller_name, sim_result, timestep)	
 
 # def plot_sim_results(sim_results, key):

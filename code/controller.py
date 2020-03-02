@@ -49,10 +49,10 @@ class Controller():
 		# - else: action is continue servicing customer, or continue dispatching 
 
 
-		# get available agents (on dispatch or idle)
+		# get available agents (on dispatch or idle or pickup)
 		available_agents = []
 		for agent in self.env.agents:
-			if agent.mode == 0 or agent.mode == 3: 
+			if agent.mode == 0 or agent.mode == 3 or agent.mode == 1: 
 				available_agents.append(agent)
 
 		# get idle agents (to be dispatched)
@@ -155,29 +155,14 @@ class Controller():
 		# update
 		v,q_bellman = utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
 
-		# print(v.shape)
-		# print(q_bellman.shape)
-
-		# for i_a,agent in enumerate(agents):
-		# 	if i_a > 0:
-		# 		print('q_i - q_j = ', agent.q - last_q)
-		# 	last_q = agent.q
-
+		# update all agents
 		for agent in self.env.agents:
 			agent.q = q_bellman
 
-			# print('controller.bellman: agent {} q {}'.format(agent.i,agent.q))
-
-		# for i_a,agent in enumerate(agents):
-		# 	if i_a > 0:
-		# 		print('q_i - q_j = ', agent.q - last_q)
-		# 	last_q = agent.q
-		# exit()
-
-
-		# task assignment 
+		# assignment = (agent, cell) for all free agents
 		cell_assignments = binary_log_learning(self.env,agents)
-		# assignment 
+
+		# assignment = (agent, action) for all agents in cell assignments
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
 		return move_assignments 
 

@@ -58,15 +58,15 @@ def random_position_in_cell(i):
 
 
 def random_position_in_world():	
-	x = random()*(param.env_dx+param.env_x[-1]-param.env_x[0]) + param.env_x[0]
-	y = random()*(param.env_dy+param.env_y[-1]-param.env_y[0]) + param.env_y[0]
+	x = random()*(param.env_xlim[1] - param.env_xlim[0]) + param.env_xlim[0]
+	y = random()*(param.env_ylim[1] - param.env_ylim[0]) + param.env_ylim[0]
 	return x,y 
 
 
 def environment_barrier(p):
 	eps = 1e-16
-	x = np.clip(p[0],param.env_x[0]+eps,param.env_x[-1]+param.env_dx-eps)
-	y = np.clip(p[1],param.env_y[0]+eps,param.env_y[-1]+param.env_dy-eps)
+	x = np.clip(p[0],param.env_xlim[0]+eps,param.env_xlim[1]-eps)
+	y = np.clip(p[1],param.env_ylim[0]+eps,param.env_ylim[1]-eps)
 	return x,y
 
 

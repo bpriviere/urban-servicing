@@ -1,25 +1,16 @@
 
 
-TODOOOOOOOOOOOOOOOOOOOOOO
-	- turn off peptide logic computer and set up turn on system
-	- send meeting followup email 
 
-
-todo list:	
+todo list (deadline in 3 weeks, gridworld deadline in 1 week):
 	
-	debug value function: each algorithm values should track the customer distribution 
+	debug with plot
+		- fix dataset gen to match gmm 
 
-	make sim_result a python dictionary 
+	debug value function: each algorithm values should track the customer distribution 
 
 	distributed auction task assignment
 	
 	debug task assignment: agent distribution should track value func distribution (close to q value) 
-
-	grayscale colorbar
-
-	refactoring:
-		- easy to add stuff to sim_results, make a results object? 
-		- easy to plot from object? 
 
 	Why does ctd perform worse than dtd? ( -> too small of an experiment?? , one of infinitely many bugs.... ask yourself again after full debugging)
 

@@ -34,10 +34,11 @@ class CustomerModel:
 		nt = len(self.param.sim_times) 
 		cgm_lst = []
 		for i in range(self.param.cm_ng):
-			if not self.param.cm_linear_move:
-				x0,y0 = utilities.random_position_in_world()
+			if self.param.cm_linear_move:
+				x0,y0 = [self.param.env_dx/2, self.param.env_dy/2]
 			else:
-				x0,y0 = [self.param.env_x[1]/2, self.param.env_dy/2]
+				x0,y0 = utilities.random_position_in_world()
+			
 			cgm_lst.append(
 				Gaussian(i,x0,y0,self.param.cm_sigma,self.param.cm_speed, nt))
 			print('cgm {} initialized at (x,y) = ({},{})'.format(i,x0,y0))
@@ -60,10 +61,11 @@ class CustomerModel:
 
 		dt = self.param.sim_dt 
 		for cgm in self.cgm_lst:
-			if not self.param.cm_linear_move:
-				th = np.random.random()*2*np.pi
-			else:
+			if self.param.cm_linear_move:
 				th = 0 
+			else:
+				th = np.random.random()*2*np.pi
+
 			unit_vec = np.array([np.cos(th),np.sin(th)])
 			move = cgm.v*dt*unit_vec
 			p = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]

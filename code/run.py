@@ -11,7 +11,7 @@ from controller import Controller
 import plotter 
 
 class Sim():
-	# this class should interface high level python code with low level input/outputs i.e. npy files
+	# this class should interface high level python code with low level input/outputs i.e. py dict
 
 
 	def __init__(self,param,env):
@@ -28,18 +28,18 @@ class Sim():
 
 		env.reset()
 		
-		if not param.env_render_on:
-			env.render()
+		# if not param.env_render_on:
+		# 	env.render()
 
 		for step,time in enumerate(param.sim_times[:-1]):
 			print('t = {}/{}'.format(time,param.sim_times[-1]))
 	
-			if param.env_render_on:
-				env.render(title='{} at t={}/{}'.format(controller.name,time,param.sim_times[-1]))
-
 			observation = env.observe()
 			action = controller.policy(observation)
 			reward,state = env.step(action)
+
+			if param.env_render_on:
+				env.render(title='{} at t={}/{}'.format(controller.name,time,param.sim_times[-1]))
 
 			results["times"].append(time)
 			results["rewards"].append(reward)
@@ -88,9 +88,9 @@ if __name__ == '__main__':
 
 	for controller_name, sim_result in sim_results.items():
 		plotter.sim_plot_over_time(controller_name,sim_result)
-		print(env.dataset)
+		print(sim_result)
 
-	# plotter.plot_sim_rewards(sim_results)
+	plotter.plot_sim_rewards(sim_results)
 
 	plotter.save_figs(param.plot_fn)
 	plotter.open_figs(param.plot_fn)
