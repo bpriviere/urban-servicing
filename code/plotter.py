@@ -211,11 +211,12 @@ def sim_plot(controller_name,results,timestep):
 				curr_ax.scatter(locs[:,0],locs[:,1])
 
 		elif 'operation' in key:
-			nmode = 4
+			nmode = 2
 			hist = np.zeros((nmode))
 			for i_mode in range(nmode):
-				hist[i_mode] = sum(results[key][timestep] == i_mode)
+				hist[i_mode] = sum(results[key][timestep] == i_mode) / param.ni
 			curr_ax.bar(range(nmode),hist)
+			curr_ax.set_ylim([0,1])
 			plt.xticks(range(nmode),param.mode_names,rotation='vertical')
 
 		if 'distribution' in key or 'location' in key:

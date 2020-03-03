@@ -6,7 +6,6 @@ from mdptoolbox.mdp import PolicyIterationModified
 import numpy as np 
 
 # my package 
-# from agent import Agent, Service
 import plotter 
 import utilities 
 from helper_classes import Gaussian, Agent, Service, Dispatch, Empty, CustomerModel
@@ -28,7 +27,7 @@ class GridWorld():
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
 	def render(self,title=None):
-		time=self.param.sim_times[self.timestep]
+		curr_time=self.param.sim_times[self.timestep]
 
 		fig,ax = plotter.make_fig()
 		ax.set_xticks(self.param.env_x)
@@ -37,7 +36,7 @@ class GridWorld():
 		ax.set_ylim(self.param.env_ylim)
 		ax.set_aspect('equal')
 		if title is None:
-			ax.set_title('t={}/{}'.format(time,self.param.sim_times[-1]))
+			ax.set_title('t={}/{}'.format(curr_time,self.param.sim_times[-1]))
 		else:
 			ax.set_title(title)
 		ax.grid(True)
@@ -51,28 +50,26 @@ class GridWorld():
 			if agent.i == 0:
 				plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
 		
-			# pickup 
-			if agent.mode == 1:
-				plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
-					self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
-				plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
+			# dispatch 
+			if False:
+				if agent.mode == 0 and self.param.plot_arrows_on and self.timestep > 0:
+					if hasattr(agent,'dispatch'):
+						dx = agent.dispatch.x - agent.x
+						dy = agent.dispatch.y - agent.y
+						plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=color)
 
-			# dropoff 
-			elif agent.mode == 2:
-				plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
-					self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
-				plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
-
-			# on dispatch 
-			elif agent.mode == 3 and self.param.plot_arrows_on:	
-				dx = agent.dispatch.x - agent.x
-				dy = agent.dispatch.y - agent.y
-				plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=self.param.plot_customer_color[agent.mode])
-
-		for service in self.observation:
-			# print('service: ', service)
-			plotter.plot_rectangle(service.x_p,service.y_p,self.param.plot_r_customer,fig=fig,ax=ax,\
-				color=self.param.plot_customer_color[1],angle=45)
+				# servicing 
+				elif agent.mode == 1:
+					if curr_time < agent.pickup_finish_time:
+						square_pickup = plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
+							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.customer_color)
+						line_to_pickup = plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,\
+							fig=fig,ax=ax,color=self.param.customer_color)
+					elif curr_time < agent.dropoff_finish_time:
+						square_dropoff = plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
+							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.customer_color)
+						line_to_dropoff = plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,\
+							fig=fig,ax=ax,color=self.param.customer_color)
 
 	def reset(self):
 		self.timestep = 0
@@ -97,6 +94,11 @@ class GridWorld():
 		for i_agent, agent in enumerate(self.agents):
 			action = actions[i_agent]
 			wait_time += self.agent_step(agent,action)
+
+		# penalize not serviced customers
+		for service in self.observation:
+			wait_time += service.time_before_assignment
+
 		reward = -wait_time 
 		
 		# extract state with numpy arrays
@@ -116,6 +118,7 @@ class GridWorld():
 		# - distributions 
 		gmm_distribution = self.get_curr_im_gmm()
 		agents_distribution = self.get_curr_im_agents()
+		free_agents_distribution = self.get_curr_im_free_agents()
 		agents_value_fnc_distribution = self.get_curr_im_value()
 
 		# put desired numpy arrays into dictionary
@@ -126,6 +129,112 @@ class GridWorld():
 		# increment timestep
 		self.timestep += 1
 		return reward, state
+
+	def agent_step(self,agent,action):
+
+		# agent can be assigned a service or a dispatch 
+		# agent updates its state according to its operation (or mode)
+		# mode: 
+		# 	0: free mode. moves agent along move vector
+		# 	1: service mode. moves agent along pickup/dropoff vector
+
+		wait_time = 0 
+
+		# assignment 
+		if isinstance(action,Service):
+			agent.mode = 1 # service mode
+			agent.service = action
+			agent.update = True
+
+			curr_time = self.param.sim_times[self.timestep] 
+			time_to_customer = self.eta(agent.x,agent.y,agent.service.x_p,agent.service.y_p) 
+			wait_time = time_to_customer
+
+			# initialize service
+			agent.pickup_vector = np.array([agent.service.x_p - agent.x, agent.service.y_p-agent.y])
+			agent.pickup_dist = np.linalg.norm(agent.pickup_vector)
+			agent.pickup_vector = agent.pickup_vector / agent.pickup_dist
+			agent.pickup_speed = agent.pickup_dist/time_to_customer
+			agent.pickup_finish_time = curr_time + time_to_customer
+
+			agent.dropoff_vector = np.array([agent.service.x_d - agent.service.x_p,agent.service.y_d-agent.service.y_p])
+			agent.dropoff_dist = np.linalg.norm(agent.dropoff_vector)
+			agent.dropoff_vector = agent.dropoff_vector/agent.dropoff_dist
+			agent.dropoff_speed = agent.dropoff_dist/agent.service.time_to_complete
+			agent.dropoff_finish_time = agent.pickup_finish_time + agent.service.time_to_complete
+
+		elif isinstance(action,Dispatch):
+
+			agent.mode = 0
+			agent.dispatch = action
+			agent.update = False
+
+			# assign dispatch move 
+			curr_time = self.param.sim_times[self.timestep] 
+			time_to_dispatch = self.eta(agent.x,agent.y,agent.dispatch.x,agent.dispatch.y)
+			agent.move_vector = np.array([agent.dispatch.x - agent.x, agent.dispatch.y-agent.y])
+			agent.move_dist = np.linalg.norm(agent.move_vector)
+			agent.move_vector = agent.move_vector/agent.move_dist
+			agent.move_speed = agent.move_dist/time_to_dispatch
+			agent.move_finish_time = curr_time + time_to_dispatch
+
+
+		# update state
+		curr_time = self.param.sim_times[self.timestep]
+		next_time = self.param.sim_times[self.timestep+1]
+		time = self.param.sim_times[self.timestep]
+		dt = next_time - time 
+
+		# dispatch mode 
+		if agent.mode == 0:
+			if next_time > agent.move_finish_time:
+				agent.x = agent.dispatch.x
+				agent.y = agent.dispatch.y
+			else:
+				dt = next_time-time
+				agent.x = agent.x + agent.move_vector[0]*agent.move_speed*dt
+				agent.y = agent.y + agent.move_vector[1]*agent.move_speed*dt
+
+		# service mode 
+		elif agent.mode == 1:
+			
+			# pickup mode 
+			if curr_time < agent.pickup_finish_time:
+				
+				# finish
+				if next_time > agent.pickup_finish_time:
+					agent.x = agent.service.x_p
+					agent.y = agent.service.y_p 
+				
+				# continue
+				else:
+					agent.x += agent.pickup_vector[0]*agent.pickup_speed*dt
+					agent.y += agent.pickup_vector[1]*agent.pickup_speed*dt
+
+			# dropoff mode 
+			elif curr_time < agent.dropoff_finish_time:
+
+				# finish
+				if next_time > agent.dropoff_finish_time:
+					agent.x = agent.service.x_d
+					agent.y = agent.service.y_d 
+					agent.mode = 0
+
+				# continue
+				else:
+					agent.x += agent.dropoff_vector[0]*agent.dropoff_speed*dt
+					agent.y += agent.dropoff_vector[1]*agent.dropoff_speed*dt
+
+			# exit
+			elif curr_time > agent.dropoff_finish_time:
+				agent.x = agent.service.x_d
+				agent.y = agent.service.y_d 
+				agent.mode = 0
+
+		# make sure you don't leave environment
+		agent.x,agent.y = utilities.environment_barrier([agent.x,agent.y])
+
+		return wait_time		
 
 	def eta_cell(self,i,j,t):
 		# expected time of arrival between two states (i,j), at given time (t)
@@ -146,29 +255,30 @@ class GridWorld():
 		# training time: [tf_train,0]
 		# testing time:  [0,tf_sim]
 
-		tf_train = int(self.param.n_training_data/self.param.n_customers_per_timestep)
-		tf_sim = max(self.param.sim_dt,self.param.sim_tf)
+		tf_train = int(self.param.n_training_data/self.param.n_customers_per_time)
+		tf_sim = max(1,int(np.ceil(self.param.sim_tf)))
 
 		# 'move' gaussians around for full simulation time 
 		self.cm.run_cm_model()
 
 		# training dataset part 
 		dataset = []
-		customer_time_array_train = np.arange(-tf_train,0,self.param.sim_dt)
+		customer_time_array_train = np.arange(-tf_train,0,1,dtype=int)
 		for time in customer_time_array_train:
-			for customer in range(self.param.n_customers_per_timestep):
-				time_of_request = time + np.random.random() * self.param.sim_dt
+			for customer in range(self.param.n_customers_per_time):
+				time_of_request = time + np.random.random()
 				x_p,y_p = self.cm.sample_cm(0)
 				x_d,y_d = utilities.random_position_in_world()
 				time_to_complete = self.eta(x_p,y_p,x_d,y_d)
 				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
 
 		# testing dataset part 
-		customer_time_array_sim = np.arange(0,tf_sim,self.param.sim_dt)
+		customer_time_array_sim = np.arange(0,tf_sim,1,dtype=int)
 		for timestep,time in enumerate(customer_time_array_sim):
-			for customer in range(self.param.n_customers_per_timestep):
-				time_of_request = time + np.random.random() * self.param.sim_dt
-				x_p,y_p = self.cm.sample_cm(timestep)
+			sim_timestep = int(timestep/self.param.sim_dt)
+			for customer in range(self.param.n_customers_per_time):
+				time_of_request = time + np.random.random()
+				x_p,y_p = self.cm.sample_cm(sim_timestep)
 				x_d,y_d = utilities.random_position_in_world()
 				time_to_complete = self.eta(x_p,y_p,x_d,y_d)
 				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
@@ -183,101 +293,6 @@ class GridWorld():
 		
 		self.v0 = v
 		self.q0 = q 
-
-	def agent_step(self,agent,action):
-
-		# agent can be assigned a service or a dispatch 
-		# agent updates its state according to its operation (or mode)
-		# mode: 
-		# 	1: pickup mode. moves agent along pickup vector 
-		# 	2: dropoff mode. moves agent along dropoff vector
-		# 	3: dispatch mode. moves agent along dispatch vector
-
-		wait_time = 0 
-
-		# assignment 
-		if isinstance(action,Service):
-			agent.service = action
-			agent.update = True
-
-			curr_time = self.param.sim_times[self.timestep] 
-			eta = self.eta(agent.x,agent.y,agent.service.x_p,agent.service.y_p) 
-			wait_time = eta + agent.service.time_before_assignment
-
-			# initialize service
-			agent.mode = 1 # pickup mode
-			agent.pickup_vector = np.array([agent.service.x_p - agent.x, agent.service.y_p-agent.y])
-			agent.pickup_dist = np.linalg.norm(agent.pickup_vector)
-			agent.pickup_vector = agent.pickup_vector / agent.pickup_dist
-			agent.pickup_speed = agent.pickup_dist/eta
-			agent.pickup_finish_time = curr_time + eta
-
-			agent.dropoff_vector = np.array([agent.service.x_d - agent.service.x_p,agent.service.y_d-agent.service.y_p])
-			agent.dropoff_dist = np.linalg.norm(agent.dropoff_vector)
-			agent.dropoff_vector = agent.dropoff_vector/agent.dropoff_dist
-			agent.dropoff_speed = agent.dropoff_dist/agent.service.time_to_complete
-			agent.dropoff_finish_time = agent.pickup_finish_time + agent.service.time_to_complete
-
-		elif isinstance(action,Dispatch):
-
-			agent.dispatch = action 
-			agent.mode = 3
-
-			# assign dispatch move 
-			curr_time = self.param.sim_times[self.timestep] 
-			eta = self.eta(agent.x,agent.y,agent.dispatch.x,agent.dispatch.y)
-			agent.move_vector = np.array([agent.dispatch.x - agent.x, agent.dispatch.y-agent.y])
-			agent.move_dist = np.linalg.norm(agent.move_vector)
-			agent.move_vector = agent.move_vector/agent.move_dist
-			agent.move_speed = agent.move_dist/eta 
-			agent.move_finish_time = curr_time+eta 
-							
-		# update			
-		next_time = self.param.sim_times[self.timestep+1]
-		time = self.param.sim_times[self.timestep]
-		dt = next_time - time 
-
-		# pickup mode 
-		if agent.mode == 1:
-			if next_time > agent.pickup_finish_time:
-				agent.x = agent.service.x_p
-				agent.y = agent.service.y_p 
-				agent.mode = 2
-			else:
-				agent.x = agent.x + agent.pickup_vector[0]*agent.pickup_speed*dt
-				agent.y = agent.y + agent.pickup_vector[1]*agent.pickup_speed*dt
-
-		# dropoff mode 
-		elif agent.mode == 2:
-			if next_time > agent.dropoff_finish_time:
-				agent.x = agent.service.x_d
-				agent.y = agent.service.y_d 
-				agent.mode = 0
-			else:
-				agent.x = agent.x + agent.dropoff_vector[0]*agent.dropoff_speed*dt
-				agent.y = agent.y + agent.dropoff_vector[1]*agent.dropoff_speed*dt
-
-		# dispatch mode 
-		elif agent.mode == 3:
-			if next_time > agent.move_finish_time:
-				agent.x = agent.dispatch.x
-				agent.y = agent.dispatch.y
-				agent.mode = 0
-			else:
-				dt = next_time-time
-				agent.x = agent.x + agent.move_vector[0]*agent.move_speed*dt
-				agent.y = agent.y + agent.move_vector[1]*agent.move_speed*dt
-
-		# idle mode
-		elif agent.mode == 0:
-			agent.x = agent.x
-			agent.y = agent.y
-
-
-		# make sure you don't leave environment
-		agent.x,agent.y = utilities.environment_barrier([agent.x,agent.y])
-
-		return wait_time
 
 	def get_curr_im_value(self):
 
@@ -335,7 +350,7 @@ class GridWorld():
 
 		return im_agent
 
-	def get_curr_im_free_agents(self,timestep):
+	def get_curr_im_free_agents(self):
 
 		locs = np.zeros((self.param.ni,2))
 		modes = np.zeros((self.param.ni))
@@ -366,9 +381,7 @@ class GridWorld():
 
 		return im_agent
 
-	def get_curr_customer_locations(self):
-		
-		# customers_location = np.zeros((self.param.env_nx,self.param.env_ny))
+	def get_curr_customer_locations(self):		
 		customers_location = []
 		t0 = self.param.sim_times[self.timestep]
 		t1 = self.param.sim_times[self.timestep+1]
@@ -384,8 +397,4 @@ class GridWorld():
 			customers_location.append([px,py])
 
 		customers_location = np.asarray(customers_location)
-
-		# if count > 0 :
-		# 	customers_location /= count
-
 		return customers_location	

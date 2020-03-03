@@ -1,4 +1,8 @@
 # temp task assignment 
+import numpy as np
+from auction.bid import bid
+import lib.config as config
+from a_star.a_star import get_all_a_star_trajectory
 
 class AA_Params:
     """
@@ -8,7 +12,7 @@ class AA_Params:
         """
         Params:
             max_comm_iter (int): Maximum number of iterations in the auction
-            N (int): The number of drones
+            N (int): The number of agents
             R_comm (float): The radius of communication. Drones
                 can only communicate when they are within R_comm
                 of each other.
@@ -17,10 +21,6 @@ class AA_Params:
         self.R_comm = R_comm
         self.N = N
 
-import numpy as np
-from auction.bid import bid
-import lib.config as config
-from a_star.a_star import get_all_a_star_trajectory
 
 def auction(current_pos, xf, m, p, j, AA_param, verbose = 0, use_a_star_distance=0, walls=[], MPC_param=None):
     """

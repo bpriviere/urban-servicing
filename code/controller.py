@@ -30,13 +30,22 @@ class Controller():
 			self.dispatch = self.rhc
 		elif dispatch_algorithm in ['bellman']:
 			self.name = 'bellman'
-			self.dispatch = self.bellman		
+			self.dispatch = self.bellman
+
+		if 'clp' in param.ta:
+			self.ta = centralized_linear_program
+		elif 'blll' in param.ta:
+			self.ta = binary_log_learning
+		elif 'da' in param.ta:
+			self.ta = distributed_action
+
 
 		else:
 			exit('fatal error: param.controller_name not recognized')
 		
 
 	# ------------ simulator -------------
+
 	def policy(self,observation):
 		
 		# input: 
@@ -44,23 +53,21 @@ class Controller():
 		# - customer request: [time_of_request,time_to_complete,x_p,y_p,x_d,y_d], np array
 		# output: 
 		# - action list
-		# - if closest and idle: agent's action is servicing a customer request
-		# - elif idle: dispatch action chosen using some algorithm (d-td, c-td, RHC)
-		# - else: action is continue servicing customer, or continue dispatching 
+
+		# action:
+		# - if currently servicing customer: continue
+		# - else: dispatch action chosen using some algorithm (d-td, c-td, RHC)
 
 
-		# get available agents (on dispatch or idle or pickup)
-		available_agents = []
+		# agent modes:
+		# - 0: free
+		# - 1: servicing
+
+		# get free agents 
+		free_agents = []
 		for agent in self.env.agents:
-			if agent.mode == 0 or agent.mode == 3 or agent.mode == 1: 
-				available_agents.append(agent)
-
-		# get idle agents (to be dispatched)
-		idle_agents = []
-		for agent in self.env.agents:
-			if agent.mode == 0: # idle
-				idle_agents.append(agent)
-		
+			if agent.mode == 0: 
+				free_agents.append(agent)
 
 		# for each customer request, assign closest available taxi
 		service_assignments = []  
@@ -69,7 +76,7 @@ class Controller():
 			
 			min_dist = np.inf
 			serviced = False
-			for agent in available_agents: 
+			for agent in free_agents: 
 				dist = np.linalg.norm([agent.x - service.x_p, agent.y - service.y_p])
 				if dist < min_dist and dist < self.param.r_sense:
 					min_dist = dist 
@@ -79,15 +86,12 @@ class Controller():
 			if serviced:
 				service_assignments.append((self.env.agents[assignment],service)) 
 				observation.remove(service)
-				available_agents.remove(self.env.agents[assignment])
+				free_agents.remove(self.env.agents[assignment])
 			else:
-				# print('    not serviced: ', service)
 				service.time_before_assignment += self.param.sim_dt
 
-
 		# assign remaining idle customers with different dispatch algorithms 
-		move_assignments = self.dispatch(idle_agents) 
-
+		move_assignments = self.dispatch(free_agents) 
 
 		# make final actions list 
 		actions = []
@@ -101,13 +105,11 @@ class Controller():
 				for a,m in move_assignments:
 					if agent is a:
 						actions.append(m)
-
 			else: 
 				empty = Empty()
 				actions.append(empty)
 
 		return actions
-
 
 	# ------------ dispatch -------------
 
@@ -116,8 +118,8 @@ class Controller():
 		# gradient update
 		self.dkif()
 
-		# LP task assignment 
-		cell_assignments = binary_log_learning(self.env,agents)
+		# blll task assignment 
+		cell_assignments = self.ta(self.env,agents)
 
 		# assignment 
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
@@ -131,7 +133,7 @@ class Controller():
 		self.ckif()
 
 		# task assignment 
-		cell_assignments = binary_log_learning(self.env,agents)
+		cell_assignments = self.ta(self.env,agents)
 
 		# assignment 
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
@@ -141,11 +143,15 @@ class Controller():
 
 	def rhc(self,agents):
 		# receding horizon control 
+		
 		# no update
+
 		# task assignment 
-		cell_assignments = binary_log_learning(self.env,agents)
+		cell_assignments = self.ta(self.env,agents)
+		
 		# assignment 
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
+		
 		return move_assignments 
 
 
@@ -160,7 +166,7 @@ class Controller():
 			agent.q = q_bellman
 
 		# assignment = (agent, cell) for all free agents
-		cell_assignments = binary_log_learning(self.env,agents)
+		cell_assignments = self.ta(self.env,agents)
 
 		# assignment = (agent, action) for all agents in cell assignments
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
@@ -338,34 +344,16 @@ class Controller():
 				time_of_request = agent.service.time
 				time_diff = self.param.sim_times[self.env.timestep] - time_of_request
 
-				global_state_update = True
-				if global_state_update:
-					for s in range(self.param.env_ncell):
-						for a in range(self.param.env_naction):
+				for s in range(self.param.env_ncell):
+					for a in range(self.param.env_naction):
 
-							next_state = utilities.get_next_state(self.env,s,a)
-							q_idx = utilities.sa_to_q_idx(s,a)
-							prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
+						next_state = utilities.get_next_state(self.env,s,a)
+						q_idx = utilities.sa_to_q_idx(s,a)
+						prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 
-							reward_instance = utilities.reward_instance(self.env,s,a,px,py)
+						reward_instance = utilities.reward_instance(self.env,s,a,px,py)
 
-							measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
-
-				# else:
-
-				# 	state = utilities.coordinate_to_cell_index(agent.x,agent.y)
-				# 	prev_sa_lst = utilities.get_prev_sa_lst(self.env,state)
-
-				# 	for prev_s,prev_a in prev_sa_lst:
-				# 		prev_sx,prev_sy = utilities.cell_index_to_cell_coordinate(prev_s)
-				# 		q_idx = utilities.sa_to_q_idx(prev_s,prev_a)
-
-				# 		reward_instance = utilities.reward_instance(self.env,prev_s,prev_a,px,py)
-
-				# 		prime_idxs = state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
-				# 		prev_idx = prev_s*self.param.env_naction + prev_a
-
-				# 		measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[prev_idx]
+						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 
 			measurements.append((agent,measurement))
 

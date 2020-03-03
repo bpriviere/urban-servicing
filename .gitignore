@@ -1,1 +1,4 @@
+# ignore data
+data
 data/*
+*.npy

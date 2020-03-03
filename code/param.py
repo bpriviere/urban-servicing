@@ -7,33 +7,39 @@ class Param:
 	def __init__(self):
 
 		# flags 
-		self.env_render_on = True
+		self.env_render_on = False
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
 		self.plot_distribution_error_on = False
 		self.plot_value_fnc_on = False
 
 		self.controllers = [
-			# 'dtd',
+			'dtd',
 			'ctd',
-			# 'bellman', 
-			# 'rhc',
+			'bellman', 
+			'rhc',
 			# 'empty',
 			# 'random',
 			]
 
+		self.ta = [
+			'clp',
+			# 'blll',
+			# 'da',
+		]
+
 		# plotting
 		self.plot_fn = 'plots.pdf'
-		self.mode_names = ['idle', 'pickup', 'dropoff', 'dispatch']
-		self.plot_agent_mode_color = ['blue','green','orange','blue'] 
-		self.plot_customer_color = ['blue','green','orange','blue']
+		self.mode_names = ['dispatch','service']
+		self.plot_agent_mode_color = ['blue','orange'] 
+		self.customer_color = 'orange'
 
 		self.state_keys = [
 			'gmm_distribution',
 			'customers_location',
 			'agents_value_fnc_distribution',
 			'agents_location',
-			'agents_distribution',
+			'free_agents_distribution',
 			'agents_operation',
 		]
 
@@ -42,9 +48,9 @@ class Param:
 		if self.env_name is 'gridworld':
 			
 			# state space
-			self.env_xlim = [0,.5]
-			self.env_ylim = [0,.25] #,1]
-			self.env_dx = 0.25 # 0.5 # length/cell
+			self.env_xlim = [0,2]
+			self.env_ylim = [0,1] #,1]
+			self.env_dx = 0.5 # 0.5 # length/cell
 			self.env_dy = self.env_dx
 			self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
 			self.env_y = np.arange(self.env_ylim[0],self.env_ylim[1],self.env_dy)
@@ -57,15 +63,15 @@ class Param:
 
 			# simulation parameters
 			self.sim_tf = 20
-			self.sim_dt = 0.5
+			self.sim_dt = 0.25
 			self.sim_times = np.arange(0,self.sim_tf+self.sim_dt,self.sim_dt)
 			self.sim_nt = len(self.sim_times)
 
 			# fleet parameters
-			self.ni = 5
+			self.ni = 20
 			self.r_comm = 3*self.env_dx
 			self.r_sense = np.Inf # 2*self.r_comm
-			self.taxi_speed = 0.1 # dist/time
+			self.taxi_speed = 0.25 # dist/time
 			self.lambda_a = 1.0 # (cost of customer waiting time)/(cost of agent movement)
 
 			# customer model/dataset 
@@ -75,7 +81,7 @@ class Param:
 				self.cm_sigma = 1e-6 
 				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf # 0.25 # dist/time
 				self.cm_nsample_cm = 100
-				self.n_customers_per_timestep = 2 # int(0.5*self.ni)
+				self.n_customers_per_time = 3 # int(0.5*self.ni)
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 2

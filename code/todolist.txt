@@ -3,21 +3,21 @@
 
 todo list (deadline in 3 weeks, gridworld deadline in 1 week):
 	
-	debug with plot
-		- fix dataset gen to match gmm 
-
-	debug value function: each algorithm values should track the customer distribution 
+	make task assignment dependent on free agent distribution (it does this already, but seems buggy)
 
 	distributed auction task assignment
 	
-	debug task assignment: agent distribution should track value func distribution (close to q value) 
-
-	Why does ctd perform worse than dtd? ( -> too small of an experiment?? , one of infinitely many bugs.... ask yourself again after full debugging)
+	debug task assignment: agent distribution should track value func distribution (close to q value)
+		- needs to be very fast!  
 
 	make real taxi dataset environment real taxi datasets
+		- move utility functions into enviornment 
+
 	writeup
 	
 done: 
+	debug value function: each algorithm values should track the customer distribution 
+		- ctd, bellman, and dtd seems fine
 	make RHC baseline
 	make bellman baseline
 	better vis: 

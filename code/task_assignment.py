@@ -161,7 +161,9 @@ def centralized_linear_program(env,agents):
 			idx = np.arange(0,env.param.env_naction) + i*env.param.env_naction
 			constr.append(sum(a[idx]) == 1)
 		prob = cp.Problem(obj, constr)
-		prob.solve(verbose = True, solver = cp.GUROBI)
+
+		# prob.solve(verbose = True, solver = cp.GUROBI)
+		prob.solve(verbose = False, solver = cp.GUROBI)
 
 		a = np.array(a.value,dtype=bool)
 		a = a.reshape((len(agents),env.param.env_naction))
@@ -206,7 +208,8 @@ def make_H(env,agents):
 			H[state,idx+a] = -1
 			H[next_state,idx+a] = 1	
 	# normalize
-	H = H/env.param.ni
+	# H = H/env.param.ni
+	H /= n_agents
 	return H 
 
 
