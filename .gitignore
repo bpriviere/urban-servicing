@@ -1,5 +1,8 @@
 # ignore data
 data/*
 __pycache__/*
+# unused dir
 matlab_code/*
-*.npy
+mdp_toolbox_files/*
+review/*
+tex/*
