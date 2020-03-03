@@ -10,14 +10,12 @@ class Param:
 		self.env_render_on = False
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
-		self.plot_distribution_error_on = False
-		self.plot_value_fnc_on = False
 
 		self.controllers = [
 			'dtd',
 			'ctd',
-			'bellman', 
-			'rhc',
+			# 'bellman', 
+			# 'rhc',
 			# 'empty',
 			# 'random',
 			]
@@ -41,6 +39,8 @@ class Param:
 			'agents_location',
 			'free_agents_distribution',
 			'agents_operation',
+			'agents_int_action',
+			'agents_vec_action'
 		]
 
 		# environment parameters
@@ -48,9 +48,9 @@ class Param:
 		if self.env_name is 'gridworld':
 			
 			# state space
-			self.env_xlim = [0,2]
-			self.env_ylim = [0,1] #,1]
-			self.env_dx = 0.5 # 0.5 # length/cell
+			self.env_xlim = [0,2.0]
+			self.env_ylim = [0,1.0] #,1]
+			self.env_dx = 0.25 # 0.5 # length/cell
 			self.env_dy = self.env_dx
 			self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
 			self.env_y = np.arange(self.env_ylim[0],self.env_ylim[1],self.env_dy)
@@ -62,14 +62,14 @@ class Param:
 			self.nq = self.env_ncell*self.env_naction
 
 			# simulation parameters
-			self.sim_tf = 20
+			self.sim_tf = 10
 			self.sim_dt = 0.25
 			self.sim_times = np.arange(0,self.sim_tf+self.sim_dt,self.sim_dt)
 			self.sim_nt = len(self.sim_times)
 
 			# fleet parameters
 			self.ni = 20
-			self.r_comm = 3*self.env_dx
+			self.r_comm = 100 #3*self.env_dx
 			self.r_sense = np.Inf # 2*self.r_comm
 			self.taxi_speed = 0.25 # dist/time
 			self.lambda_a = 1.0 # (cost of customer waiting time)/(cost of agent movement)
@@ -78,7 +78,7 @@ class Param:
 			self.cm_linear_move = True
 			if self.cm_linear_move:
 				self.cm_ng = 1
-				self.cm_sigma = 1e-6 
+				self.cm_sigma = 5e-2 
 				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf # 0.25 # dist/time
 				self.cm_nsample_cm = 100
 				self.n_customers_per_time = 3 # int(0.5*self.ni)

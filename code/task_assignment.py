@@ -142,21 +142,31 @@ def get_joint_action(env,agent_i,action_i,agents):
 def centralized_linear_program(env,agents):
 	# input: 
 	#    - env
-	#    - agents: list of idle agents
+	#    - agents: list of free agents
 	# ouput: 
-	#    - cell_assignments: integer variables corresponding to tabular actions 
+	#    - cell_assignments: integer variables corresponding to tabular actions that move agent to cell 
 	
 	cell_assignments = []
 	if not len(agents) == 0:
 		H = make_H(env,agents)
 		S = make_S(env,agents)
-		V = utilities.value_to_probability(env.agents[0].v)
+
+		# V = utilities.value_to_probability(env.agents[0].v)
+		V = utilities.value_to_probability(utilities.q_value_to_value_fnc(env,env.agents[0].q))
+
+		# print('H',H)
+		# print('S',S)
+		# print('V',V)
+		# exit()
+
 		a = cp.Variable(env.param.env_naction*len(agents), integer=True)
 
 		obj = cp.Minimize( cp.sum_squares( S + H@a - V ))
-		# constrain action value to be zero or one 
+
+		# constrain action value to be between zero or one 
 		constr = [a <= 1, a >= 0]
-		# every agent only takes one action
+
+		# every agent only takes one action forces a to be zero or one
 		for i in range(len(agents)):
 			idx = np.arange(0,env.param.env_naction) + i*env.param.env_naction
 			constr.append(sum(a[idx]) == 1)

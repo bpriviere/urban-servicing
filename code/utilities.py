@@ -86,6 +86,10 @@ def get_next_state(env,s,a):
 	next_state = np.where(P[a,s,:] == 1)[0][0]
 	return next_state
 
+def s_sp_to_a(env,s,sp):
+	P = get_MDP_P(env)
+	next_state = np.where(P[:,s,sp] == 1)[0][0]
+	return next_state
 
 def sa_to_q_idx(s,a):
 	q_idx = s*param.env_naction + a

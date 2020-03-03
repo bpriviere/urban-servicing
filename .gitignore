@@ -1,4 +1,5 @@
 # ignore data
-data
 data/*
+__pycache__/*
+matlab_code/*
 *.npy

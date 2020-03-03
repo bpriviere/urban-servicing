@@ -1,9 +1,20 @@
 
 
+# charge kai for internet 
+# groceries:
+# 	- coffee
+# 	- tacks 
+# 	- ....
 
-todo list (deadline in 3 weeks, gridworld deadline in 1 week):
+todo list (deadline in 3 weeks, gridworld deadline in 4 days):
+
+	refactor:
+		- make action a state parameters 
+
+	debug with action vector plot
 	
 	make task assignment dependent on free agent distribution (it does this already, but seems buggy)
+		- check H, S, V, etc. 
 
 	distributed auction task assignment
 	
@@ -14,6 +25,7 @@ todo list (deadline in 3 weeks, gridworld deadline in 1 week):
 		- move utility functions into enviornment 
 
 	writeup
+		- edit proof ?? oh god i hope not 
 	
 done: 
 	debug value function: each algorithm values should track the customer distribution 

@@ -4,7 +4,6 @@ import numpy as np
 
 import utilities
 from helper_classes import Dispatch, Service, Empty
-# from agent import Dispatch, Service, Empty
 from task_assignment import centralized_linear_program, binary_log_learning
 
 
@@ -49,13 +48,14 @@ class Controller():
 	def policy(self,observation):
 		
 		# input: 
-		# - observation is a list of customer requests, passed by reference
+		# - observation is a list of customer requests, passed by reference (so you can remove customers when serviced)
 		# - customer request: [time_of_request,time_to_complete,x_p,y_p,x_d,y_d], np array
 		# output: 
 		# - action list
 
 		# action:
 		# - if currently servicing customer: continue
+		# - elif: closest agent to some 
 		# - else: dispatch action chosen using some algorithm (d-td, c-td, RHC)
 
 
@@ -65,9 +65,12 @@ class Controller():
 
 		# get free agents 
 		free_agents = []
+		service_agents = []
 		for agent in self.env.agents:
 			if agent.mode == 0: 
 				free_agents.append(agent)
+			elif agent.mode == 1:
+				service_agents.append(agent)
 
 		# for each customer request, assign closest available taxi
 		service_assignments = []  
@@ -80,34 +83,45 @@ class Controller():
 				dist = np.linalg.norm([agent.x - service.x_p, agent.y - service.y_p])
 				if dist < min_dist and dist < self.param.r_sense:
 					min_dist = dist 
-					assignment = agent.i 
+					assignment_i = agent.i 
 					serviced = True
 
 			if serviced:
-				service_assignments.append((self.env.agents[assignment],service)) 
+				service_assignments.append((self.env.agents[assignment_i],service)) 
 				observation.remove(service)
-				free_agents.remove(self.env.agents[assignment])
+				free_agents.remove(self.env.agents[assignment_i])
 			else:
 				service.time_before_assignment += self.param.sim_dt
 
-		# assign remaining idle customers with different dispatch algorithms 
+		# assign remaining idle taxis with some dispatch algorithm
 		move_assignments = self.dispatch(free_agents) 
 
-		# make final actions list 
 		actions = []
-		for agent in self.env.agents:
-			if agent in [a for a,s in service_assignments]:
-				for a,s in service_assignments:
-					if agent is a:
-						actions.append(s)	
+		for agent,service in service_assignments:
+			actions.append((agent,service))
+		for agent,move in move_assignments:
+			actions.append((agent,move))
+		for agent in service_agents:
+			actions.append((agent,Empty()))
 
-			elif agent in [a for a,m in move_assignments]:
-				for a,m in move_assignments:
-					if agent is a:
-						actions.append(m)
-			else: 
-				empty = Empty()
-				actions.append(empty)
+		# # make final actions list 
+		# actions = []
+		# for agent in self.env.agents:
+		# # for agent in free_agents:
+		# 	if agent in [a for a,s in service_assignments]:
+		# 		for a,s in service_assignments:
+		# 			if agent is a:
+		# 				actions.append(s)	
+
+		# 	elif agent in [a for a,m in move_assignments]:
+		# 		for a,m in move_assignments:
+		# 			if agent is a:
+		# 				actions.append(m)
+		# 	else: 
+		# 		print(agent)
+		# 		exit()
+		# 		empty = Empty()
+		# 		actions.append(empty)
 
 		return actions
 
@@ -116,7 +130,8 @@ class Controller():
 	def dtd(self,agents):
 
 		# gradient update
-		self.dkif()
+		self.dkif_ss()
+		# self.dkif_ms()
 
 		# blll task assignment 
 		cell_assignments = self.ta(self.env,agents)
@@ -245,15 +260,15 @@ class Controller():
 		y_kkm1 = np.dot(L,np.dot(invF.T,y_km1km1))
 
 		# innovate
-		sum_I = np.zeros((self.param.nq,self.param.nq))
-		sum_i = np.zeros((self.param.nq))
-		for i, (agent_i, measurement_i) in enumerate(measurements):
-			sum_I += np.dot(H[:,:,i].T, np.dot(invR, H[:,:,i]))
-			sum_i += np.dot(H[:,:,i].T, np.dot(invR, measurement_i))
+		mat_I = np.zeros((self.param.nq,self.param.nq))
+		vec_I = np.zeros((self.param.nq))
+		for agent_i, measurement_i in measurements:
+			mat_I += np.dot(H[:,:,agent_i.i].T, np.dot(invR, H[:,:,agent_i.i]))
+			vec_I += np.dot(H[:,:,agent_i.i].T, np.dot(invR, measurement_i))
 
 		# invert information transformation
-		Y_kk = Y_kkm1 + sum_I
-		y_kk = y_kkm1 + sum_i
+		Y_kk = Y_kkm1 + mat_I
+		y_kk = y_kkm1 + vec_I
 		P_k = np.linalg.pinv(Y_kk)
 		q_k = np.dot(P_k,y_kk)
 	
@@ -261,8 +276,8 @@ class Controller():
 			agent.q = q_k
 			agent.p = P_k[0][0]
 
-
-	def dkif(self):
+	def dkif_ms(self):
+		# distributed kalman information filter (measurement sharing variant)
 		
 		measurements = self.get_measurements()
 		adjacency_matrix = self.make_adjacency_matrix()
@@ -277,15 +292,70 @@ class Controller():
 		invQ = 1.0/self.param.process_noise*np.eye(self.param.nq)
 		invR = 1.0/self.param.measurement_noise*np.eye(self.param.nq)
 
-		for i, (agent_i,measurement_i) in enumerate(measurements):
+		H = np.zeros((self.param.nq,self.param.nq,self.param.ni),dtype=np.float32)
+		for agent,measurement in measurements:
+			if np.count_nonzero(measurement) > 0:
+				H[:,:,agent.i] = np.eye(self.param.nq)
+
+		for agent_i,measurement_i in measurements:
+
+			# information transformation
+			Y_km1km1 = 1/agent_i.p * np.eye(self.param.nq) 
+			y_km1km1 = np.dot(Y_km1km1,agent_i.q)
+
+			# predict
+			M = np.dot(invF.T, np.dot(Y_km1km1,invF))
+			C = np.dot(M, np.linalg.pinv(M + invQ))
+			L = np.eye(self.param.nq) - C 
+			Y_kkm1 = np.dot(L,np.dot(M,L.T)) + np.dot(C,np.dot(invQ,C.T))
+			y_kkm1 = np.dot(L,np.dot(invF.T,y_km1km1))
+
+			# innovate
+			mat_I = np.zeros((self.param.nq,self.param.nq))
+			vec_I = np.zeros((self.param.nq))
+			for agent_j, measurement_j in measurements:
+				if adjacency_matrix[agent_i.i,agent_j.i] > 0:
+					mat_I += np.dot(H[:,:,agent_j.i].T, np.dot(invR, H[:,:,agent_j.i]))
+					vec_I += np.dot(H[:,:,agent_j.i].T, np.dot(invR, measurement_j))
+
+			# invert information transformation
+			Y_kk = Y_kkm1 + mat_I
+			y_kk = y_kkm1 + vec_I
+			P_k = np.linalg.pinv(Y_kk)
+			q_kp1[:,agent_i.i] = np.dot(P_k,y_kk)
+			p_kp1[agent_i.i] = P_k[0][0]
+
+		for agent in self.env.agents:
+			agent.q = q_kp1[:,agent.i]
+			agent.p = p_kp1[agent.i]
+
+
+
+	def dkif_ss(self):
+		# distributed kalman information filter (state sharing variant)
+		
+		measurements = self.get_measurements()
+		adjacency_matrix = self.make_adjacency_matrix()
+		q_kp1 = np.zeros((self.param.nq,self.param.ni))
+		p_kp1 = np.zeros((self.param.ni))
+
+		# get matrices
+		F = np.eye(self.param.nq)
+		Q = self.param.process_noise*np.eye(self.param.nq)
+		R = self.param.measurement_noise*np.eye(self.param.nq)
+		invF = np.eye(self.param.nq)
+		invQ = 1.0/self.param.process_noise*np.eye(self.param.nq)
+		invR = 1.0/self.param.measurement_noise*np.eye(self.param.nq)
+
+		for agent_i,measurement_i in measurements:
 
 			H = np.zeros((self.param.nq,self.param.nq))
 			if np.count_nonzero(measurement_i) > 0:
 				H = np.eye(self.param.nq)
 
 			# information transformation
-			Y_km1km1 = 1/self.env.agents[0].p * np.eye(self.param.nq) 
-			y_km1km1 = np.dot(Y_km1km1,self.env.agents[0].q)
+			Y_km1km1 = 1/agent_i.p * np.eye(self.param.nq) 
+			y_km1km1 = np.dot(Y_km1km1,agent_i.q)
 
 			# predict
 			M = np.dot(invF.T, np.dot(Y_km1km1,invF))
@@ -296,25 +366,27 @@ class Controller():
 
 			# innovate
 			mat_I = np.dot(H.T, np.dot(invR, H))
-			vec_i = np.dot(H.T, np.dot(invR, measurement_i))
-
-			# add consensus term
-			consensus_update = np.zeros((self.param.nq))
-			for agent_j,measurement_j in measurements:
-				if np.count_nonzero(measurement_j) > 0:
-					consensus_update += adjacency_matrix[agent_i.i,agent_j.i]*(agent_j.q-agent_i.q)
+			vec_I = np.dot(H.T, np.dot(invR, measurement_i))
 
 			# invert information transformation
 			Y_kk = Y_kkm1 + mat_I
-			y_kk = y_kkm1 + vec_i
+			y_kk = y_kkm1 + vec_I
 			P_k = np.linalg.pinv(Y_kk)
-			q_kp1[:,i] = np.dot(P_k,y_kk) + consensus_update
-			p_kp1[i] = P_k[0][0]
+			q_kp1[:,agent_i.i] = np.dot(P_k,y_kk)
+			p_kp1[agent_i.i] = P_k[0][0]
 
-		for i,agent in enumerate(self.env.agents):
-			agent.q = q_kp1[:,i]
-			agent.p = p_kp1[i]
+		for agent in self.env.agents:
+			agent.q = q_kp1[:,agent.i]
+			agent.p = p_kp1[agent.i]
 
+		for agent_i in self.env.agents:
+			consensus_update = np.zeros((self.param.nq))
+			for agent_j,measurement_j in measurements:
+				if adjacency_matrix[agent_i.i,agent_j.i] > 0 and np.count_nonzero(measurement_j) > 0:
+					consensus_update += agent_j.q-agent_i.q
+			agent_i.q += consensus_update
+
+	
 	def make_adjacency_matrix(self):
 
 		A = np.zeros((self.param.ni,self.param.ni))
@@ -326,8 +398,6 @@ class Controller():
 					dist = np.linalg.norm(p_i-p_j)
 					if dist < self.param.r_comm:
 						A[agent_i.i,agent_j.i] = 1
-
-		A = A/self.param.ni
 		return A
 
 	def get_measurements(self):

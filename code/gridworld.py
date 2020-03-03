@@ -50,8 +50,8 @@ class GridWorld():
 			if agent.i == 0:
 				plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
 		
-			# dispatch 
-			if False:
+			if True:
+				# dispatch 
 				if agent.mode == 0 and self.param.plot_arrows_on and self.timestep > 0:
 					if hasattr(agent,'dispatch'):
 						dx = agent.dispatch.x - agent.x
@@ -59,7 +59,7 @@ class GridWorld():
 						plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=color)
 
 				# servicing 
-				elif agent.mode == 1:
+				elif False: #agent.mode == 1:
 					if curr_time < agent.pickup_finish_time:
 						square_pickup = plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
 							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.customer_color)
@@ -91,8 +91,11 @@ class GridWorld():
 		# update environment
 		time = self.param.sim_times[self.timestep]
 		wait_time = 0 
-		for i_agent, agent in enumerate(self.agents):
-			action = actions[i_agent]
+		# for i_agent, agent in enumerate(self.agents):
+		# 	action = actions[i_agent]
+		# 	wait_time += self.agent_step(agent,action)
+		
+		for agent,action in actions:
 			wait_time += self.agent_step(agent,action)
 
 		# penalize not serviced customers
@@ -106,11 +109,14 @@ class GridWorld():
 		agents_operation = np.empty(self.param.ni)
 		agents_location = np.empty((self.param.ni,2))
 		agents_value_fnc_vector = np.empty((self.param.ni,self.param.env_ncell))
-
 		for agent in self.agents:
 			agents_operation[agent.i] = agent.mode
 			agents_location[agent.i,:] = [agent.x,agent.y]
 			agents_value_fnc_vector[agent.i,:] = utilities.q_value_to_value_fnc(self,agent.q)
+
+		# - agent actions
+		agents_int_action = self.get_agents_int_action(actions)
+		agents_vec_action = self.get_agents_vec_action(actions)
 
 		# - customer states
 		customers_location = self.get_curr_customer_locations()
@@ -296,7 +302,7 @@ class GridWorld():
 
 	def get_curr_im_value(self):
 
-		value_fnc_ims = np.zeros((self.param.ni,self.param.env_ny,self.param.env_nx))
+		value_fnc_ims = np.zeros((self.param.ni,self.param.env_nx,self.param.env_ny))
 		for agent in self.agents:
 			# get value
 			value_fnc_i = utilities.q_value_to_value_fnc(self,agent.q)
@@ -307,22 +313,13 @@ class GridWorld():
 			for i in range(self.param.env_ncell):
 				i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
 				im_v[i_x,i_y] = value_fnc_i[i]
-			# convert to im coordinates ? 
-			im_v = im_v.T
-			im_v = np.flipud(im_v)
 			# add
 			value_fnc_ims[agent.i,:,:] = im_v
 		return value_fnc_ims
 
 	def get_curr_im_gmm(self):
-
 		# im is [nx,ny] where im[0,0] is bottom left
 		im_gmm = self.cm.eval_cm(self.timestep)
-		
-		# im coordinates
-		im_gmm = im_gmm.T
-		im_gmm = np.flipud(im_gmm)
-
 		return im_gmm
 
 	def get_curr_im_agents(self):
@@ -343,10 +340,6 @@ class GridWorld():
 
 		# normalize
 		im_agent = im_agent / self.param.ni
-
-		# im coordinates
-		im_agent = im_agent.T
-		im_agent = np.flipud(im_agent)
 
 		return im_agent
 
@@ -375,10 +368,6 @@ class GridWorld():
 		if count_agent > 0:
 			im_agent = im_agent / count_agent
 
-		# im coordinates
-		im_agent = im_agent.T
-		im_agent = np.flipud(im_agent)
-
 		return im_agent
 
 	def get_curr_customer_locations(self):		
@@ -398,3 +387,45 @@ class GridWorld():
 
 		customers_location = np.asarray(customers_location)
 		return customers_location	
+
+	def get_agents_int_action(self,actions):
+		# pass in list of objects
+		# pass out list of integers 
+		int_actions_lst = []
+		# for i,agent in enumerate(self.agents):
+		# 	action = actions[i]
+		for agent,action in actions:
+			if isinstance(action,Dispatch): 
+				s = utilities.coordinate_to_cell_index(agent.x,agent.y)
+				sp = utilities.coordinate_to_cell_index(action.x,action.y)
+				int_a = utilities.s_sp_to_a(self,s,sp)
+				int_actions_lst.append(int_a)
+			elif isinstance(action,Service) or isinstance(action,Empty):
+				int_actions_lst.append(-1)
+			else:
+				exit('get_agents_int_action type error')
+		return np.asarray(int_actions_lst)
+
+	def get_agents_vec_action(self,actions):
+		# pass in list of action objects
+		# pass out np array of move vectors
+
+		agents_vec_action = np.zeros((self.param.ni,2))
+		# for i,agent in enumerate(agents):
+		# action = action
+		for agent,action in actions:
+			if isinstance(action,Dispatch):
+				# agents_vec_action[i,0] = action.x - agent.x
+				# agents_vec_action[i,1] = action.y - agent.y
+				sx,sy = utilities.cell_index_to_cell_coordinate(
+					utilities.coordinate_to_cell_index(agent.x,agent.y))
+				agents_vec_action[agent.i,0] = action.x - (sx + self.param.env_dx/2)
+				agents_vec_action[agent.i,1] = action.y - (sy + self.param.env_dy/2)
+
+			elif isinstance(action,Service) or isinstance(action,Empty):
+				agents_vec_action[agent.i,0] = 0
+				agents_vec_action[agent.i,1] = 0
+			else:
+				print(action)
+				exit('get_agents_vec_action type error')
+		return agents_vec_action

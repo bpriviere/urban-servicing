@@ -182,7 +182,6 @@ def sim_plot(controller_name,results,timestep):
 	# input: 
 	# 	- results is a dictionary of results for some controller
 	# 	- timestep is when to plot
-	# 	- hopefully remove env 
 
 	fig = plt.figure()
 	axs = []
@@ -201,7 +200,7 @@ def sim_plot(controller_name,results,timestep):
 			else:
 				im_to_plot = results[key][timestep]
 
-			im = curr_ax.imshow(im_to_plot,
+			im = curr_ax.imshow(sim_to_im_coordinate(im_to_plot),
 				vmin=0,vmax=1,cmap='gray_r',
 				extent=[param.env_xlim[0],param.env_xlim[1],param.env_ylim[0],param.env_ylim[1]])
 
@@ -218,8 +217,12 @@ def sim_plot(controller_name,results,timestep):
 			curr_ax.bar(range(nmode),hist)
 			curr_ax.set_ylim([0,1])
 			plt.xticks(range(nmode),param.mode_names,rotation='vertical')
+		
+		elif 'action' in key:
+			im_to_plot = get_ave_actions_im(results["agents_location"][timestep],results["agents_action"][timestep])
+			ave_actions_vector_plot(im_to_plot,xlim=param.env_xlim,ylim=param.env_ylim,fig=fig,ax=curr_ax)
 
-		if 'distribution' in key or 'location' in key:
+		if 'distribution' in key or 'location' in key or 'action' in key:
 			# create same axis
 			curr_ax.set_xticks(param.env_x) 
 			curr_ax.set_yticks(param.env_y) 
@@ -248,205 +251,49 @@ def sim_plot_over_time(controller_name,sim_result):
 	for timestep,time in enumerate(sim_result["times"]):
 		sim_plot(controller_name, sim_result, timestep)	
 
-# def plot_sim_results(sim_results, key):
+def get_ave_actions_im(locs, actions):
+	# locations is (ni,2)
+	# actions is (ni,2)
+	ni = locs.shape[0]
+	im_a = np.zeros((param.env_nx,param.env_ny,2))
+	count = np.zeros((param.env_nx,param.env_ny,1))
+	for i in range(ni):
+		idx_x,idx_y = utilities.coordinate_to_xy_cell_index(locs[i][0],locs[i][1])
+		im_a[idx_x,idx_y,:] += actions[i][:]
+		count[idx_x,idx_y] += 1
 
-# 	for sim_result in sim_results: # for each controller
-# 		fig1,ax1 = make_fig()
-# 		ys_agents = getattr(sim_result, key) # [nt, ni, dim_key]
-# 		ys_agents = np.swapaxes(ys_agents,0,2) # [dim_key, ni, nt]
-# 		for k_y, y_agents in enumerate(ys_agents): 
-# 			for k_agent,y_agent in enumerate(y_agents): # 
-# 				ax1.plot(sim_result.times, y_agent,label='agent {} y[{}]'.format(k_agent,k_y))
-# 				# if sim_result.name == "ctd":
-# 				# 	break
+	idx = np.nonzero(count)
+	# im_a[idx] = (im_a[idx].T/count[idx]).T
+	im_a[idx] = im_a[idx]/count[idx]
+	return im_a
 
-# 				# np_ys_agents = np.asarray(ys_agents)
-# 				# np_y_agents = np.asarray(y_agents)
-# 				# np_y_agent = np.asarray(y_agent)
-# 				# print(key)
-# 				# print(np_ys_agents.shape)
-# 				# print(np_y_agents.shape)
-# 				# print(np_y_agent.shape)
+def sim_to_im_coordinate(im):
+	# im coordinates
+	im = im.T
+	im = np.flipud(im)
+	return im 
 
-# 				# temp
-# 				# if k_agent > 0:
-# 				# 	print('last_y - y_agent',last_y - y_agent)
-# 				# last_y = y_agent
+def ave_actions_vector_plot(im_ave_vec_action,xlim=None,ylim=None,fig=None,ax=None):
+	# plots average action at each state as a vector
+	# input:
+	# 	- im_vec_action (nx,ny,2)
+	# 	- plot param
 
-# 		# exit()
-# 		ax1.set_title("{}: {}".format(sim_result.name,key))
-# 		ax1.legend()
+	dx = param.env_dx
+	X,Y = np.meshgrid(param.env_x + param.env_dx/2,param.env_y + param.env_dy/2)
+	U = np.zeros(X.shape)
+	V = np.zeros(X.shape)
+	C = np.zeros(X.shape)
 
-# def plot_bellman_q(env):
+	for i_x,_ in enumerate(param.env_x):
+		for i_y,_ in enumerate(param.env_y):
+			U[i_y,i_x] = im_ave_vec_action[i_x,i_y,0]
+			V[i_y,i_x] = im_ave_vec_action[i_x,i_y,1]
+			C[i_y,i_x] = np.linalg.norm(im_ave_vec_action[i_x,i_y,:])
 
-# 	q = np.zeros((param.nq, param.sim_nt))
-# 	dataset = env.dataset
-# 	for step,time in enumerate(param.sim_times):
-# 		dataset_t = dataset[dataset[:,0]<=time,:]
-# 		_,q[:,step] = utilities.solve_MDP(env,dataset_t,time)
+	# normalize arrow length
+	idx = np.nonzero(U**2 + V**2)
+	U[idx] = U[idx] / np.sqrt(U[idx]**2 + V[idx]**2);
+	V[idx] = V[idx] / np.sqrt(U[idx]**2 + V[idx]**2);
 
-# 	fig1,ax1 = make_fig()
-# 	for i,q_i in enumerate(q):
-# 		ax1.plot(param.sim_times, q_i, label = 'q_values[{}]'.format(i))
-# 	ax1.set_title('Bellman Q')
-# 	ax1.legend()
-
-# def plot_distribution_error(env):
-
-# 	# customer distribution
-# 	im_customer = env.eval_cm(env.timestep)
-	
-# 	# agent distribution 
-# 	im_agent = np.zeros((env.param.env_nx,env.param.env_ny))
-
-# 	# error
-# 	im_err = np.abs(im_agent-im_customer)
-
-# 	# align axis with image coordinate system 
-# 	im_err = im_err.T
-# 	im_err = np.flipud(im_err)
-
-# 	# plot
-# 	fig,ax = make_fig()
-# 	ax.set_title('Distribution Error')
-# 	ax.set_xticks(env.param.env_x)
-# 	ax.set_yticks(env.param.env_y)
-# 	ax.set_xlim(env.param.env_xlim)
-# 	ax.set_ylim(env.param.env_ylim)
-# 	ax.set_aspect('equal')
-# 	ax.grid(True)
-# 	axim=ax.imshow(im_err,cmap='gray_r',vmin=0,vmax=1, 
-# 		extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]])
-# 	fig.colorbar(axim)
-
-# def plot_value_fnc(env):
-
-# 	v = utilities.q_value_to_value_fnc(env,env.agents[0].q)
-# 	im_v = np.zeros((env.param.env_nx,env.param.env_ny))
-# 	for i in range(env.param.env_ncell):
-# 		i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
-# 		im_v[i_x,i_y] = v[i]
-
-# 	im_v = im_v.T
-# 	im_v = np.flipud(im_v)
-
-# 	fig,ax = make_fig()
-# 	ax.set_title('Value Function')
-# 	ax.set_xticks(env.param.env_x)
-# 	ax.set_yticks(env.param.env_y)
-# 	ax.set_xlim(env.param.env_xlim)
-# 	ax.set_ylim(env.param.env_ylim)
-# 	ax.set_aspect('equal')
-# 	ax.grid(True)
-# 	axim=ax.imshow(im_v,
-# 		extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]])
-# 	fig.colorbar(axim)
-
-# def plot_value_fnc(env):
-
-# 	v = utilities.q_value_to_value_fnc(env,env.agents[0].q)
-# 	im_v = np.zeros((env.param.env_nx,env.param.env_ny))
-# 	for i in range(env.param.env_ncell):
-# 		i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
-# 		im_v[i_x,i_y] = v[i]
-
-# 	im_v = im_v.T
-# 	im_v = np.flipud(im_v)
-
-# 	fig,ax = make_fig()
-# 	ax.set_title('Value Function')
-# 	ax.set_xticks(env.param.env_x)
-# 	ax.set_yticks(env.param.env_y)
-# 	ax.set_xlim(env.param.env_xlim)
-# 	ax.set_ylim(env.param.env_ylim)
-# 	ax.set_aspect('equal')
-# 	ax.grid(True)
-# 	axim=ax.imshow(im_v,
-# 		extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]])
-# 	fig.colorbar(axim)
-
-
-# def plot_distribution(results, timestep, env):
-
-# 	# makes a figure with 3 distribution subplots at a single timestep
-# 	# inputs: 
-# 	# 	- results: named tuple: ['name','times','rewards','agent_operation','agent_locations','agent_q_values'] (todo.. change to numpy array)
-# 	# 	- timestep: int
-# 	# 	- env: todo... eliminate this input somehow 
-# 	# outputs: 
-# 	# 	fig, (ax1,ax2,...)	
-
-# 	# some note 
-# 	# passing the env makes it difficult to just run the plots with only the data
-
-# 	# make figs, 1x3 subplots, wide figure
-# 	fig, (ax1,ax2,ax3) = plt.subplots(1, 3, sharey=True)
-# 	title = '{} at t/T = {}/{}'.format(results.name, results.times[timestep],results.times[-1])
-# 	fig.suptitle(title)
-
-# 	# ax1.set_xticks(env.param.env_x)
-# 	# ax1.set_yticks(env.param.env_y)
-# 	# ax1.set_xlim(env.param.env_xlim)
-# 	# ax1.set_ylim(env.param.env_ylim)
-# 	# ax2.set_xticks(env.param.env_x)
-# 	# ax2.set_yticks(env.param.env_y)
-# 	# ax2.set_xlim(env.param.env_xlim)
-# 	# ax2.set_ylim(env.param.env_ylim)
-# 	# ax3.set_xticks(env.param.env_x)
-# 	# ax3.set_yticks(env.param.env_y)
-# 	# ax3.set_xlim(env.param.env_xlim)
-# 	# ax3.set_ylim(env.param.env_ylim)
-# 	# ax1.grid(True)
-# 	# ax2.grid(True)
-# 	# ax3.grid(True)
-
-# 	# get images
-# 	im_gmm = env.get_im_gmm(timestep)
-# 	im_v = env.get_im_v(timestep,results)
-# 	im_agent = env.get_im_agent(timestep,results)
-# 	customer_locations = env.get_customer_locations(timestep)
-# 	# im_agent = env.get_im_free_agent(timestep,results)
-
-# 	# print('im_gmm',im_gmm)
-# 	# print('im_v',im_v)
-# 	# print('im_agent',im_agent)
-
-# 	# customer plot 
-# 	if False:
-# 		# plot evaluation of gaussian mixture model
-# 		ax1.set_title('Gaussian Mixture Model')
-# 		ax1.imshow(im_gmm,vmin=0,vmax=1)
-# 		# ax1.imshow(im_gmm)
-# 		# ax1.imshow(im_gmm, 
-# 		# 	extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]])
-# 	else:
-# 		# plot actual dataset 
-# 		ax1.set_title('Customer Distribution')
-# 		ax1.set_xlim(env.param.env_xlim)
-# 		# ax1.set_ylim(env.param.env_ylim)
-# 		ax1.grid(True)
-# 		ax1.set_aspect('equal')
-# 		for customer_location in customer_locations:
-# 			plot_rectangle(customer_location[0],customer_location[1],env.param.plot_r_customer,fig=fig,ax=ax1,\
-# 				color=env.param.plot_customer_color[1],angle=45)
-	
-# 	# value fnc plot (for a single agent?)
-# 	ax2.set_title('Value Function')
-# 	# im2 = ax2.imshow(im_v)
-# 	im2 = ax2.imshow(im_v,vmin=0,vmax=1)
-# 	# im2 = ax2.imshow(im_v,
-# 	# 	extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]])
-
-# 	# agent dist plot 
-# 	ax3.set_title('Agent Distribution')
-# 	# im3 = ax3.imshow(im_agent)
-# 	im3 = ax3.imshow(im_agent,vmin=0,vmax=1)
-# 	# im3 = ax3.imshow(im_agent, 
-# 	# 	extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]])
-
-# 	# colorbar
-# 	fig.subplots_adjust(right=0.8)
-# 	cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-# 	fig.colorbar(im3, cax=cbar_ax)
-
-
+	im = ax.quiver(X,Y,U,V,C) #,scale_units='xy')

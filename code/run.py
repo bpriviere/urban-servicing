@@ -11,8 +11,6 @@ from controller import Controller
 import plotter 
 
 class Sim():
-	# this class should interface high level python code with low level input/outputs i.e. py dict
-
 
 	def __init__(self,param,env):
 		self.param = param
@@ -28,9 +26,6 @@ class Sim():
 
 		env.reset()
 		
-		# if not param.env_render_on:
-		# 	env.render()
-
 		for step,time in enumerate(param.sim_times[:-1]):
 			print('t = {}/{}'.format(time,param.sim_times[-1]))
 			
@@ -88,7 +83,6 @@ if __name__ == '__main__':
 
 	for controller_name, sim_result in sim_results.items():
 		plotter.sim_plot_over_time(controller_name,sim_result)
-		# print(sim_result)
 
 	plotter.plot_sim_rewards(sim_results)
 
