@@ -1,6 +1,7 @@
 # ignore data
 data/*
-__pycache__/*
+code/__pycache__/*
+code/results*
 # unused dir
 matlab_code/*
 mdp_toolbox_files/*

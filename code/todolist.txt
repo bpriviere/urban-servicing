@@ -6,12 +6,25 @@
 # 	- tacks 
 # 	- ....
 
-todo list (deadline in 3 weeks, gridworld deadline in 4 days):
+todo list (deadline in 3 weeks, gridworld deadline in 3 days):
 	
-	make batch run script option 
+	make batch run script option: pass in parameter object that initializes env, utilities, etc. then collect sim results 
+		- currently working on this
+		
+	refactoring
+		- change plotter to just a collection of functions that interacts only with results dict, not dependent on param!! 
+		- eliminate utilities into env 
+
+	experiments
+		- run some basic example with standard deviation plots 
+		- gif of evolving simulation 
+		- plot reward across number of agents 
+		- change |S| and compare runtime of sims
 
 	make real taxi dataset environment real taxi datasets
 		- move utility functions into enviornment 
+
+	develop another baseline, like uniform distribution 
 
 	writeup
 		- edit proof ?? oh god i hope not 

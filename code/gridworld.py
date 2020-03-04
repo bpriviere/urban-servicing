@@ -7,7 +7,7 @@ import numpy as np
 
 # my package 
 import plotter 
-import utilities 
+from utilities import Utility
 from helper_classes import Gaussian, Agent, Service, Dispatch, Empty, CustomerModel
 
 class GridWorld():
@@ -16,14 +16,16 @@ class GridWorld():
 		self.name = param.env_name 
 		self.timestep = 0
 		self.observation = []
-		self.cm = CustomerModel(param)
+
+		self.utilities = Utility(self.param)
+		self.cm = CustomerModel(self.param,self.utilities)
 
 	def init_agents(self):
 		# initialize list of agents  
 		self.agents = []
 		for i in range(self.param.ni):
-			x,y = utilities.random_position_in_world()
-			self.agents.append(Agent(i,x,y,self.v0,self.q0))
+			x,y = self.utilities.random_position_in_world()
+			self.agents.append(Agent(i,x,y,self.v0,self.q0,self.param.initial_covariance))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
 	def render(self,title=None):
@@ -62,14 +64,14 @@ class GridWorld():
 				elif False: #agent.mode == 1:
 					if curr_time < agent.pickup_finish_time:
 						square_pickup = plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
-							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.customer_color)
+							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
 						line_to_pickup = plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,\
-							fig=fig,ax=ax,color=self.param.customer_color)
+							fig=fig,ax=ax,color=self.param.plot_customer_color)
 					elif curr_time < agent.dropoff_finish_time:
 						square_dropoff = plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
-							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.customer_color)
+							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
 						line_to_dropoff = plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,\
-							fig=fig,ax=ax,color=self.param.customer_color)
+							fig=fig,ax=ax,color=self.param.plot_customer_color)
 
 	def reset(self):
 		self.timestep = 0
@@ -112,7 +114,7 @@ class GridWorld():
 		for agent in self.agents:
 			agents_operation[agent.i] = agent.mode
 			agents_location[agent.i,:] = [agent.x,agent.y]
-			agents_value_fnc_vector[agent.i,:] = utilities.q_value_to_value_fnc(self,agent.q)
+			agents_value_fnc_vector[agent.i,:] = self.utilities.q_value_to_value_fnc(self,agent.q)
 
 		# - agent actions
 		agents_int_action = self.get_agents_int_action(actions)
@@ -239,14 +241,14 @@ class GridWorld():
 				agent.mode = 0
 
 		# make sure you don't leave environment
-		agent.x,agent.y = utilities.environment_barrier([agent.x,agent.y])
+		agent.x,agent.y = self.utilities.environment_barrier([agent.x,agent.y])
 
 		return wait_time		
 
 	def eta_cell(self,i,j,t):
 		# expected time of arrival between two states (i,j), at given time (t)
-		x_i,y_i = utilities.cell_index_to_cell_coordinate(i)
-		x_j,y_j = utilities.cell_index_to_cell_coordinate(j)
+		x_i,y_i = self.utilities.cell_index_to_cell_coordinate(i)
+		x_j,y_j = self.utilities.cell_index_to_cell_coordinate(j)
 		x_i += self.param.env_dx/2
 		x_j += self.param.env_dx/2
 		y_i += self.param.env_dy/2
@@ -275,7 +277,7 @@ class GridWorld():
 			for customer in range(self.param.n_customers_per_time):
 				time_of_request = time + np.random.random()
 				x_p,y_p = self.cm.sample_cm(0)
-				x_d,y_d = utilities.random_position_in_world()
+				x_d,y_d = self.utilities.random_position_in_world()
 				time_to_complete = self.eta(x_p,y_p,x_d,y_d)
 				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
 
@@ -286,7 +288,7 @@ class GridWorld():
 			for customer in range(self.param.n_customers_per_time):
 				time_of_request = time + np.random.random()
 				x_p,y_p = self.cm.sample_cm(sim_timestep)
-				x_d,y_d = utilities.random_position_in_world()
+				x_d,y_d = self.utilities.random_position_in_world()
 				time_to_complete = self.eta(x_p,y_p,x_d,y_d)
 				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
 
@@ -296,7 +298,7 @@ class GridWorld():
 
 		train_dataset = dataset[dataset[:,0]<0,:]
 		curr_time = 0 
-		v,q = utilities.solve_MDP(self,train_dataset,curr_time)
+		v,q = self.utilities.solve_MDP(self,train_dataset,curr_time)
 		
 		self.v0 = v
 		self.q0 = q 
@@ -306,13 +308,13 @@ class GridWorld():
 		value_fnc_ims = np.zeros((self.param.ni,self.param.env_nx,self.param.env_ny))
 		for agent in self.agents:
 			# get value
-			value_fnc_i = utilities.q_value_to_value_fnc(self,agent.q)
+			value_fnc_i = self.utilities.q_value_to_value_fnc(self,agent.q)
 			# normalize
 			value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
 			# convert to im
 			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
 			for i in range(self.param.env_ncell):
-				i_x,i_y = utilities.cell_index_to_xy_cell_index(i)
+				i_x,i_y = self.utilities.cell_index_to_xy_cell_index(i)
 				im_v[i_x,i_y] = value_fnc_i[i]
 			# add
 			value_fnc_ims[agent.i,:,:] = im_v
@@ -334,7 +336,7 @@ class GridWorld():
 		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
 		for agent in self.agents:
 			i = agent.i
-			idx_x,idx_y = utilities.coordinate_to_xy_cell_index(
+			idx_x,idx_y = self.utilities.coordinate_to_xy_cell_index(
 				locs[agent.i,0],
 				locs[agent.i,1])
 			im_agent[idx_x][idx_y] += 1
@@ -359,7 +361,7 @@ class GridWorld():
 		for agent in self.agents:
 			i = agent.i
 			if modes[i] in [0,3]:
-				idx_x,idx_y = utilities.coordinate_to_xy_cell_index(
+				idx_x,idx_y = self.utilities.coordinate_to_xy_cell_index(
 					locs[agent.i,0],
 					locs[agent.i,1])
 				im_agent[idx_x][idx_y] += 1
@@ -397,9 +399,9 @@ class GridWorld():
 		# 	action = actions[i]
 		for agent,action in actions:
 			if isinstance(action,Dispatch): 
-				s = utilities.coordinate_to_cell_index(agent.x,agent.y)
-				sp = utilities.coordinate_to_cell_index(action.x,action.y)
-				int_a = utilities.s_sp_to_a(self,s,sp)
+				s = self.utilities.coordinate_to_cell_index(agent.x,agent.y)
+				sp = self.utilities.coordinate_to_cell_index(action.x,action.y)
+				int_a = self.utilities.s_sp_to_a(self,s,sp)
 				int_actions_lst.append(int_a)
 			elif isinstance(action,Service) or isinstance(action,Empty):
 				int_actions_lst.append(-1)
@@ -418,8 +420,8 @@ class GridWorld():
 			if isinstance(action,Dispatch):
 				# agents_vec_action[i,0] = action.x - agent.x
 				# agents_vec_action[i,1] = action.y - agent.y
-				sx,sy = utilities.cell_index_to_cell_coordinate(
-					utilities.coordinate_to_cell_index(agent.x,agent.y))
+				sx,sy = self.utilities.cell_index_to_cell_coordinate(
+					self.utilities.coordinate_to_cell_index(agent.x,agent.y))
 				agents_vec_action[agent.i,0] = action.x - (sx + self.param.env_dx/2)
 				agents_vec_action[agent.i,1] = action.y - (sy + self.param.env_dy/2)
 
@@ -438,7 +440,7 @@ class GridWorld():
 		im_a = np.zeros((self.param.env_nx,self.param.env_ny,2))
 		count = np.zeros((self.param.env_nx,self.param.env_ny,1))
 		for i in range(ni):
-			idx_x,idx_y = utilities.coordinate_to_xy_cell_index(locs[i][0],locs[i][1])
+			idx_x,idx_y = self.utilities.coordinate_to_xy_cell_index(locs[i][0],locs[i][1])
 			im_a[idx_x,idx_y,:] += vec_action[i][:]
 			count[idx_x,idx_y] += 1
 

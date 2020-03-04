@@ -10,12 +10,15 @@ class Param:
 		self.env_render_on = False
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
+		self.plot_sim_over_time = True
+
+		self.results_filename = 'results'
 
 		self.controllers = [
 			'dtd',
 			'ctd',
 			'bellman', 
-			'rhc',
+			# 'rhc',
 			# 'empty',
 			# 'random',
 			]
@@ -30,7 +33,9 @@ class Param:
 		self.plot_fn = 'plots.pdf'
 		self.mode_names = ['dispatch','service']
 		self.plot_agent_mode_color = ['blue','orange'] 
-		self.customer_color = 'orange'
+		self.plot_customer_color = 'orange'
+		self.plot_markers = ['s','p','P','*','+']
+		self.plot_colors = ['b','g','r','c','m']
 
 		self.state_keys = [
 			'gmm_distribution',
@@ -43,7 +48,7 @@ class Param:
 		]
 
 		# environment parameters
-		self.env_name = 'gridworld'		
+		self.env_name = 'gridworld'
 		if self.env_name is 'gridworld':
 			
 			# state space
@@ -61,7 +66,7 @@ class Param:
 			self.nq = self.env_ncell*self.env_naction
 
 			# simulation parameters
-			self.sim_tf = 20
+			self.sim_tf = 50
 			self.sim_dt = 0.25
 			self.sim_times = np.arange(0,self.sim_tf+self.sim_dt,self.sim_dt)
 			self.sim_nt = len(self.sim_times)
@@ -113,3 +118,6 @@ class Param:
 			self.plot_arrow_length = 1.2*self.plot_r_agent
 			self.plot_arrow_head_width = self.plot_arrow_width*3
 			self.plot_arrow_head_length = self.plot_arrow_head_width
+
+	def to_dict(self):
+		return self.__dict__

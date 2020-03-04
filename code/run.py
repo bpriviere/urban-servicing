@@ -1,14 +1,16 @@
 
 # standard packages
-from collections import namedtuple
 import numpy as np 
+import time as time_pkg
 
 # my packages 
 from param import Param
 from gridworld import GridWorld
 from datahandler import DataHandler
 from controller import Controller
-import plotter 
+# from utilities import Utility
+from plotter import Plotter
+# import plotter 
 
 class Sim():
 
@@ -17,7 +19,7 @@ class Sim():
 		self.env = env
 		
 	def run(self,controller):
-		
+
 		# init results dict
 		results = dict()
 		results["times"] = []
@@ -25,14 +27,17 @@ class Sim():
 		for key in self.param.state_keys:
 			results[key] = [] 
 
+		results["sim_start_time"] = time_pkg.time()
+
 		# sim 
-		env.reset()		
+		self.env.reset()
+		print('running sim...')	
 		for step,time in enumerate(param.sim_times[:-1]):
-			print('t = {}/{}'.format(time,param.sim_times[-1]))
+			print('   t = {}/{}'.format(time,param.sim_times[-1]))
 			
-			observation = env.observe()
+			observation = self.env.observe()
 			action = controller.policy(observation)
-			reward,state = env.step(action)
+			reward,state = self.env.step(action)
 			
 			if param.env_render_on:
 				env.render(title='{} at t={}/{}'.format(controller.name,time,param.sim_times[-1]))
@@ -41,17 +46,16 @@ class Sim():
 			results["rewards"].append(reward)
 			for key in self.param.state_keys:
 				results[key].append(state[key])
-				
+
+		results["sim_end_time"] = time_pkg.time()
+		results["sim_run_time"] = results["sim_end_time"] - results["sim_start_time"]
+
 		return results
 
 
-if __name__ == '__main__':
+def run_instance(param):
 
-	# set random seed
-	np.random.seed(0)
-
-	# parameters
-	param = Param()
+	print('Parameters: {}'.format(param))
 
 	# environment 
 	print('Env: {}'.format(param.env_name))
@@ -82,12 +86,44 @@ if __name__ == '__main__':
 		sim = Sim(param,env)
 		sim_results[controller_name] = sim.run(controller)
 
-	for controller_name, sim_result in sim_results.items():
-		plotter.sim_plot_over_time(controller_name,sim_result)
+	print('writing results...')
+	datahandler.write_sim_results(sim_results, param.results_filename)
 
-	plotter.plot_sim_rewards(sim_results)
+	return sim_results
 
+
+if __name__ == '__main__':
+
+	# set random seed
+	np.random.seed(0)
+
+	ni_lst = [5,10,15,20,50]
+	macro_sim_results = []
+	for ni in ni_lst:
+		# parameters
+		param = Param()
+		param.ni = ni
+		param.results_filename = param.results_filename + '_{}ni'.format(ni)
+
+		# run 
+		sim_results = run_instance(param)
+		
+		# save param 
+		sim_results["param"] = param.to_dict()
+
+		# add to lst 
+		macro_sim_results.append(sim_results)
+
+	plotter = Plotter(param)
+	plotter.macro_sim_plot(macro_sim_results, ni_lst)
 	plotter.save_figs(param.plot_fn)
 	plotter.open_figs(param.plot_fn)
+
+	# if param.plot_sim_over_time:
+	# 	for controller_name, sim_result in sim_results.items():
+	# 		plotter.sim_plot_over_time(controller_name,sim_result)
+	# plotter.plot_sim_rewards(sim_results)
+
+
 
 

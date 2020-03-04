@@ -57,8 +57,17 @@ class DataHandler:
 		env.q0 = np.load(f)
 	
 
-	def write_sim_results(self, results):
-		pass 
+	def write_sim_results(self, result_dict, filename):
+		
+		import json
+		class NumpyEncoder(json.JSONEncoder):
+			def default(self, obj):
+				if isinstance(obj, np.ndarray):
+					return obj.tolist()
+				return json.JSONEncoder.default(self, obj)
+
+		with open('{}.json'.format(filename), 'w') as fp:
+			json.dump(result_dict, fp, cls=NumpyEncoder)
 
 
 	def make_chicago_dataset(self, fileSpecifierDict):

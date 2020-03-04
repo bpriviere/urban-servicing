@@ -1,8 +1,8 @@
 
-
+# standard package
 import numpy as np 
 
-import utilities
+# my packages
 from helper_classes import Dispatch, Service, Empty
 from task_assignment import centralized_linear_program, binary_log_learning
 
@@ -174,7 +174,7 @@ class Controller():
 		# belllman iteration update law
 		
 		# update
-		v,q_bellman = utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
+		v,q_bellman = self.env.utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
 
 		# update all agents
 		for agent in self.env.agents:
@@ -213,14 +213,15 @@ class Controller():
 	def cell_to_move_assignments(self,cell_assignments):
 		
 		move_assignments = [] 
-		transition = utilities.get_MDP_P(self.env)
+		# transition = self.env.utilities.get_MDP_P(self.env)
+		transition = self.env.utilities.P
 		for agent,cell in cell_assignments:
-			i = np.where(transition[cell,utilities.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
+			i = np.where(transition[cell,self.env.utilities.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
 			
 			if False:
-				x,y = utilities.random_position_in_cell(i)
+				x,y = self.env.utilities.random_position_in_cell(i)
 			else:
-				x,y = utilities.cell_index_to_cell_coordinate(i)
+				x,y = self.env.utilities.cell_index_to_cell_coordinate(i)
 				x += self.param.env_dx/2
 				y += self.param.env_dy/2
 			
@@ -417,11 +418,11 @@ class Controller():
 				for s in range(self.param.env_ncell):
 					for a in range(self.param.env_naction):
 
-						next_state = utilities.get_next_state(self.env,s,a)
-						q_idx = utilities.sa_to_q_idx(s,a)
+						next_state = self.env.utilities.get_next_state(self.env,s,a)
+						q_idx = self.env.utilities.sa_to_q_idx(s,a)
 						prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 
-						reward_instance = utilities.reward_instance(self.env,s,a,px,py)
+						reward_instance = self.env.utilities.reward_instance(self.env,s,a,px,py)
 
 						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 

@@ -3,8 +3,6 @@
 import numpy as np 
 import cvxpy as cp 
 
-import utilities
-
 def binary_log_learning(env,agents):
 	
 	n_agents = len(agents)
@@ -14,13 +12,13 @@ def binary_log_learning(env,agents):
 	for agent in agents:
 		random_action = np.random.randint(0,env.param.env_naction)
 
-		state = utilities.coordinate_to_cell_index(agent.x,agent.y)
-		local = utilities.get_local_states(env,state)
+		state = env.utilities.coordinate_to_cell_index(agent.x,agent.y)
+		local = env.utilities.get_local_states(env,state)
 		best_action = np.argmax(agent.v[local])
 
 		# print()
 		# print(local)
-		# print(utilities.coordinate_to_cell_index(agent.x,agent.y))
+		# print(env.utilities.coordinate_to_cell_index(agent.x,agent.y))
 		# print(best_action)
 		# print(agent.v)
 		# exit()
@@ -41,17 +39,17 @@ def binary_log_learning(env,agents):
 		c_idx = np.random.randint(0,sum(np.logical_not(converged)))
 		a_idx = np.where(converged == 0)[0][c_idx]
 		agent = agents[a_idx]
-		state = utilities.coordinate_to_cell_index(agent.x,agent.y)
-		next_state = utilities.get_next_state(env,state,agent.cell_action)
+		state = env.utilities.coordinate_to_cell_index(agent.x,agent.y)
+		next_state = env.utilities.get_next_state(env,state,agent.cell_action)
 		
 		# propose a random action 
 		action_p = np.random.randint(0,env.param.env_naction)
-		next_state_proposed = utilities.get_next_state(env,state,action_p)
+		next_state_proposed = env.utilities.get_next_state(env,state,action_p)
 		while next_state == next_state_proposed:
 			action_p = np.random.randint(0,env.param.env_naction)
-			next_state_proposed = utilities.get_next_state(env,state,action_p)
+			next_state_proposed = env.utilities.get_next_state(env,state,action_p)
 
-			# print('utilities.coordinate_to_cell_index(agent.x,agent.y):',utilities.coordinate_to_cell_index(agent.x,agent.y))
+			# print('env.utilities.coordinate_to_cell_index(agent.x,agent.y):',env.utilities.coordinate_to_cell_index(agent.x,agent.y))
 			# print('agent.cell_action:',agent.cell_action)
 			# print('action_p:',action_p)
 			# print('next_state: ',next_state)
@@ -106,12 +104,12 @@ def binary_log_learning(env,agents):
 def calc_J(env,agent_i,action_i,agents):
 
 	# get local q values
-	local_q = utilities.get_local_q_values(env,agent_i)
-	local_q_dist = utilities.value_to_probability(local_q)
+	local_q = env.utilities.get_local_q_values(env,agent_i)
+	local_q_dist = env.utilities.value_to_probability(local_q)
 
 	# get local agent distribution
-	state = utilities.coordinate_to_cell_index(agent_i.x,agent_i.y)
-	local_s_idx = utilities.get_local_states(env,state)
+	state = env.utilities.coordinate_to_cell_index(agent_i.x,agent_i.y)
+	local_s_idx = env.utilities.get_local_states(env,state)
 	H = make_H(env,agents)
 	A = get_joint_action(env,agent_i,action_i,agents)	
 	local_agent_dist = np.matmul(H,A)[local_s_idx]
@@ -120,7 +118,7 @@ def calc_J(env,agent_i,action_i,agents):
 	J = np.linalg.norm(local_agent_dist - local_q_dist)
 
 	# debug 
-	# local_v = utilities.value_to_probability(agent_i.v[local_s_idx])
+	# local_v = env.utilities.value_to_probability(agent_i.v[local_s_idx])
 	# J2 = np.linalg.norm(local_agent_dist - local_v)
 
 	# print('J: ', J)
@@ -151,8 +149,8 @@ def centralized_linear_program(env,agents):
 		H = make_H(env,agents)
 		S = make_S(env,agents)
 
-		# V = utilities.value_to_probability(env.agents[0].v)
-		V = utilities.value_to_probability(utilities.q_value_to_value_fnc(env,env.agents[0].q))
+		# V = env.utilities.value_to_probability(env.agents[0].v)
+		V = env.utilities.value_to_probability(env.utilities.q_value_to_value_fnc(env,env.agents[0].q))
 
 		# print('H',H)
 		# print('S',S)
@@ -192,7 +190,7 @@ def make_S(env,agents):
 
 	S = np.zeros((env.param.env_ncell))
 	for agent in agents:
-		state = utilities.coordinate_to_cell_index(agent.x,agent.y)
+		state = env.utilities.coordinate_to_cell_index(agent.x,agent.y)
 		S[state] += 1 
 	return S/len(agents)
 
@@ -203,11 +201,11 @@ def make_H(env,agents):
 	
 	n_agents = len(agents)
 	H = np.zeros((env.param.env_ncell,env.param.env_naction*n_agents))
-	# P = utilities.get_MDP_P(env)
-	P = utilities.get_MDP_P(env)
+	# P = env.utilities.get_MDP_P(env)
+	P = env.utilities.get_MDP_P(env)
 	for step,agent in enumerate(agents):
 		idx = step*env.param.env_naction
-		state = utilities.coordinate_to_cell_index(agent.x,agent.y)
+		state = env.utilities.coordinate_to_cell_index(agent.x,agent.y)
 		# print('agent.x: ', agent.x)
 		# print('agent.y: ', agent.y)
 		for a in range(env.param.env_naction):

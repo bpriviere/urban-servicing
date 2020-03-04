@@ -1,11 +1,6 @@
 
 import numpy as np 
 
-import utilities
-from param import Param
-
-param = Param()
-
 class Gaussian:
 	def __init__(self,i,x,y,s,v,nt):
 		self.i = i
@@ -27,8 +22,9 @@ class Gaussian:
 		return x,y
 
 class CustomerModel:
-	def __init__(self,param):
+	def __init__(self,param,utilities):
 		self.param = param
+		self.utilities = utilities
 
 		# initialize customer model GMM
 		nt = len(self.param.sim_times) 
@@ -37,7 +33,7 @@ class CustomerModel:
 			if self.param.cm_linear_move:
 				x0,y0 = [self.param.env_dx/2, self.param.env_dy/2]
 			else:
-				x0,y0 = utilities.random_position_in_world()
+				x0,y0 = self.utilities.random_position_in_world()
 			
 			cgm_lst.append(
 				Gaussian(i,x0,y0,self.param.cm_sigma,self.param.cm_speed, nt))
@@ -69,7 +65,7 @@ class CustomerModel:
 			unit_vec = np.array([np.cos(th),np.sin(th)])
 			move = cgm.v*dt*unit_vec
 			p = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
-			p = utilities.environment_barrier(p)
+			p = self.utilities.environment_barrier(p)
 			safe_move = [p[0] - cgm.x[timestep], p[1] - cgm.y[timestep]]
 			cgm.move(safe_move,timestep)
 
@@ -80,7 +76,7 @@ class CustomerModel:
 	def eval_cm(self,timestep):
 		# input: 
 		# 	- self : env
-		# 	- t : time (OR TIMESTEP???)
+		# 	- t : timestep of SIM
 		# output: 
 		# 	- cm : customer model probability matrix with shape: (env_nx,env_ny), where sum(sum(cm)) = 1 
 
@@ -90,8 +86,8 @@ class CustomerModel:
 		cm = np.zeros((self.param.env_nx,self.param.env_ny))
 		for i in range(self.param.cm_nsample_cm):
 			x,y = self.sample_cm(timestep)
-			x,y = utilities.environment_barrier([x,y])
-			i_x,i_y = utilities.coordinate_to_xy_cell_index(x,y)
+			x,y = self.utilities.environment_barrier([x,y])
+			i_x,i_y = self.utilities.coordinate_to_xy_cell_index(x,y)
 			cm[i_x,i_y] += 1
 
 		# normalize
@@ -99,7 +95,7 @@ class CustomerModel:
 		return cm 
 
 class Agent:
-	def __init__(self,i,x,y,v,q):
+	def __init__(self,i,x,y,v,q,p):
 		self.i = i
 		self.x = x
 		self.y = y
@@ -107,7 +103,7 @@ class Agent:
 		self.q = q 
 		self.mode = 0 # [idle, servicing, pickup]
 		self.update = False
-		self.p = param.initial_covariance
+		self.p = p 
 
 class Empty:
 	def __init__(self):
