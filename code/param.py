@@ -14,15 +14,15 @@ class Param:
 		self.controllers = [
 			'dtd',
 			'ctd',
-			# 'bellman', 
-			# 'rhc',
+			'bellman', 
+			'rhc',
 			# 'empty',
 			# 'random',
 			]
 
 		self.ta = [
-			'clp',
-			# 'blll',
+			# 'clp',
+			'blll',
 			# 'da',
 		]
 
@@ -39,8 +39,7 @@ class Param:
 			'agents_location',
 			'free_agents_distribution',
 			'agents_operation',
-			'agents_int_action',
-			'agents_vec_action'
+			'agents_ave_vec_action_distribution'
 		]
 
 		# environment parameters
@@ -62,14 +61,14 @@ class Param:
 			self.nq = self.env_ncell*self.env_naction
 
 			# simulation parameters
-			self.sim_tf = 10
+			self.sim_tf = 20
 			self.sim_dt = 0.25
 			self.sim_times = np.arange(0,self.sim_tf+self.sim_dt,self.sim_dt)
 			self.sim_nt = len(self.sim_times)
 
 			# fleet parameters
 			self.ni = 20
-			self.r_comm = 100 #3*self.env_dx
+			self.r_comm = 3*self.env_dx
 			self.r_sense = np.Inf # 2*self.r_comm
 			self.taxi_speed = 0.25 # dist/time
 			self.lambda_a = 1.0 # (cost of customer waiting time)/(cost of agent movement)

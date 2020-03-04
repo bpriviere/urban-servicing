@@ -17,15 +17,16 @@ class Sim():
 		self.env = env
 		
 	def run(self,controller):
-			
+		
+		# init results dict
 		results = dict()
 		results["times"] = []
 		results["rewards"] = []
 		for key in self.param.state_keys:
 			results[key] = [] 
 
-		env.reset()
-		
+		# sim 
+		env.reset()		
 		for step,time in enumerate(param.sim_times[:-1]):
 			print('t = {}/{}'.format(time,param.sim_times[-1]))
 			

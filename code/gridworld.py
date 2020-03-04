@@ -126,6 +126,7 @@ class GridWorld():
 		agents_distribution = self.get_curr_im_agents()
 		free_agents_distribution = self.get_curr_im_free_agents()
 		agents_value_fnc_distribution = self.get_curr_im_value()
+		agents_ave_vec_action_distribution = self.get_curr_ave_vec_action(agents_location, agents_vec_action)
 
 		# put desired numpy arrays into dictionary
 		state = dict()
@@ -429,3 +430,19 @@ class GridWorld():
 				print(action)
 				exit('get_agents_vec_action type error')
 		return agents_vec_action
+
+	def get_curr_ave_vec_action(self,locs,vec_action):
+		# locs is (ni,2)
+		# vec_actions is (ni,2)
+		ni = locs.shape[0]
+		im_a = np.zeros((self.param.env_nx,self.param.env_ny,2))
+		count = np.zeros((self.param.env_nx,self.param.env_ny,1))
+		for i in range(ni):
+			idx_x,idx_y = utilities.coordinate_to_xy_cell_index(locs[i][0],locs[i][1])
+			im_a[idx_x,idx_y,:] += vec_action[i][:]
+			count[idx_x,idx_y] += 1
+
+		idx = np.nonzero(count)
+		# im_a[idx] = (im_a[idx].T/count[idx]).T
+		im_a[idx] = im_a[idx]/count[idx]
+		return im_a		

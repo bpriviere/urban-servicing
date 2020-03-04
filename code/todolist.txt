@@ -7,27 +7,26 @@
 # 	- ....
 
 todo list (deadline in 3 weeks, gridworld deadline in 4 days):
-
-	refactor:
-		- make action a state parameters 
-
-	debug with action vector plot
 	
-	make task assignment dependent on free agent distribution (it does this already, but seems buggy)
-		- check H, S, V, etc. 
-
-	distributed auction task assignment
-	
-	debug task assignment: agent distribution should track value func distribution (close to q value)
-		- needs to be very fast!  
+	make batch run script option 
 
 	make real taxi dataset environment real taxi datasets
 		- move utility functions into enviornment 
 
 	writeup
 		- edit proof ?? oh god i hope not 
+
+	nice to haves
+		- distributed auction task assignment ??
 	
 done: 
+	make task assignment dependent on free agent distribution (it does this already, but seems buggy)
+		- check H, S, V, etc. 
+	debug task assignment: agent distribution should track value func distribution (close to q value)
+		- needs to be very fast!  
+	debug with action vector plot
+	refactor:
+		- make action a state parameters 
 	debug value function: each algorithm values should track the customer distribution 
 		- ctd, bellman, and dtd seems fine
 	make RHC baseline

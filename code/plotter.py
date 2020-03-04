@@ -192,7 +192,11 @@ def sim_plot(controller_name,results,timestep):
 		curr_ax = fig.add_subplot(nrow,ncol,num)
 		curr_ax.set_title(key)
 		
-		if 'distribution' in key:
+		if 'action' in key:
+			im_to_plot = results["agents_ave_vec_action_distribution"][timestep]
+			ave_actions_vector_plot(im_to_plot,xlim=param.env_xlim,ylim=param.env_ylim,fig=fig,ax=curr_ax)
+
+		elif 'distribution' in key:
 			# im coordinates -> try to change this one to sim coordinates
 			if 'value' in key:
 				agent_idx = 0
@@ -218,10 +222,6 @@ def sim_plot(controller_name,results,timestep):
 			curr_ax.set_ylim([0,1])
 			plt.xticks(range(nmode),param.mode_names,rotation='vertical')
 		
-		elif 'action' in key:
-			im_to_plot = get_ave_actions_im(results["agents_location"][timestep],results["agents_action"][timestep])
-			ave_actions_vector_plot(im_to_plot,xlim=param.env_xlim,ylim=param.env_ylim,fig=fig,ax=curr_ax)
-
 		if 'distribution' in key or 'location' in key or 'action' in key:
 			# create same axis
 			curr_ax.set_xticks(param.env_x) 
@@ -250,22 +250,6 @@ def plot_distribution_over_time(results,env):
 def sim_plot_over_time(controller_name,sim_result):
 	for timestep,time in enumerate(sim_result["times"]):
 		sim_plot(controller_name, sim_result, timestep)	
-
-def get_ave_actions_im(locs, actions):
-	# locations is (ni,2)
-	# actions is (ni,2)
-	ni = locs.shape[0]
-	im_a = np.zeros((param.env_nx,param.env_ny,2))
-	count = np.zeros((param.env_nx,param.env_ny,1))
-	for i in range(ni):
-		idx_x,idx_y = utilities.coordinate_to_xy_cell_index(locs[i][0],locs[i][1])
-		im_a[idx_x,idx_y,:] += actions[i][:]
-		count[idx_x,idx_y] += 1
-
-	idx = np.nonzero(count)
-	# im_a[idx] = (im_a[idx].T/count[idx]).T
-	im_a[idx] = im_a[idx]/count[idx]
-	return im_a
 
 def sim_to_im_coordinate(im):
 	# im coordinates
@@ -296,4 +280,4 @@ def ave_actions_vector_plot(im_ave_vec_action,xlim=None,ylim=None,fig=None,ax=No
 	U[idx] = U[idx] / np.sqrt(U[idx]**2 + V[idx]**2);
 	V[idx] = V[idx] / np.sqrt(U[idx]**2 + V[idx]**2);
 
-	im = ax.quiver(X,Y,U,V,C) #,scale_units='xy')
+	im = ax.quiver(X[idx],Y[idx],U[idx],V[idx],C[idx]) #,scale_units='xy')
