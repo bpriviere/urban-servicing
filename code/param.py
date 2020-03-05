@@ -8,7 +8,7 @@ class Param:
 
 		# flags 
 		self.env_render_on = False
-		self.plot_sim_over_time = True
+		self.plot_sim_over_time = False
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
 

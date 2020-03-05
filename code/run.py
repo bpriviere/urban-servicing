@@ -18,12 +18,12 @@ from plotter import Plotter
 def run_instance(param):
 	# runs sim with given parameters for different controllers and different trials and writes to results directory 
 	# output:
-	# 	- dicts of lsts of dicts
+	# 	- dicts of lsts of sim result dicts
 
 	env = GridWorld(param)
 	datahandler = DataHandler(param)
-	controller_names = param.controller_names
 	plotter = Plotter(param)
+	controller_names = param.controller_names
 
 	# can we repack this stuff??
 	if param.make_dataset_on:
@@ -40,9 +40,10 @@ def run_instance(param):
 		for i_trial in range(param.n_trials):
 			sim_result = sim(param,env,controller)
 			sim_results_by_controller[controller_name].append(sim_result)
-			case_count = len(glob.glob(default_param.results_dir + "/*.json"))
-			filename = param.results_dir + '/case{}'.format(case_count)
-			datahandler.write_sim_result(sim_result, filename)
+
+			case_count = len(glob.glob('../results/*')) + 1
+			results_dir = param.results_dir + '/case{}'.format(case_count)
+			datahandler.write_sim_result(sim_result, results_dir)
 
 			if param.plot_sim_over_time:
 				plotter.sim_plot_over_time(controller_name,sim_result)

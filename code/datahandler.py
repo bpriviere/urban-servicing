@@ -62,7 +62,7 @@ class DataHandler:
 		env.q0 = np.load(f)
 	
 
-	def write_sim_result(self, sim_result, filename):
+	def write_sim_result(self, sim_result, resultsdir):
 		
 		import json
 		class NumpyEncoder(json.JSONEncoder):
@@ -71,8 +71,16 @@ class DataHandler:
 					return obj.tolist()
 				return json.JSONEncoder.default(self, obj)
 
-		with open('{}.json'.format(filename), 'w') as fp:
-			json.dump(sim_result, fp, cls=NumpyEncoder)
+		if not os.path.exists(resultsdir):
+			os.makedirs(resultsdir)
+
+		param_fn = '{}/param.json'.format(resultsdir)
+		with open(param_fn, 'w') as fp:
+			json.dump(sim_result["param"], fp, cls=NumpyEncoder)
+
+		for state_key in sim_result["param"]["state_keys"]:
+			with open("{}/{}.npy".format(resultsdir,state_key), "wb") as f:
+				np.save(f,sim_result[state_key])
 
 
 	def make_chicago_dataset(self, fileSpecifierDict):
