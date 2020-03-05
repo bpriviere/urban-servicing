@@ -8,18 +8,18 @@ class Param:
 
 		# flags 
 		self.env_render_on = False
-		self.plot_sim_over_time = False
+		self.plot_sim_over_time = True
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
 
-		self.n_trials = 5
+		self.n_trials = 1
 		self.results_dir = '../results'
 
 		self.controller_names = [
 			'dtd',
-			'ctd',
-			'bellman', 
-			'rhc',
+			# 'ctd',
+			# 'bellman', 
+			# 'rhc',
 			# 'empty',
 			# 'random',
 			]
@@ -55,7 +55,7 @@ class Param:
 			# state space
 			self.env_xlim = [0,4.0]
 			self.env_ylim = [0,2.0] #,1]
-			self.env_dx = 0.5 # 0.5 # length/cell
+			self.env_dx = 0.25 # 0.5 # length/cell
 			self.env_dy = self.env_dx
 			self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
 			self.env_y = np.arange(self.env_ylim[0],self.env_ylim[1],self.env_dy)
@@ -67,31 +67,31 @@ class Param:
 			self.nq = self.env_ncell*self.env_naction
 
 			# simulation parameters
-			self.sim_tf = 200
+			self.sim_tf = 100
 			self.sim_dt = 0.25
 			self.sim_times = np.arange(0,self.sim_tf+self.sim_dt,self.sim_dt)
 			self.sim_nt = len(self.sim_times)
 
 			# fleet parameters
-			self.ni = 50
+			self.ni = 100
 			self.r_comm = 3*self.env_dx
 			self.r_sense = np.Inf # 2*self.r_comm
 			self.taxi_speed = 0.25 # dist/time
 			self.lambda_a = 1.0 # (cost of customer waiting time)/(cost of agent movement)
 
 			# customer model/dataset 
-			self.cm_linear_move = False
+			self.cm_linear_move = True
 			if self.cm_linear_move:
-				self.cm_ng = 1
-				self.cm_sigma = 5e-2 
-				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf # 0.25 # dist/time
+				self.cm_ng = 2
+				self.cm_sigma = 0.05 
+				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf
 				self.cm_nsample_cm = 100
 				self.n_customers_per_time = 3 # int(0.5*self.ni)
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 2
-				self.cm_sigma = 5e-2 
-				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf # 0.25 # dist/time
+				self.cm_sigma = 0.05 # ~1/4 env dx -> 2 sigma rule within a dx
+				self.cm_speed = 0.025 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_customers_per_time = 3 # int(0.5*self.ni)
 				self.n_training_data = 100

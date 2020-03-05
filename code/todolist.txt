@@ -6,17 +6,15 @@
 # 	- tacks 
 # 	- ....
 
-todo list (deadline in 3 weeks, gridworld deadline in 3 days):
+todo list (deadline in 3 weeks, gridworld deadline in 2 days):
 
 	why does customer model look weird? 
+	why does rhc outperform dtd? 
 	
-	make batch run script option: pass in parameter object that initializes env, utilities, etc. then collect sim results 
-		- currently working on this
-		- clean this up... 
-		
 	refactoring
-		- change plotter to just a collection of functions that interacts only with results dict, not dependent on param!! 
+		- change plotter to just a collection of functions that interacts only with results folder, not dependent on param!! 
 		- eliminate utilities into env 
+		- clean 
 
 	experiments
 		- micro: 

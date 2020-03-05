@@ -10,6 +10,8 @@ class Gaussian:
 		self.y = np.empty(nt)
 		self.x[0] = x
 		self.y[0] = y
+		self.th = 0 
+		# self.change_dir()
 		# print('self.x: ', self.x)
 		# print('self.y: ', self.y)
 
@@ -20,6 +22,10 @@ class Gaussian:
 	def sample(self,timestep):
 		x,y = np.random.normal([self.x[timestep],self.y[timestep]],self.s)
 		return x,y
+
+	def change_dir(self):
+		self.th = -self.th 
+		# self.th = np.random.random()*2*np.pi
 
 class CustomerModel:
 	def __init__(self,param,utilities):
@@ -32,7 +38,7 @@ class CustomerModel:
 		for i in range(self.param.cm_ng):
 			
 			if self.param.cm_linear_move:
-				x0,y0 = [self.param.env_dx/2, self.param.env_dy/2]
+				x0,y0 = [self.param.env_dx/2, 2*i*self.param.env_dy + self.param.env_dy/2]
 			else:
 				x0,y0 = self.utilities.random_position_in_world()
 			
@@ -58,16 +64,13 @@ class CustomerModel:
 
 		dt = self.param.sim_dt 
 		for cgm in self.cgm_lst:
-			if self.param.cm_linear_move:
-				th = 0 
-			else:
-				th = np.random.random()*2*np.pi
-
-			unit_vec = np.array([np.cos(th),np.sin(th)])
+			unit_vec = np.array([np.cos(cgm.th),np.sin(cgm.th)])
 			move = cgm.v*dt*unit_vec
-			p = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
-			p = self.utilities.environment_barrier(p)
-			safe_move = [p[0] - cgm.x[timestep], p[1] - cgm.y[timestep]]
+			cm_p_tp1 = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
+			cm_p_tp1_safe = self.utilities.environment_barrier(cm_p_tp1)
+			if cm_p_tp1 != cm_p_tp1_safe:
+				cgm.change_dir()
+			safe_move = [cm_p_tp1_safe[0] - cgm.x[timestep], cm_p_tp1_safe[1] - cgm.y[timestep]]
 			cgm.move(safe_move,timestep)
 
 	def run_cm_model(self):
