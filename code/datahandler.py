@@ -1,5 +1,6 @@
 
 import numpy as np
+import os
 
 # todo install packages 
 # import pandas as pd
@@ -9,8 +10,6 @@ from gridworld import GridWorld
 from param import Param 
 import utilities
 
-
-np.random.seed(0)
 
 class DataHandler:
 	def __init__(self,param):
@@ -41,11 +40,17 @@ class DataHandler:
 			return self.load_chicago_dataset(env)
 
 	def write_gridworld_dataset(self,env):
-		with open("../data/gridworld/customer_requests.npy", "wb") as f:
+
+		datadir = "../data/gridworld"
+		
+		if not os.path.exists(datadir):
+			os.makedirs(datadir,exist_ok=True)
+
+		with open("{}/customer_requests.npy".format(datadir), "wb") as f:
 			np.save(f, env.dataset)
-		with open("../data/gridworld/value_fnc_training.npy", "wb") as f:
+		with open("{}/value_fnc_training.npy".format(datadir), "wb") as f:
 			np.save(f, env.v0)	
-		with open("../data/gridworld/q_values_training.npy", "wb") as f:
+		with open("{}/q_values_training.npy".format(datadir), "wb") as f:
 			np.save(f, env.q0)
 
 	def load_gridworld_dataset(self,env):
@@ -57,7 +62,7 @@ class DataHandler:
 		env.q0 = np.load(f)
 	
 
-	def write_sim_results(self, result_dict, filename):
+	def write_sim_result(self, sim_result, filename):
 		
 		import json
 		class NumpyEncoder(json.JSONEncoder):
@@ -67,7 +72,7 @@ class DataHandler:
 				return json.JSONEncoder.default(self, obj)
 
 		with open('{}.json'.format(filename), 'w') as fp:
-			json.dump(result_dict, fp, cls=NumpyEncoder)
+			json.dump(sim_result, fp, cls=NumpyEncoder)
 
 
 	def make_chicago_dataset(self, fileSpecifierDict):

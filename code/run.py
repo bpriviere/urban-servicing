@@ -2,6 +2,8 @@
 # standard packages
 import numpy as np 
 import time as time_pkg
+import os 
+import glob
 
 # my packages 
 from param import Param
@@ -12,118 +14,105 @@ from controller import Controller
 from plotter import Plotter
 # import plotter 
 
-class Sim():
-
-	def __init__(self,param,env):
-		self.param = param
-		self.env = env
-		
-	def run(self,controller):
-
-		# init results dict
-		results = dict()
-		results["times"] = []
-		results["rewards"] = []
-		for key in self.param.state_keys:
-			results[key] = [] 
-
-		results["sim_start_time"] = time_pkg.time()
-
-		# sim 
-		self.env.reset()
-		print('running sim...')	
-		for step,time in enumerate(param.sim_times[:-1]):
-			print('   t = {}/{}'.format(time,param.sim_times[-1]))
-			
-			observation = self.env.observe()
-			action = controller.policy(observation)
-			reward,state = self.env.step(action)
-			
-			if param.env_render_on:
-				env.render(title='{} at t={}/{}'.format(controller.name,time,param.sim_times[-1]))
-
-			results["times"].append(time)
-			results["rewards"].append(reward)
-			for key in self.param.state_keys:
-				results[key].append(state[key])
-
-		results["sim_end_time"] = time_pkg.time()
-		results["sim_run_time"] = results["sim_end_time"] - results["sim_start_time"]
-
-		return results
-
 
 def run_instance(param):
+	# runs sim with given parameters for different controllers and different trials and writes to results directory 
+	# output:
+	# 	- dicts of lsts of dicts
 
-	print('Parameters: {}'.format(param))
-
-	# environment 
-	print('Env: {}'.format(param.env_name))
-	if param.env_name is 'gridworld':
-		env = GridWorld(param)
-	else:
-		exit('fatal error: param.env_name not recognized')
-
-	# data 
+	env = GridWorld(param)
 	datahandler = DataHandler(param)
+	controller_names = param.controller_names
+	plotter = Plotter(param)
+
+	# can we repack this stuff??
 	if param.make_dataset_on:
 		print('making dataset...')
 		datahandler.make_dataset(env)
 		datahandler.write_dataset(env)
-	
 	print('loading dataset...')
 	datahandler.load_dataset(env)
 
-	# sim each controller
-	sim_results = dict()
-	for controller_name in param.controllers:
-
-		# policy 
-		print('Controller: {}'.format(controller_name))
+	sim_results_by_controller = dict()
+	for controller_name in controller_names:
+		sim_results_by_controller[controller_name] = []
 		controller = Controller(param,env,controller_name)
+		for i_trial in range(param.n_trials):
+			sim_result = sim(param,env,controller)
+			sim_results_by_controller[controller_name].append(sim_result)
+			case_count = len(glob.glob(default_param.results_dir + "/*.json"))
+			filename = param.results_dir + '/case{}'.format(case_count)
+			datahandler.write_sim_result(sim_result, filename)
 
-		# simulation 
-		sim = Sim(param,env)
-		sim_results[controller_name] = sim.run(controller)
+			if param.plot_sim_over_time:
+				plotter.sim_plot_over_time(controller_name,sim_result)
 
-	print('writing results...')
-	datahandler.write_sim_results(sim_results, param.results_filename)
+	return sim_results_by_controller
 
-	return sim_results
+def sim(param,env,controller):
+	# outputs:
+	# 	- dictionary with all state variables for all time, plus rewards, times, runtime. 
+
+	sim_result = dict()
+	sim_result["times"] = []
+	sim_result["rewards"] = []
+	sim_result["param"] = param.to_dict()
+	for key in param.state_keys:
+		sim_result[key] = [] 
+
+	sim_result["sim_start_time"] = time_pkg.time()
+	sim_result["controller_name"] = controller.name 
+	
+	env.reset()
+	print('running sim...')	
+	for step,time in enumerate(param.sim_times[:-1]):
+		print('   t = {}/{}'.format(time,param.sim_times[-1]))
+		
+		observation = env.observe()
+		action = controller.policy(observation)
+		reward,state = env.step(action)
+		
+		if param.env_render_on:
+			env.render(title='{} at t={}/{}'.format(controller.name,time,param.sim_times[-1]))
+
+		sim_result["times"].append(time)
+		sim_result["rewards"].append(reward)
+		for key in param.state_keys:
+			sim_result[key].append(state[key])
+
+	sim_result["total_reward"] = sum(sim_result["rewards"])
+	sim_result["sim_end_time"] = time_pkg.time()
+	sim_result["sim_run_time"] = sim_result["sim_end_time"] - sim_result["sim_start_time"]
+
+	return sim_result
 
 
 if __name__ == '__main__':
 
-	# set random seed
-	np.random.seed(0)
 
-	ni_lst = [5,10,15,20,50]
-	macro_sim_results = []
-	for ni in ni_lst:
-		# parameters
-		param = Param()
-		param.ni = ni
-		param.results_filename = param.results_filename + '_{}ni'.format(ni)
+	default_param = Param()
 
-		# run 
-		sim_results = run_instance(param)
-		
-		# save param 
-		sim_results["param"] = param.to_dict()
+	varied_parameter_dict = dict()
+	varied_parameter_dict["ni"] = [default_param.ni]
+	controller_names = default_param.controller_names
 
-		# add to lst 
-		macro_sim_results.append(sim_results)
+	# clean results directory
+	if True: 
+		for file in glob.glob(default_param.results_dir + "/*.json"):
+			os.remove(file)
+	
+	for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
+		for varied_parameter_value in varied_parameter_values:
+			curr_param = Param()
+			setattr(curr_param,varied_parameter,varied_parameter_value)
+			sim_results_by_controller = run_instance(curr_param)
 
-	plotter = Plotter(param)
-	plotter.macro_sim_plot(macro_sim_results, ni_lst)
-	plotter.save_figs(param.plot_fn)
-	plotter.open_figs(param.plot_fn)
-
-	# if param.plot_sim_over_time:
-	# 	for controller_name, sim_result in sim_results.items():
-	# 		plotter.sim_plot_over_time(controller_name,sim_result)
-	# plotter.plot_sim_rewards(sim_results)
-
-
-
-
+	# plotting 
+	plotter = Plotter(default_param)
+	fig,ax = plotter.make_fig()
+	for controller_name, sim_results in sim_results_by_controller.items():
+		plotter.plot_cumulative_reward_w_trials(sim_results,ax=ax,label=controller_name)
+	
+	ax.legend()
+	plotter.save_figs(default_param.plot_fn)
+	plotter.open_figs(default_param.plot_fn)

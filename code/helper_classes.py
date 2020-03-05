@@ -30,6 +30,7 @@ class CustomerModel:
 		nt = len(self.param.sim_times) 
 		cgm_lst = []
 		for i in range(self.param.cm_ng):
+			
 			if self.param.cm_linear_move:
 				x0,y0 = [self.param.env_dx/2, self.param.env_dy/2]
 			else:

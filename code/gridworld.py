@@ -6,7 +6,7 @@ from mdptoolbox.mdp import PolicyIterationModified
 import numpy as np 
 
 # my package 
-import plotter 
+from plotter import Plotter
 from utilities import Utility
 from helper_classes import Gaussian, Agent, Service, Dispatch, Empty, CustomerModel
 
@@ -29,6 +29,7 @@ class GridWorld():
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
 	def render(self,title=None):
+		
 		curr_time=self.param.sim_times[self.timestep]
 
 		fig,ax = plotter.make_fig()

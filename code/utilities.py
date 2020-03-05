@@ -59,7 +59,7 @@ class Utility:
 		return x,y
 
 
-	def random_position_in_world(self,):	
+	def random_position_in_world(self):
 		x = random()*(self.param.env_xlim[1] - self.param.env_xlim[0]) + self.param.env_xlim[0]
 		y = random()*(self.param.env_ylim[1] - self.param.env_ylim[0]) + self.param.env_ylim[0]
 		return x,y 

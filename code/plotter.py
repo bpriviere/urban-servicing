@@ -13,6 +13,7 @@ import utilities
 
 # defaults
 plt.rcParams.update({'font.size': 10})
+plt.rcParams['lines.linewidth'] = 4
 
 
 class Plotter:
@@ -280,57 +281,80 @@ class Plotter:
 
 		im = ax.quiver(X[idx],Y[idx],U[idx],V[idx],C[idx]) #,scale_units='xy')
 
-	def macro_sim_plot(self,macro_sim_results,ni_lst):
+	def many_sim_plot(self,many_sim_results,many_sim_dict,sim_key):
 
-		# macro_sim_results is a list of sim_results, for each macro_sim parameter
+		# plots total reward for different parameters 
+		# many_sim_results is a list of sim_results, for each many_sim parameter
 		# 	sim_results is a dictionary of [key,value] = [controller_name,sim_result]
-		# 		sim_result is a dictionary of [key,value] output by sim.run.py
+		# 		sim_result is a dictionary of [key,value] output by sim.run
 
-		# temp
-		macro_sim_dict = dict()
-		macro_sim_dict["ni"] = ni_lst
-
-		macro_key = 'ni'
-		macro_values = macro_sim_dict["ni"]
-
-
-		# use some macro param 
-		macro_param = macro_sim_results[0]["param"]
-		controller_names = macro_param["controllers"]
+		# use some param 
+		sim_results = many_sim_results[0]
+		controller_names = sim_results.keys()
+		for controller_name in controller_names: 
+			param = sim_results[controller_name]["param"]
+			break
 
 		# assign markers by controller
 		marker_dict = dict()
 		color_dict = dict()
 		marker_count = 0
 		for controller_name in controller_names:
-			marker_dict[controller_name] = macro_param["plot_markers"][marker_count]
-			color_dict[controller_name] = macro_param["plot_colors"][marker_count]
+			marker_dict[controller_name] = param["plot_markers"][marker_count]
+			color_dict[controller_name] = param["plot_colors"][marker_count]
 			marker_count += 1 
 
-		rewards_controller_macro_values = []
-		for k_value,macro_value in enumerate(macro_values):
-			sim_result = macro_sim_results[k_value]
-			rewards_controller_macro_value = dict()
+		# unpack many sim dict  parameters 
+		for varied_parameter, varied_parameter_values in many_sim_dict.items():
+
+			dict_of_lsts = dict()
 			for controller_name in controller_names:
-				rewards_controller_macro_value[controller_name] = sim_result[controller_name]["rewards"]
-			rewards_controller_macro_values.append(rewards_controller_macro_value)
+				dict_of_lsts[controller_name] = []
 
-		fig1,ax1 = self.make_fig()
-		for i,rewards_controller_macro_value in enumerate(rewards_controller_macro_values):
-			for controller_name in controller_names:
-				reward = rewards_controller_macro_value[controller_name]
-				
-				if i>0:
-					ax1.plot(macro_sim_dict[macro_key][i], sum(reward), 
-						marker=marker_dict[controller_name],
-						color=color_dict[controller_name])
-				else:
-					ax1.plot(macro_sim_dict[macro_key][i], sum(reward), 
-						marker=marker_dict[controller_name],
-						color=color_dict[controller_name],
-						label=controller_name)
+			for (sim_results, varied_parameter_value) in zip(many_sim_results, varied_parameter_values):
+				for controller_name, sim_result in sim_results.items():
+					dict_of_lsts[controller_name].append(sim_result[sim_key])
 
-		ax1.legend()
+			fig1,ax1 = self.make_fig()
+			for controller_name, lst in dict_of_lsts.items():
+				ax1.plot(varied_parameter_values, lst, marker=marker_dict[controller_name],
+					color=color_dict[controller_name],label=controller_name)
+			ax1.set_xlabel(varied_parameter)
+			ax1.set_ylabel(sim_key)
+			ax1.legend()
 
 
 
+	def plot_cumulative_reward_w_trials(self,sim_results,ax=None,label=None):
+		# input: 
+		# 	- sim results is a list of sim_result dicts
+
+		# extract rewards
+		rewards = []
+		for sim_result in sim_results:
+			rewards.append(sim_result["rewards"]) 
+		rewards = np.asarray(rewards)
+		rewards = np.cumsum(rewards,axis=1)
+
+		# get some general parameters
+		times = sim_result["times"]
+		marker_dict,color_dict = self.get_marker_color_dicts(sim_result["param"])
+
+		# mean and std
+		mean = np.mean(rewards,axis=0)
+		std = np.std(rewards,axis=0)
+
+		# plot
+		ax.plot(times,mean,label=label,color=color_dict[label]) 
+		ax.fill_between(times,mean-std,mean+std,facecolor=color_dict[label],linewidth=1e-3,alpha=0.2)
+
+	def get_marker_color_dicts(self, param):
+		# assign markers by controller
+		marker_dict = dict()
+		color_dict = dict()
+		count = 0
+		for controller_name in param["controller_names"]:
+			marker_dict[controller_name] = param["plot_markers"][count]
+			color_dict[controller_name] = param["plot_colors"][count]
+			count += 1 
+		return marker_dict,color_dict
