@@ -6,9 +6,10 @@ from mdptoolbox.mdp import PolicyIterationModified
 import numpy as np 
 
 # my package 
-from plotter import Plotter
 from utilities import Utility
 from helper_classes import Gaussian, Agent, Service, Dispatch, Empty, CustomerModel
+
+import plotter
 
 class GridWorld():
 	def __init__(self,param):
@@ -28,51 +29,51 @@ class GridWorld():
 			self.agents.append(Agent(i,x,y,self.v0,self.q0,self.param.initial_covariance))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
-	def render(self,title=None):
+	# def render(self,title=None):
 		
-		curr_time=self.param.sim_times[self.timestep]
+	# 	curr_time=self.param.sim_times[self.timestep]
 
-		fig,ax = plotter.make_fig()
-		ax.set_xticks(self.param.env_x)
-		ax.set_yticks(self.param.env_y)
-		ax.set_xlim(self.param.env_xlim)
-		ax.set_ylim(self.param.env_ylim)
-		ax.set_aspect('equal')
-		if title is None:
-			ax.set_title('t={}/{}'.format(curr_time,self.param.sim_times[-1]))
-		else:
-			ax.set_title(title)
-		ax.grid(True)
+	# 	fig,ax = plotter.make_fig()
+	# 	ax.set_xticks(self.param.env_x)
+	# 	ax.set_yticks(self.param.env_y)
+	# 	ax.set_xlim(self.param.env_xlim)
+	# 	ax.set_ylim(self.param.env_ylim)
+	# 	ax.set_aspect('equal')
+	# 	if title is None:
+	# 		ax.set_title('t={}/{}'.format(curr_time,self.param.sim_times[-1]))
+	# 	else:
+	# 		ax.set_title(title)
+	# 	ax.grid(True)
 
-		# state space
-		for agent in self.agents:
+	# 	# state space
+	# 	for agent in self.agents:
 			
-			color = self.param.plot_agent_mode_color[agent.mode]
-			plotter.plot_circle(agent.x,agent.y,self.param.plot_r_agent,fig=fig,ax=ax,color=color)
+	# 		color = self.param.plot_agent_mode_color[agent.mode]
+	# 		plotter.plot_circle(agent.x,agent.y,self.param.plot_r_agent,fig=fig,ax=ax,color=color)
 			
-			if agent.i == 0:
-				plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
+	# 		if agent.i == 0:
+	# 			plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
 		
-			if True:
-				# dispatch 
-				if agent.mode == 0 and self.param.plot_arrows_on and self.timestep > 0:
-					if hasattr(agent,'dispatch'):
-						dx = agent.dispatch.x - agent.x
-						dy = agent.dispatch.y - agent.y
-						plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=color)
+	# 		if True:
+	# 			# dispatch 
+	# 			if agent.mode == 0 and self.param.plot_arrows_on and self.timestep > 0:
+	# 				if hasattr(agent,'dispatch'):
+	# 					dx = agent.dispatch.x - agent.x
+	# 					dy = agent.dispatch.y - agent.y
+	# 					plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=color)
 
-				# servicing 
-				elif False: #agent.mode == 1:
-					if curr_time < agent.pickup_finish_time:
-						square_pickup = plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
-							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
-						line_to_pickup = plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,\
-							fig=fig,ax=ax,color=self.param.plot_customer_color)
-					elif curr_time < agent.dropoff_finish_time:
-						square_dropoff = plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
-							self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
-						line_to_dropoff = plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,\
-							fig=fig,ax=ax,color=self.param.plot_customer_color)
+	# 			# servicing 
+	# 			elif False: #agent.mode == 1:
+	# 				if curr_time < agent.pickup_finish_time:
+	# 					square_pickup = plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
+	# 						self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
+	# 					line_to_pickup = plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,\
+	# 						fig=fig,ax=ax,color=self.param.plot_customer_color)
+	# 				elif curr_time < agent.dropoff_finish_time:
+	# 					square_dropoff = plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
+	# 						self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
+	# 					line_to_dropoff = plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,\
+	# 						fig=fig,ax=ax,color=self.param.plot_customer_color)
 
 	def reset(self):
 		self.timestep = 0

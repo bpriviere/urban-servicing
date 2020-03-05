@@ -2,7 +2,7 @@
 import numpy as np 
 
 class Gaussian:
-	def __init__(self,i,x,y,s,v,nt):
+	def __init__(self,i,x,y,th,s,v,nt):
 		self.i = i
 		self.s = s
 		self.v = v 
@@ -10,7 +10,8 @@ class Gaussian:
 		self.y = np.empty(nt)
 		self.x[0] = x
 		self.y[0] = y
-		self.th = 0 
+		self.vx = np.cos(th)
+		self.vy = np.sin(th)
 		# self.change_dir()
 		# print('self.x: ', self.x)
 		# print('self.y: ', self.y)
@@ -22,10 +23,6 @@ class Gaussian:
 	def sample(self,timestep):
 		x,y = np.random.normal([self.x[timestep],self.y[timestep]],self.s)
 		return x,y
-
-	def change_dir(self):
-		self.th = -self.th 
-		# self.th = np.random.random()*2*np.pi
 
 class CustomerModel:
 	def __init__(self,param,utilities):
@@ -39,11 +36,13 @@ class CustomerModel:
 			
 			if self.param.cm_linear_move:
 				x0,y0 = [self.param.env_dx/2, 2*i*self.param.env_dy + self.param.env_dy/2]
+				th0 = 0
 			else:
 				x0,y0 = self.utilities.random_position_in_world()
+				th0 = np.random.random()*2*np.pi
 			
 			cgm_lst.append(
-				Gaussian(i,x0,y0,self.param.cm_sigma,self.param.cm_speed, nt))
+				Gaussian(i,x0,y0,th0,self.param.cm_sigma,self.param.cm_speed, nt))
 			print('cgm {} initialized at (x,y) = ({},{})'.format(i,x0,y0))
 		self.cgm_lst = cgm_lst
 
@@ -64,14 +63,22 @@ class CustomerModel:
 
 		dt = self.param.sim_dt 
 		for cgm in self.cgm_lst:
-			unit_vec = np.array([np.cos(cgm.th),np.sin(cgm.th)])
-			move = cgm.v*dt*unit_vec
-			cm_p_tp1 = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
-			cm_p_tp1_safe = self.utilities.environment_barrier(cm_p_tp1)
-			if cm_p_tp1 != cm_p_tp1_safe:
-				cgm.change_dir()
-			safe_move = [cm_p_tp1_safe[0] - cgm.x[timestep], cm_p_tp1_safe[1] - cgm.y[timestep]]
-			cgm.move(safe_move,timestep)
+
+			collision = True
+			while collision:
+
+				move = np.array([cgm.vx, cgm.vy])*cgm.v*dt
+				cm_p_tp1 = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
+						
+				collision = False
+				if cm_p_tp1[0] > self.param.env_xlim[1] or cm_p_tp1[0] < self.param.env_xlim[0]:
+					cgm.vx = -1*cgm.vx
+					collision = True
+				if cm_p_tp1[1] > self.param.env_ylim[1] or cm_p_tp1[1] < self.param.env_ylim[0]:
+					cgm.vy = -1*cgm.vy
+					collision = True
+
+			cgm.move(move,timestep)
 
 	def run_cm_model(self):
 		for step,t in enumerate(self.param.sim_times[:-1]):

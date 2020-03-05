@@ -2,28 +2,39 @@
 
 # charge kai for internet 
 # groceries:
-# 	- coffee
 # 	- tacks 
 # 	- ....
+# rental car stuff 
+# clean computer memory
 
 todo list (deadline in 3 weeks, gridworld deadline in 2 days):
 
-	why does customer model look weird? 
-	why does rhc outperform dtd? 
-	
+
 	refactoring
-		- change plotter to just a collection of functions that interacts only with results folder, not dependent on param!! 
 		- eliminate utilities into env 
+		- put render in plotter 
 		- clean 
 
 	experiments
 		- micro: 
-			- exp1. cumulative reward for different algorithms with standard deviation plots -> use macro sim stuff
-			- exp2. gif of evolving simulation -> use plot sim function 
+			- exp1. cumulative reward for different algorithms with standard deviation plots 
+			- exp2. gif of evolving simulation 
 		- macro: 
-			- exp3. plot reward across number of agents -> use macro sim stuff
-			- exp4. change |S| and compare runtime of sims -> use macro sim stuff
-			- exp5. change ni and compare runtimes -> use macro sim stuff
+			- exp3. plot reward across number of agents (is this important??)
+			- exp3. plot reward for increasing r-comm 
+			- exp4. change |S| and compare runtime of sims 
+			- exp5. change ni and compare runtimes 
+			- plot amount of data being broadcast?? 
+
+	prepare revision report for sjc:
+		- simulation
+			- more agents 
+			- customer waiting time reward
+		- writing 
+			- not clear
+		-proof 
+			- remove dependency on number of agents in consensus error 
+			- ? change to measurement sharing kalman filter
 
 	develop uniform baseline
 
@@ -36,6 +47,10 @@ todo list (deadline in 3 weeks, gridworld deadline in 2 days):
 		- distributed auction task assignment ??
 	
 done: 
+	fix customer model movement 
+	refactoring
+		- change datahandler to be collection of functions that interact with high level python, and jsons and npys
+		- change plotter to just a collection of functions that interacts with results folder 
 	make task assignment dependent on free agent distribution (it does this already, but seems buggy)
 		- check H, S, V, etc. 
 	debug task assignment: agent distribution should track value func distribution (close to q value)
