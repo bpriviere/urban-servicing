@@ -5,11 +5,11 @@
 # 	- tacks 
 # 	- ....
 # rental car stuff 
+# clean apartment 
 # clean computer memory
 
-todo list (deadline in 3 weeks, gridworld deadline in 2 days):
-
-
+todo list (deadline in 3 weeks, gridworld deadline in 0 days):
+	
 	refactoring
 		- eliminate utilities into env 
 		- put render in plotter 
@@ -26,15 +26,20 @@ todo list (deadline in 3 weeks, gridworld deadline in 2 days):
 			- exp5. change ni and compare runtimes 
 			- plot amount of data being broadcast?? 
 
-	prepare revision report for sjc:
-		- simulation
-			- more agents 
-			- customer waiting time reward
-		- writing 
-			- not clear
-		-proof 
+	prepare revision report for sjc (due wednesday):
+		- comments: 
+			- simulation
+				- more agents 
+				- customer waiting time reward
+			- writing 
+				- not clear
+		- need his help: proof 
 			- remove dependency on number of agents in consensus error 
 			- ? change to measurement sharing kalman filter
+		- show him: 
+			- figs
+			- gif 
+			- a figure 1 
 
 	develop uniform baseline
 
@@ -47,6 +52,8 @@ todo list (deadline in 3 weeks, gridworld deadline in 2 days):
 		- distributed auction task assignment ??
 	
 done: 
+	find swarm density/customer density parameter
+	change agent.p to vector 
 	fix customer model movement 
 	refactoring
 		- change datahandler to be collection of functions that interact with high level python, and jsons and npys

@@ -24,9 +24,10 @@ class GridWorld():
 	def init_agents(self):
 		# initialize list of agents  
 		self.agents = []
+		p0 = self.param.initial_covariance*np.ones((self.q0.shape))
 		for i in range(self.param.ni):
 			x,y = self.utilities.random_position_in_world()
-			self.agents.append(Agent(i,x,y,self.v0,self.q0,self.param.initial_covariance))
+			self.agents.append(Agent(i,x,y,self.v0,self.q0,p0))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
 
 	# def render(self,title=None):

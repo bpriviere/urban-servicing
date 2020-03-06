@@ -3,6 +3,7 @@ data/*
 code/__pycache__/*
 code/results*
 results/*
+saved_results/*
 # unused dir
 matlab_code/*
 mdp_toolbox_files/*

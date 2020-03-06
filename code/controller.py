@@ -250,7 +250,7 @@ class Controller():
 				H[:,:,i] = np.eye(self.param.nq)
 
 		# information transformation
-		Y_km1km1 = 1/self.env.agents[0].p * np.eye(self.param.nq) 
+		Y_km1km1 = np.diag(1/self.env.agents[0].p) 
 		y_km1km1 = np.dot(Y_km1km1,self.env.agents[0].q)
 
 		# predict
@@ -275,7 +275,7 @@ class Controller():
 	
 		for agent in self.env.agents:
 			agent.q = q_k
-			agent.p = P_k[0][0]
+			agent.p = np.diag(P_k) 
 
 	def dkif_ms(self):
 		# distributed kalman information filter (measurement sharing variant)
@@ -283,7 +283,7 @@ class Controller():
 		measurements = self.get_measurements()
 		adjacency_matrix = self.make_adjacency_matrix()
 		q_kp1 = np.zeros((self.param.nq,self.param.ni))
-		p_kp1 = np.zeros((self.param.ni))
+		p_kp1 = np.zeros((self.param.nq,self.param.ni))
 
 		# get matrices
 		F = np.eye(self.param.nq)
@@ -301,7 +301,7 @@ class Controller():
 		for agent_i,measurement_i in measurements:
 
 			# information transformation
-			Y_km1km1 = 1/agent_i.p * np.eye(self.param.nq) 
+			Y_km1km1 = np.diag(1/agent_i.p)
 			y_km1km1 = np.dot(Y_km1km1,agent_i.q)
 
 			# predict
@@ -324,11 +324,11 @@ class Controller():
 			y_kk = y_kkm1 + vec_I
 			P_k = np.linalg.pinv(Y_kk)
 			q_kp1[:,agent_i.i] = np.dot(P_k,y_kk)
-			p_kp1[agent_i.i] = P_k[0][0]
+			p_kp1[:,agent_i.i] = np.diag(P_k)
 
 		for agent in self.env.agents:
 			agent.q = q_kp1[:,agent.i]
-			agent.p = p_kp1[agent.i]
+			agent.p = p_kp1[:,agent.i]
 
 
 
@@ -338,7 +338,7 @@ class Controller():
 		measurements = self.get_measurements()
 		adjacency_matrix = self.make_adjacency_matrix()
 		q_kp1 = np.zeros((self.param.nq,self.param.ni))
-		p_kp1 = np.zeros((self.param.ni))
+		p_kp1 = np.zeros((self.param.nq,self.param.ni))
 
 		# get matrices
 		F = np.eye(self.param.nq)
@@ -355,7 +355,7 @@ class Controller():
 				H = np.eye(self.param.nq)
 
 			# information transformation
-			Y_km1km1 = 1/agent_i.p * np.eye(self.param.nq) 
+			Y_km1km1 = np.diag(1/agent_i.p) 
 			y_km1km1 = np.dot(Y_km1km1,agent_i.q)
 
 			# predict
@@ -374,11 +374,11 @@ class Controller():
 			y_kk = y_kkm1 + vec_I
 			P_k = np.linalg.pinv(Y_kk)
 			q_kp1[:,agent_i.i] = np.dot(P_k,y_kk)
-			p_kp1[agent_i.i] = P_k[0][0]
+			p_kp1[:,agent_i.i] = np.diag(P_k) 
 
 		for agent in self.env.agents:
 			agent.q = q_kp1[:,agent.i]
-			agent.p = p_kp1[agent.i]
+			agent.p = p_kp1[:,agent.i]
 
 		for agent_i in self.env.agents:
 			consensus_update = np.zeros((self.param.nq))
