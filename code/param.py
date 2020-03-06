@@ -93,7 +93,7 @@ class Param:
 				self.cm_sigma = 0.05 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
-				self.n_customers_per_time = 3 # int(0.5*self.ni)
+				self.n_customers_per_time = int(0.1*self.ni)
 				self.n_training_data = 100
 
 			
