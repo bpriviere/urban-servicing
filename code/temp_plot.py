@@ -16,6 +16,11 @@ for sim_result_dir in glob.glob(default_param.results_dir + '/*'):
 
 # plotting 
 print('plotting sim results...')
+
+for sim_result in sim_results:
+	controller_name = sim_result["controller_name"]
+	plotter.sim_plot_over_time(controller_name,sim_result)
+	
 plotter.plot_cumulative_reward(sim_results)
 
 plotter.save_figs(default_param.plot_fn)

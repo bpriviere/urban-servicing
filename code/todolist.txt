@@ -1,15 +1,14 @@
 
 
-# charge kai for internet 
-# groceries:
-# 	- tacks 
-# 	- ....
-# rental car stuff 
 # clean apartment 
-# clean computer memory
 
 todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 	
+	make fig 1 
+	make gif tool 
+	profile code 
+	review proof
+
 	refactoring
 		- eliminate utilities into env 
 		- put render in plotter 
@@ -17,33 +16,38 @@ todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 
 	experiments
 		- micro: 
-			- exp1. cumulative reward for different algorithms with standard deviation plots 
-			- exp2. gif of evolving simulation 
+			- exp1. cumulative reward for different algorithms with standard deviation plots - > running 
+			- exp2. gif of evolving simulation - > data generating 
+			- largescale sim -> one trial one algorithm, 1000 agents
 		- macro: 
-			- exp3. plot reward across number of agents (is this important??)
+			- exp3. plot reward across number of agents (is this important??) 
 			- exp3. plot reward for increasing r-comm 
 			- exp4. change |S| and compare runtime of sims 
 			- exp5. change ni and compare runtimes 
 			- plot amount of data being broadcast?? 
 
+
 	prepare revision report for sjc (due wednesday):
 		- comments: 
 			- simulation
-				- more agents 
-				- customer waiting time reward
+				- (1) more agents 
+				- (2) customer waiting time reward
+				- (5) baseline 
 			- writing 
-				- not clear
+				- (3) not clear
+				- (4) lit review
 		- need his help: proof 
 			- remove dependency on number of agents in consensus error 
-			- ? change to measurement sharing kalman filter
 		- show him: 
-			- figs
+			- figs addressing (1),(2),(5)
 			- gif 
-			- a figure 1 
+			- a figure 1 for (3)
+			- psuedocode for algorithms for (3)
 
 	develop uniform baseline
 
 	make real taxi dataset environment real taxi datasets
+		- how to encorporate traffic ?? 
 
 	writeup
 		- edit proof ?? oh god i hope not 
@@ -52,6 +56,7 @@ todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 		- distributed auction task assignment ??
 	
 done: 
+	make macro plot tool 
 	find swarm density/customer density parameter
 	change agent.p to vector 
 	fix customer model movement 

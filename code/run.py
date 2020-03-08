@@ -31,19 +31,16 @@ def run_instance(param):
 	print('   loading dataset...')
 	datahandler.load_dataset(env)
 
-	sim_results_by_controller = dict()
 	for controller_name in controller_names:
-		sim_results_by_controller[controller_name] = []
 		controller = Controller(param,env,controller_name)
 		for i_trial in range(param.n_trials):
+			# sim 
 			sim_result = sim(param,env,controller)
-			sim_results_by_controller[controller_name].append(sim_result)
-
+			# write results
 			case_count = len(glob.glob('../results/*')) + 1
 			results_dir = param.results_dir + '/sim_result_{}'.format(case_count)
 			datahandler.write_sim_result(sim_result, results_dir)
-
-	return sim_results_by_controller
+	return 
 
 def sim(param,env,controller):
 	# outputs:
@@ -60,7 +57,7 @@ def sim(param,env,controller):
 	sim_result["controller_name"] = controller.name 
 	
 	env.reset()
-	print('   running sim...')	
+	print('   running sim with {}...'.format(controller.name))	
 	for step,time in enumerate(param.sim_times[:-1]):
 		print('      t = {}/{}'.format(time,param.sim_times[-1]))
 		
@@ -89,7 +86,8 @@ if __name__ == '__main__':
 	default_param = Param()
 
 	varied_parameter_dict = dict()
-	varied_parameter_dict["ni"] = [default_param.ni]
+	# varied_parameter_dict["env_dx"] = [0.25] #[0.25, 0.3, 0.4, 0.5] 
+	varied_parameter_dict["ni"] = [10,30,50,70,90]
 	controller_names = default_param.controller_names
 
 	# clean results directory
@@ -100,7 +98,8 @@ if __name__ == '__main__':
 		for varied_parameter_value in varied_parameter_values:
 			curr_param = Param()
 			setattr(curr_param,varied_parameter,varied_parameter_value)
-			sim_results_by_controller = run_instance(curr_param)
+			curr_param.update()
+			run_instance(curr_param)
 
 	# load sim results 
 	sim_results = [] # lst of dicts
@@ -117,10 +116,11 @@ if __name__ == '__main__':
 
 	plotter.plot_cumulative_reward(sim_results)
 
-	# if varied_parameter == "env_dx":
-	# 	plotter.plot_runtime_vs_state_space(sim_results,varied_parameter_dict)
-	# elif varied_parameter == "ni":
-	# 	plotter.plot_runtime_vs_number_of_agents(sim_results,varied_parameter_dict)
+	if varied_parameter == "env_dx":
+		plotter.plot_runtime_vs_state_space(sim_results)
+	elif varied_parameter == "ni":
+		plotter.plot_runtime_vs_number_of_agents(sim_results)
 
+	print('saving and opening figs...')
 	plotter.save_figs(default_param.plot_fn)
 	plotter.open_figs(default_param.plot_fn)

@@ -221,12 +221,12 @@ def sim_plot(controller_name,results,timestep):
 		
 		if 'distribution' in key or 'location' in key or 'action' in key:
 			# create same axis
-			curr_ax.set_xticks(param["env_x"]) 
-			curr_ax.set_yticks(param["env_y"]) 
+			# curr_ax.set_xticks(param["env_x"]) 
+			# curr_ax.set_yticks(param["env_y"]) 
 			curr_ax.set_xlim(param["env_xlim"])
 			curr_ax.set_ylim(param["env_ylim"])
 			curr_ax.set_aspect('equal')
-			curr_ax.grid(True)
+			# curr_ax.grid(True)
 
 		axs.append(curr_ax)
 
@@ -340,6 +340,8 @@ def plot_cumulative_reward(sim_results):
 		plot_cumulative_reward_w_trials(sim_results,ax=ax,label=controller_name)
 
 	ax.legend()
+	ax.set_ylabel('Cumulative Reward')
+	ax.set_xlabel('Time')
 
 
 def plot_cumulative_reward_w_trials(sim_results,ax=None,label=None):
@@ -375,6 +377,121 @@ def get_marker_color_dicts(param):
 		color_dict[controller_name] = param["plot_colors"][count]
 		count += 1 
 	return marker_dict,color_dict
+
+
+def plot_runtime_vs_state_space(sim_results):
+
+	# init dict 
+	sim_results_by_controller_and_param = dict()
+	for sim_result in sim_results:
+		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
+		if not key in sim_results_by_controller_and_param.keys():
+			sim_results_by_controller_and_param[key] = []
+
+	sim_results_by_controller = dict()
+	for sim_result in sim_results:
+		key = sim_result["controller_name"]
+		if not key in sim_results_by_controller.keys():
+			sim_results_by_controller[key] = []
+
+	# get ni array
+	sizeS_set = set()
+	for sim_result in sim_results:
+		sizeS_set.add(sim_result["param"]["env_ncell"])
+	np_sizeS = np.asarray(list(sizeS_set))
+
+	# get marker and color dict 
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+
+	# load data
+	for sim_result in sim_results:
+		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
+		sim_results_by_controller_and_param[key].append(sim_result["sim_run_time"])
+	n_ntrials = len(sim_results_by_controller_and_param[key])
+	
+	# load data again 
+	for (controller_name, env_dx), sim_results in sim_results_by_controller_and_param.items():
+		sim_results_by_controller[controller_name].append(sim_results)
+
+	fig,ax = make_fig()
+	for controller_name,rt_values in sim_results_by_controller.items():
+
+		# after transpose: axis 1: across varied_parameter, axis 0: across trials 
+		np_rt = np.asarray(rt_values)
+		np_rt = np_rt.T
+
+		np_rt_mean = np.mean(np_rt,axis=0)
+		ax.plot( np_sizeS, np_rt_mean, 
+			color = color_dict[controller_name], 
+			marker = marker_dict[controller_name], 
+			label = controller_name)
+		
+		if np_rt.shape[0] > 1:
+			np_rt_std = np.std(np_rt,axis=0)
+			print('controller {} std {}'.format(controller_name,np_rt_std))
+			ax.fill_between(np_sizeS,np_rt_mean-np_rt_std,np_rt_mean+np_rt_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+
+	ax.legend()
+	ax.set_ylabel('Runtime')
+	ax.set_xlabel('Number of Cells')
+	ax.set_xticks(np_sizeS)
+
+
+def plot_runtime_vs_number_of_agents(sim_results):
+
+	# init dict 
+	sim_results_by_controller_and_param = dict()
+	for sim_result in sim_results:
+		key = (sim_result["controller_name"],sim_result["param"]["ni"])
+		if not key in sim_results_by_controller_and_param.keys():
+			sim_results_by_controller_and_param[key] = []
+
+	sim_results_by_controller = dict()
+	for sim_result in sim_results:
+		key = sim_result["controller_name"]
+		if not key in sim_results_by_controller.keys():
+			sim_results_by_controller[key] = []
+
+	# get ni array
+	ni_set = set()
+	for sim_result in sim_results:
+		ni_set.add(sim_result["param"]["ni"])
+	np_ni = np.asarray(list(ni_set))
+
+	# get marker and color dict 
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+
+	# load data
+	for sim_result in sim_results:
+		key = (sim_result["controller_name"],sim_result["param"]["ni"])
+		sim_results_by_controller_and_param[key].append(sim_result["sim_run_time"])
+	n_ntrials = len(sim_results_by_controller_and_param[key])
+	
+	# load data again 
+	for (controller_name, ni), sim_results in sim_results_by_controller_and_param.items():
+		sim_results_by_controller[controller_name].append(sim_results)
+
+	fig,ax = make_fig()
+	for controller_name,rt_values in sim_results_by_controller.items():
+
+		# after transpose: axis 1: across ni, axis 0: across trials 
+		np_rt = np.asarray(rt_values)
+		np_rt = np_rt.T
+
+		np_rt_mean = np.mean(np_rt,axis=0)
+		ax.plot( np_ni, np_rt_mean, 
+			color = color_dict[controller_name], 
+			marker = marker_dict[controller_name], 
+			label = controller_name)
+		
+		if np_rt.shape[0] > 1:
+			np_rt_std = np.std(np_rt,axis=0)
+			ax.fill_between(np_ni,np_rt_mean-np_rt_std,np_rt_mean+np_rt_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+
+	ax.legend()
+	ax.set_ylabel('Runtime')
+	ax.set_xlabel('Number of Taxi')
+	ax.set_xticks(np_ni)
 
 # def render(self,title=None):
 	

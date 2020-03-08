@@ -202,20 +202,22 @@ def make_H(env,agents):
 	
 	n_agents = len(agents)
 	H = np.zeros((env.param.env_ncell,env.param.env_naction*n_agents))
+	
 	# P = env.utilities.get_MDP_P(env)
-	P = env.utilities.get_MDP_P(env)
+	P = env.utilities.P
+	
 	for step,agent in enumerate(agents):
 		idx = step*env.param.env_naction
 		state = env.utilities.coordinate_to_cell_index(agent.x,agent.y)
 		# print('agent.x: ', agent.x)
 		# print('agent.y: ', agent.y)
-		for a in range(env.param.env_naction):
+		for action in range(env.param.env_naction):
 			# print('P: ',P)
 			# print('a: ',a)
 			# print('state: ', state)
-			next_state = np.where(P[a,state,:] == 1)[0][0]
-			H[state,idx+a] = -1
-			H[next_state,idx+a] = 1	
+			next_state = env.utilities.get_next_state(env,state,action)
+			H[state,idx+action] = -1
+			H[next_state,idx+action] = 1
 	# normalize
 	# H = H/env.param.ni
 	H /= n_agents

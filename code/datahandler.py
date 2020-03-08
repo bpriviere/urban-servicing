@@ -67,16 +67,20 @@ def write_sim_result( sim_result, sim_result_dir):
 
 	param_fn = '{}/param.json'.format(sim_result_dir)
 	with open(param_fn, 'w') as fp:
-		json.dump(sim_result["param"], fp, cls=NumpyEncoder)
+		json.dump(sim_result["param"], fp, cls=NumpyEncoder, indent=2)
 
-	for state_key in sim_result["param"]["state_keys"]:
-		with open("{}/{}.npy".format(sim_result_dir,state_key), "wb") as f:
-			np.save(f,sim_result[state_key])
-
-	other_keys = ['times','rewards','sim_start_time','controller_name','sim_run_time','sim_end_time','total_reward']
-	for state_key in other_keys:
-		with open("{}/{}.npy".format(sim_result_dir,state_key), "wb") as f:
-			np.save(f,sim_result[state_key]) 
+	summary_results_keys = ['controller_name','total_reward','sim_run_time','sim_start_time','sim_end_time']
+	summary_results_keys_dict = dict()
+	for state_key in summary_results_keys:
+		summary_results_keys_dict[state_key] = sim_result[state_key]
+	summary_results_fn = '{}/summary_results.json'.format(sim_result_dir)
+	with open(summary_results_fn, 'w') as fp:
+		json.dump(summary_results_keys_dict, fp, cls=NumpyEncoder, indent=2)
+		
+	other_keys = ['times','rewards']
+	for other_key in other_keys:
+		with open("{}/{}.npy".format(sim_result_dir,other_key), "wb") as f:
+			np.save(f,sim_result[other_key])
 
 
 def load_sim_result(sim_result_dir):
