@@ -65,10 +65,12 @@ def write_sim_result( sim_result, sim_result_dir):
 	if not os.path.exists(sim_result_dir):
 		os.makedirs(sim_result_dir)
 
+	# parameters of simulation into a dict 
 	param_fn = '{}/param.json'.format(sim_result_dir)
 	with open(param_fn, 'w') as fp:
 		json.dump(sim_result["param"], fp, cls=NumpyEncoder, indent=2)
 
+	# summary scalar results into a dict 
 	summary_results_keys = ['controller_name','total_reward','sim_run_time','sim_start_time','sim_end_time']
 	summary_results_keys_dict = dict()
 	for state_key in summary_results_keys:
@@ -77,10 +79,16 @@ def write_sim_result( sim_result, sim_result_dir):
 	with open(summary_results_fn, 'w') as fp:
 		json.dump(summary_results_keys_dict, fp, cls=NumpyEncoder, indent=2)
 		
+	# long results in npy files 
 	other_keys = ['times','rewards']
 	for other_key in other_keys:
 		with open("{}/{}.npy".format(sim_result_dir,other_key), "wb") as f:
 			np.save(f,sim_result[other_key])
+
+	# state results in npy files
+	for state_key in sim_result["param"]["state_keys"]:
+		with open("{}/{}.npy".format(sim_result_dir,state_key), "wb") as f:
+			np.save(f,sim_result[state_key])	
 
 
 def load_sim_result(sim_result_dir):
