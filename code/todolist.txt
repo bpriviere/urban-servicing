@@ -1,13 +1,14 @@
 
 
-# clean apartment 
+# clean apartment
+# taxes  
 
 todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 	
+	review proof
 	make fig 1 
 	make gif tool 
 	profile code 
-	review proof
 
 	refactoring
 		- eliminate utilities into env 
@@ -16,7 +17,7 @@ todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 
 	experiments
 		- micro: 
-			- exp1. cumulative reward for different algorithms with standard deviation plots - > running 
+			- exp1. cumulative reward for different algorithms with standard deviation plots  
 			- exp2. gif of evolving simulation - > data generating 
 			- largescale sim -> one trial one algorithm, 1000 agents
 		- macro: 
@@ -56,6 +57,11 @@ todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 		- distributed auction task assignment ??
 	
 done: 
+	gridworld experiments:
+		- micro
+			- ...
+		- macro
+			- ... 
 	make macro plot tool 
 	find swarm density/customer density parameter
 	change agent.p to vector 
