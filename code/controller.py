@@ -8,39 +8,37 @@ from task_assignment import centralized_linear_program, binary_log_learning
 
 
 class Controller():
-	def __init__(self,param,env,dispatch_algorithm):
+	def __init__(self,param,env,dispatch,task_assignment):
 		self.param = param
 		self.env = env
 
-		if dispatch_algorithm in ['empty']:
-			self.name = 'empty'
+		if dispatch in ['empty']:
+			self.dispatch_name = 'empty'
 			self.dispatch = self.empty
-		elif dispatch_algorithm in ['random']:
-			self.name = 'random'
+		elif dispatch in ['random']:
+			self.dispatch_name = 'random'
 			self.dispatch = self.random
-		elif dispatch_algorithm in ['dtd']:
-			self.name = 'dtd'
+		elif dispatch in ['dtd']:
+			self.dispatch_name = 'dtd'
 			self.dispatch = self.dtd
-		elif dispatch_algorithm in ['ctd']:
-			self.name = 'ctd'
+		elif dispatch in ['ctd']:
+			self.dispatch_name = 'ctd'
 			self.dispatch = self.ctd
-		elif dispatch_algorithm in ['rhc']:
-			self.name = 'rhc'
+		elif dispatch in ['rhc']:
+			self.dispatch_name = 'rhc'
 			self.dispatch = self.rhc
-		elif dispatch_algorithm in ['bellman']:
-			self.name = 'bellman'
+		elif dispatch in ['bellman']:
+			self.dispatch_name = 'bellman'
 			self.dispatch = self.bellman
 
-		if 'clp' in param.ta:
+		if task_assignment in ['clp']:
+			self.ta_name = 'clp'
 			self.ta = centralized_linear_program
-		elif 'blll' in param.ta:
+		elif task_assignment in ['blll']:
+			self.ta_name = 'blll'
 			self.ta = binary_log_learning
-		elif 'da' in param.ta:
-			self.ta = distributed_action
 
-
-		else:
-			exit('fatal error: param.controller_name not recognized')
+		self.name = self.dispatch_name + ' with ' + self.ta_name 
 		
 
 	# ------------ simulator -------------

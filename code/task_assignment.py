@@ -90,10 +90,13 @@ def binary_log_learning(env,agents):
 			tau = tau*env.param.ta_tau_decay
 			k_count += 1 
 
-		if count >= 10000:
+		if count >= np.max((500,env.param.blll_iter_lim_per_agent*env.param.ni)):
 			print('blll not converging')
 			break
-			exit('blll not converging')
+			# print('J',J)
+			# print('J_p',J_p)
+			# print(converged)
+			# exit('blll not converging')
 
 	print('   blll count: ',count)
 	print('   n free agent: ', len(agents))

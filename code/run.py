@@ -18,8 +18,6 @@ import plotter
 
 def run_instance(param):
 	# runs sim with given parameters for different controllers and different trials and writes to results directory 
-	# output:
-	# 	- dicts of lsts of sim result dicts
 
 	env = GridWorld(param)
 	controller_names = param.controller_names
@@ -31,8 +29,8 @@ def run_instance(param):
 	print('   loading dataset...')
 	datahandler.load_dataset(env)
 
-	for controller_name in controller_names:
-		controller = Controller(param,env,controller_name)
+	for (dispatch,task_assignment) in controller_names:
+		controller = Controller(param,env,dispatch,task_assignment)
 		for i_trial in range(param.n_trials):
 			# sim 
 			sim_result = sim(param,env,controller)
@@ -87,7 +85,7 @@ if __name__ == '__main__':
 
 	varied_parameter_dict = dict()
 	# varied_parameter_dict["env_dx"] = [0.25] #[0.25, 0.3, 0.4, 0.5] 
-	varied_parameter_dict["ni"] = [10,30,50,70,90]
+	varied_parameter_dict["ni"] = [10,20,30,40,50] #10,50,100,150]
 	controller_names = default_param.controller_names
 
 	# clean results directory

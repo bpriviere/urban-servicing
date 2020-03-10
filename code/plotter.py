@@ -7,10 +7,6 @@ import matplotlib.patches as patches
 import numpy as np 
 from matplotlib.backends.backend_pdf import PdfPages 
 
-# my package
-import utilities
-
-
 # defaults
 plt.rcParams.update({'font.size': 10})
 plt.rcParams['lines.linewidth'] = 4
@@ -205,6 +201,8 @@ def sim_plot(controller_name,results,timestep):
 				vmin=0,vmax=1,cmap='gray_r',
 				extent=[param["env_xlim"][0],param["env_xlim"][1],param["env_ylim"][0],param["env_ylim"][1]])
 
+			# im = curr_ax.imshow(sim_to_im_coordinate(im_to_plot),vmin=0,vmax=1,cmap='gray_r')
+
 		elif 'location' in key:
 			locs = results[key][timestep] # sim coordinates ... 
 			if np.size(locs) > 0:
@@ -221,12 +219,16 @@ def sim_plot(controller_name,results,timestep):
 		
 		if 'distribution' in key or 'location' in key or 'action' in key:
 			# create same axis
-			# curr_ax.set_xticks(param["env_x"]) 
-			# curr_ax.set_yticks(param["env_y"]) 
+			curr_ax.set_xticks(param["env_x"]) 
+			curr_ax.set_yticks(param["env_y"]) 
+
+			# curr_ax.set_xticks([]) 
+			# curr_ax.set_yticks([]) 
+
 			curr_ax.set_xlim(param["env_xlim"])
 			curr_ax.set_ylim(param["env_ylim"])
 			curr_ax.set_aspect('equal')
-			# curr_ax.grid(True)
+			curr_ax.grid(True)
 
 		axs.append(curr_ax)
 
@@ -372,9 +374,13 @@ def get_marker_color_dicts(param):
 	marker_dict = dict()
 	color_dict = dict()
 	count = 0
+
 	for controller_name in param["controller_names"]:
-		marker_dict[controller_name] = param["plot_markers"][count]
-		color_dict[controller_name] = param["plot_colors"][count]
+		dispatch = controller_name[0]
+		ta = controller_name[1]
+		key = dispatch + ' with ' + ta
+		marker_dict[key] = param["plot_markers"][count]
+		color_dict[key] = param["plot_colors"][count]
 		count += 1 
 	return marker_dict,color_dict
 
@@ -439,59 +445,55 @@ def plot_runtime_vs_state_space(sim_results):
 
 def plot_runtime_vs_number_of_agents(sim_results):
 
-	# init dict 
-	sim_results_by_controller_and_param = dict()
-	for sim_result in sim_results:
-		key = (sim_result["controller_name"],sim_result["param"]["ni"])
-		if not key in sim_results_by_controller_and_param.keys():
-			sim_results_by_controller_and_param[key] = []
 
-	sim_results_by_controller = dict()
+	ni_lst = []
+	controller_name_lst = []
 	for sim_result in sim_results:
-		key = sim_result["controller_name"]
-		if not key in sim_results_by_controller.keys():
-			sim_results_by_controller[key] = []
+		if not sim_result["controller_name"] in controller_name_lst:
+			controller_name_lst.append(sim_result["controller_name"])
+		if not sim_result["param"]["ni"] in ni_lst:
+			ni_lst.append(sim_result["param"]["ni"])
 
-	# get ni array
-	ni_set = set()
-	for sim_result in sim_results:
-		ni_set.add(sim_result["param"]["ni"])
-	np_ni = np.asarray(list(ni_set))
-
-	# get marker and color dict 
 	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
 
-	# load data
+	runtimes_by_controller_and_ni_dict = dict() # dict of dict of lsts
+	for controller_name in controller_name_lst:
+		runtimes_by_controller_and_ni_dict[controller_name] = dict()
+		for ni in ni_lst:
+			runtimes_by_controller_and_ni_dict[controller_name][ni] = []
+
 	for sim_result in sim_results:
-		key = (sim_result["controller_name"],sim_result["param"]["ni"])
-		sim_results_by_controller_and_param[key].append(sim_result["sim_run_time"])
-	n_ntrials = len(sim_results_by_controller_and_param[key])
-	
-	# load data again 
-	for (controller_name, ni), sim_results in sim_results_by_controller_and_param.items():
-		sim_results_by_controller[controller_name].append(sim_results)
+		runtimes_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(sim_result["sim_run_time"])
 
 	fig,ax = make_fig()
-	for controller_name,rt_values in sim_results_by_controller.items():
+	for controller_name,controller_dict in runtimes_by_controller_and_ni_dict.items():
+		plot_ni = []
+		plot_mean = []
+		plot_std = []
+		for ni,rt_values in controller_dict.items():
+			plot_ni.append(ni)
+			plot_mean.append(np.mean(rt_values))
+			plot_std.append(np.std(rt_values))
+		
+		# as numpy
+		plot_ni = np.asarray(plot_ni)
+		plot_mean = np.asarray(plot_mean)
+		plot_std = np.asarray(plot_std)
 
-		# after transpose: axis 1: across ni, axis 0: across trials 
-		np_rt = np.asarray(rt_values)
-		np_rt = np_rt.T
+		# sorted
+		idxs = plot_ni.argsort()
+		plot_ni = plot_ni[idxs]
+		plot_mean = plot_mean[idxs]
+		plot_std = plot_std[idxs]
 
-		np_rt_mean = np.mean(np_rt,axis=0)
-		ax.plot( np_ni, np_rt_mean, 
+		ax.plot( plot_ni, plot_mean, 
 			color = color_dict[controller_name], 
 			marker = marker_dict[controller_name], 
 			label = controller_name)
 		
-		if np_rt.shape[0] > 1:
-			np_rt_std = np.std(np_rt,axis=0)
-			ax.fill_between(np_ni,np_rt_mean-np_rt_std,np_rt_mean+np_rt_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
-
+		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	ax.legend()
-	ax.set_ylabel('Runtime')
-	ax.set_xlabel('Number of Taxi')
-	ax.set_xticks(np_ni)
 
 # def render(self,title=None):
 	

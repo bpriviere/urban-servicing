@@ -10,7 +10,6 @@ import glob
 
 from gridworld import GridWorld
 from param import Param 
-import utilities
 
 class NumpyEncoder(json.JSONEncoder):
 	def default(self, obj):
@@ -98,6 +97,13 @@ def load_sim_result(sim_result_dir):
 	param_fn = '{}/param.json'.format(sim_result_dir)
 	with open(param_fn, 'r') as j:
 		sim_result["param"] = json.loads(j.read())
+
+	summary_results_fn = '{}/summary_results.json'.format(sim_result_dir)
+	summary_results_dict = dict()
+	with open(summary_results_fn, 'r') as j:
+		summary_results_dict = json.loads(j.read())
+	for key,value in summary_results_dict.items():
+		sim_result[key] = value
 
 	for file in glob.glob(sim_result_dir + '/*.npy'):
 		base = file.split("/")[-1]

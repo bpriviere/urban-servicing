@@ -12,23 +12,18 @@ class Param:
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
 
-		self.n_trials = 1
+		self.n_trials = 2
 		self.results_dir = "../results"
 
 		self.controller_names = [
-			'dtd',
-			# 'ctd',
-			# 'bellman',
-			# 'rhc',
+			['dtd','blll'],
+			# ['dtd','clp'],
+			['ctd','clp'],
+			['bellman','clp'],
+			['rhc','clp'],
 			# 'empty',
 			# 'random',
 			]
-
-		self.ta = [
-			# 'clp',
-			'blll',
-			# 'da',
-		]
 
 		# plotting
 		self.plot_fn = 'plots.pdf'
@@ -53,18 +48,18 @@ class Param:
 		if self.env_name is 'gridworld':
 			
 			# parameters
-			# state space
-			self.desired_env_ncell = 20 # self.env_nx*self.env_ny
-			self.env_naction = 5 
 			
 			# sim 
-			self.sim_tf = 2
+			self.sim_tf = 20
 			self.sim_dt = 0.25
 
 			# fleet 
 			self.ni = 20
-			self.desired_swarm_density = 10.0 # agents/m^2
+			
+			self.desired_env_ncell = 20 # self.env_nx*self.env_ny
+			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
+			self.desired_agents_per_cell = 1.0 
 
 			# customer model
 			self.cm_linear_move = False
@@ -83,6 +78,9 @@ class Param:
 			# estimation
 			self.initial_covariance = 0.0001 
 
+			# action space
+			self.env_naction = 5 
+
 			# mdp 
 			self.lambda_r = 0.1 #0.8
 			self.mdp_gamma = 0.9
@@ -90,11 +88,12 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.beta = 150 # 15.
+			self.beta = 15 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
 			self.ta_tau_decay_threshold = 1000
+			self.blll_iter_lim_per_agent = 20
 
 			# plot 
 			self.plot_r_agent = 0.05
@@ -109,7 +108,14 @@ class Param:
 			# state space
 			
 			l = (self.ni/self.desired_swarm_density)**(1/2)
-			dx = l / self.ni**(1/2)
+			
+			if False:
+				dx = l / self.desired_env_ncell**(1/2)
+			else:
+				dx = (self.desired_agents_per_cell / self.desired_swarm_density)**0.5
+			
+			l = dx * int(l/dx)
+
 			self.env_xlim = [0,l+dx]
 			self.env_ylim = [0,l+dx] #,1]
 

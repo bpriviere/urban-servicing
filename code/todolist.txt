@@ -3,12 +3,19 @@
 # clean apartment
 # taxes  
 
-todo list (deadline in 3 weeks, gridworld deadline in 0 days):
+todo list (deadline in 3 weeks, chicago deadline in 4 days):
 	
 	review proof
 	make fig 1 
 	make gif tool 
 	profile code 
+
+	diagnose long blll runtime - why no convergence? 
+
+	make real taxi dataset environment real taxi datasets
+		- how to encorporate traffic ?? 
+
+	- distributed auction task assignment ??
 
 	refactoring
 		- eliminate utilities into env 
@@ -47,14 +54,10 @@ todo list (deadline in 3 weeks, gridworld deadline in 0 days):
 
 	develop uniform baseline
 
-	make real taxi dataset environment real taxi datasets
-		- how to encorporate traffic ?? 
 
 	writeup
 		- edit proof ?? oh god i hope not 
 
-	nice to haves
-		- distributed auction task assignment ??
 	
 done: 
 	gridworld experiments:
