@@ -9,7 +9,7 @@ import shutil
 # my packages 
 from param import Param
 from gridworld import GridWorld
-# from env import GridWorld 
+from citymap import CityMap
 
 from controller import Controller
 
@@ -19,17 +19,24 @@ import plotter
 def run_instance(param):
 	# runs sim with given parameters for different controllers and different trials and writes to results directory 
 
-	env = GridWorld(param)
-	controller_names = param.controller_names
+	# init environment 
+	if param.env_name in 'gridworld':
+		env = GridWorld(param)
+	elif param.env_name in 'citymap':
+		env = CityMap(param)
+	else:
+		exit('env_name not recognized: ', param.env_name)
 
+	# init datasets
 	if param.make_dataset_on:
 		print('   making dataset...')
-		datahandler.make_dataset(env)
-		datahandler.write_dataset(env)
+		train_dataset, test_dataset = datahandler.make_dataset(env)
+		datahandler.write_dataset(env, train_dataset, test_dataset)
 	print('   loading dataset...')
 	datahandler.load_dataset(env)
 
-	for (dispatch,task_assignment) in controller_names:
+	# run sim 
+	for (dispatch,task_assignment) in param.controller_names:
 		controller = Controller(param,env,dispatch,task_assignment)
 		for i_trial in range(param.n_trials):
 			# sim 
@@ -42,7 +49,7 @@ def run_instance(param):
 
 def sim(param,env,controller):
 	# outputs:
-	# 	- dictionary with all state variables for all time, plus rewards, times, runtime. 
+	# 	- dictionary with all state variables for all time, plus rewards, times, runtime, controller_name . 
 
 	sim_result = dict()
 	sim_result["times"] = []
@@ -82,22 +89,30 @@ if __name__ == '__main__':
 
 
 	default_param = Param()
-
-	varied_parameter_dict = dict()
-	# varied_parameter_dict["env_dx"] = [0.25] #[0.25, 0.3, 0.4, 0.5] 
-	varied_parameter_dict["ni"] = [30] #10,50,100,150]
-	controller_names = default_param.controller_names
+	macro_sim_on = False
 
 	# clean results directory
 	for old_sim_result_dir in glob.glob(default_param.results_dir + '/*'):
 		shutil.rmtree(old_sim_result_dir)
 		
-	for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
-		for varied_parameter_value in varied_parameter_values:
-			curr_param = Param()
-			setattr(curr_param,varied_parameter,varied_parameter_value)
-			curr_param.update()
-			run_instance(curr_param)
+	# macro sim 
+	if macro_sim_on: 
+		
+		varied_parameter_dict = dict()
+		# varied_parameter_dict["env_dx"] = [0.25] #[0.25, 0.3, 0.4, 0.5] 
+		varied_parameter_dict["ni"] = [30] #10,50,100,150]
+		controller_names = default_param.controller_names
+
+		for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
+			for varied_parameter_value in varied_parameter_values:
+				curr_param = Param()
+				setattr(curr_param,varied_parameter,varied_parameter_value)
+				curr_param.update()
+				run_instance(curr_param)
+
+	# micro sim 
+	else:
+		run_instance(default_param)
 
 	# load sim results 
 	sim_results = [] # lst of dicts
@@ -114,12 +129,12 @@ if __name__ == '__main__':
 
 	plotter.plot_cumulative_reward(sim_results)
 
-	if varied_parameter == "env_dx":
-		plotter.plot_runtime_vs_state_space(sim_results)
-	elif varied_parameter == "ni":
-		plotter.plot_runtime_vs_number_of_agents(sim_results)
+	if macro_sim_on:
+		if varied_parameter == "env_dx":
+			plotter.plot_runtime_vs_state_space(sim_results)
+		elif varied_parameter == "ni":
+			plotter.plot_runtime_vs_number_of_agents(sim_results)
 
 	print('saving and opening figs...')
 	plotter.save_figs(default_param.plot_fn)
 	plotter.open_figs(default_param.plot_fn)
-	

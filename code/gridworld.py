@@ -50,14 +50,11 @@ class GridWorld(Env):
 
 		# solve mdp
 		dataset = np.array(dataset)
-		self.dataset = dataset
 
-		train_dataset = dataset[dataset[:,0]<0,:]
-		curr_time = 0 
-		v,q = self.solve_MDP(train_dataset,curr_time)
+		train_dataset = dataset[dataset[:,0] < 0,:]
+		test_dataset = dataset[dataset[:,0] > 0,:]
 		
-		self.v0 = v
-		self.q0 = q 
+		return train_dataset, test_dataset 
 
 	# ----- plotting -----
 	def get_curr_im_value(self):
@@ -134,9 +131,9 @@ class GridWorld(Env):
 		customers_location = []
 		t0 = self.param.sim_times[self.timestep]
 		t1 = self.param.sim_times[self.timestep+1]
-		idxs = np.multiply(self.dataset[:,0] >= t0, self.dataset[:,0] < t1, dtype=bool)
+		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
 		count = 0 
-		for data in self.dataset[idxs,:]:
+		for data in self.test_dataset[idxs,:]:
 			count += 1
 
 			tor = data[0]

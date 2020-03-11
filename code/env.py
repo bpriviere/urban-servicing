@@ -31,13 +31,14 @@ class Env():
 	def reset(self):
 		self.timestep = 0
 		self.observation = []
+		self.v0,self.q0 = self.solve_MDP(self.train_dataset,self.param.sim_times[self.timestep])
 		self.init_agents()
 
 	def observe(self):
 		t0 = self.param.sim_times[self.timestep]
 		t1 = self.param.sim_times[self.timestep+1]
-		idxs = np.multiply(self.dataset[:,0] >= t0, self.dataset[:,0] < t1, dtype=bool)
-		customer_requests = self.dataset[idxs,:]
+		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
+		customer_requests = self.test_dataset[idxs,:]
 		for i in range(customer_requests.shape[0]):
 			self.observation.append(Service(customer_requests[i,:]))
 		return self.observation

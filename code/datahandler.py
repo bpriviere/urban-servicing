@@ -3,13 +3,10 @@ import numpy as np
 import os
 import json
 import glob
+import pandas as pd
+from sodapy import Socrata
+from datetime import datetime,timedelta
 
-# todo install packages 
-# import pandas as pd
-# import requests
-
-from gridworld import GridWorld
-from param import Param 
 
 class NumpyEncoder(json.JSONEncoder):
 	def default(self, obj):
@@ -19,45 +16,28 @@ class NumpyEncoder(json.JSONEncoder):
 
 def make_dataset(env):
 	if env.name is 'gridworld':
-		env.make_dataset()
-		return 
-	elif env.name is 'chicago':
-		make_chicago_dataset(env)
-		return 
+		return env.make_dataset()
+	elif env.name is 'citymap':
+		return make_citymap_dataset(env)
 
-def write_dataset(env):
-	if env.name is 'gridworld':
-		return write_gridworld_dataset(env)
-	elif env.name is 'chicago':
-		return write_chicago_dataset(env)
+def write_dataset(env, train_dataset, test_dataset):
 
-def load_dataset(env):
-	if env.name is 'gridworld':
-		return load_gridworld_dataset(env)
-	elif env.env_name is 'chicago':
-		return load_chicago_dataset(env)
-
-def write_gridworld_dataset(env):
-
-	datadir = "../data/gridworld"
-	
+	datadir = "../data/{}".format(env.name)
 	if not os.path.exists(datadir):
 		os.makedirs(datadir,exist_ok=True)
 
-	with open("{}/customer_requests.npy".format(datadir), "wb") as f:
-		np.save(f, env.dataset)
-	with open("{}/value_fnc_training.npy".format(datadir), "wb") as f:
-		np.save(f, env.v0)	
-	with open("{}/q_values_training.npy".format(datadir), "wb") as f:
-		np.save(f, env.q0)
+	with open("{}/train_dataset.npy".format(datadir), "wb") as f:
+		np.save(f, train_dataset)
+	with open("{}/test_dataset.npy".format(datadir), "wb") as f:
+		np.save(f, test_dataset)
 
-def load_gridworld_dataset(env):
-	f = "../data/gridworld/customer_requests.npy"
-	env.dataset = np.load(f)
-	f = "../data/gridworld/value_fnc_training.npy"
-	env.v0 = np.load(f)
-	f = "../data/gridworld/q_values_training.npy"
-	env.q0 = np.load(f)
+def load_dataset(env):
+
+	f_train = "../data/{}/train_dataset.npy".format(env.name)
+	f_test = "../data/{}/test_dataset.npy".format(env.name)
+
+	env.train_dataset = np.load(f_train)
+	env.test_dataset = np.load(f_test)
 
 def write_sim_result( sim_result, sim_result_dir):
 
@@ -116,44 +96,108 @@ def load_sim_result(sim_result_dir):
 	return sim_result
 	
 
+def make_citymap_dataset(env):
 
-# def make_chicago_dataset(self, fileSpecifierDict):
-# 	# todo: update function 
+	param = env.param
+	# increment 
+	delta_minute = 15
 
-# 	def getDateFilter(self, date):
-# 		#month_str = date['month']
-# 		year_str = date['year']
-# 		#date_filter_str = DATE_EXTRACT_YEAR + year_str + \
-# 		#	'%20AND%20' + DATE_EXTRACT_MONTH + month_str
-# 		date_filter_str = DATE_EXTRACT_YEAR + year_str
-# 		return date_filter_str
+	train_start = datetime(param.train_start_year, 
+		param.train_start_month, 
+		param.train_start_day, 
+		param.train_start_hour, 
+		param.train_start_minute, 
+		param.train_start_second, 
+		param.train_start_microsecond)
+	train_end = datetime(param.train_end_year, 
+		param.train_end_month, 
+		param.train_end_day, 
+		param.train_end_hour, 
+		param.train_end_minute, 
+		param.train_end_second, 
+		param.train_end_microsecond)
+	test_start = datetime(param.test_start_year, 
+		param.test_start_month, 
+		param.test_start_day, 
+		param.test_start_hour, 
+		param.test_start_minute, 
+		param.test_start_second, 
+		param.test_start_microsecond)
+	test_end = datetime(param.test_end_year, 
+		param.test_end_month, 
+		param.test_end_day, 
+		param.test_end_hour, 
+		param.test_end_minute, 
+		param.test_end_second, 
+		param.test_end_microsecond) 
+
+	train_dataset = make_citymap_dataset_instance(train_start, train_end,delta_minute)
+	test_dataset = make_citymap_dataset_instance(test_start,test_end,delta_minute)
+
+	return train_dataset,test_dataset 
+
+def make_citymap_dataset_instance(datetime_start,datetime_end,delta_minute):
+
+	input_timestamp_key = "'%Y-%m-%dT%H:%M:%S'"
+	output_timestamp_key = "%Y-%m-%dT%H:%M:%S"
+	
+	datetime_curr = datetime_start
+	datetime_next = datetime_start
+	while (datetime_end-datetime_curr).total_seconds() > 0:
+
+		datetime_curr = datetime_next
+		datetime_next = datetime_curr + timedelta(minutes=delta_minute)
+
+		timestamp_curr = datetime_curr.strftime(input_timestamp_key) 
+		timestamp_next = datetime_next.strftime(input_timestamp_key) 
+
+		filter_condition = "trip_start_timestamp between "+timestamp_curr+" and "+timestamp_next
+
+		print('   contacting client...')
+		client = Socrata("data.cityofchicago.org", None)
+		print('   getting data...')
+		results = client.get("wrvz-psew", where = filter_condition, limit=5000)
+		print('   reading into pandas...')
+		results_df = pd.DataFrame.from_records(results)
+
+		# print(results_df)
+		nrows = results_df.shape[0]
+		if nrows > 0:
+
+			dataset_i = np.empty((nrows,6))
+
+			time_of_requests = []
+			for trip_start_timestamp in results_df["trip_start_timestamp"]:
+				time_of_requests.append(datetime.strptime(trip_start_timestamp[0:-4], output_timestamp_key).timestamp())
+			
+			# time of request [s]
+			dataset_i[:,0] = np.asarray(time_of_requests)
+			# time to complete [s]
+			dataset_i[:,1] = results_df["trip_seconds"]
+			# x_p (longitude) [degrees]
+			dataset_i[:,2] = results_df["pickup_centroid_longitude"]
+			# y_p (latitude) [degrees]
+			dataset_i[:,3] = results_df["pickup_centroid_latitude"]
+			# x_p (longitude) [degrees]
+			dataset_i[:,4] = results_df["dropoff_centroid_longitude"]
+			# y_p (latitude) [degrees]
+			dataset_i[:,5] = results_df["dropoff_centroid_latitude"]
 		
-# 	def getRequestURL(self, desired_fields, filter_condition):
-# 		desired_fields_str = ','.join(key for (key) in 
-# 			sorted(desired_fields, key=desired_fields.get))
-# 		request_url = DATABASE + desired_fields_str + \
-# 			'%20WHERE%20' + filter_condition
-# 		print(request_url)
-# 		return request_url
-		
-# 	def makeDataFile(self, request_url, file_format, filename ):
-# 		resp = requests.get(url=request_url) 
-# 		data = resp.json() 
-# 		df = pd.DataFrame(data)
-# 		df = df[[key for key in sorted(file_format, key=file_format.get)]]
-# 		df = df.dropna()
-# 		filename = 'training_data_raw.csv'
-# 		df.to_csv(filename, header=False, index=False)
-# 		return 0
+			if 'dataset' in locals():
+				dataset = np.vstack((dataset,dataset_i))
+			else:
+				dataset = dataset_i 
 
-# 	DATE_EXTRACT_YEAR = 'date_extract_y(trip_start_timestamp)='
-# 	DATE_EXTRACT_MONTH = 'date_extract_m(trip_start_timestamp)='
-# 	DATABASE = 'https://data.cityofchicago.org/resource/wrvz-psew.json?$query=SELECT%20'			
+		# print(dataset.shape)
 
-# 	date_filter_str = self.getDateFilter( fileSpecifierDict['filter_conditions'] )
-# 	request_url_str = self.getRequestURL( fileSpecifierDict['desired_fields'], date_filter_str )
-# 	self.makeDataFile( request_url_str, fileSpecifierDict['format_desired_fields'], fileSpecifierDict['filename'] )
+	# dirty data
+	print('dirty data shape: ', dataset.shape)
 
+	# clean data
+	dataset = dataset[~np.isnan(dataset).any(axis=1)]
 
-# def load_chicago_dataset(self):
-# 	pass 
+	print('final dataset size: ', dataset.shape)
+
+	return dataset
+	
+

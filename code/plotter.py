@@ -135,7 +135,7 @@ def plot_gridworld_dataset(env):
 
 	# for each cell, plot random generation of customer demand and eta over time
 	
-	dataset = env.dataset
+	dataset = env.test_dataset
 
 	fig_eta,ax_eta = plt.subplots()
 	fig_c,ax_c = plt.subplots()

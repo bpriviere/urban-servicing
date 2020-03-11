@@ -5,11 +5,12 @@
 
 todo list (deadline in 3 weeks, chicago deadline in 4 days):
 
-	3/10 
+	3/11
 		make real taxi dataset environment real taxi datasets
-			- run/debug on gridworld
+			- finish data write/loader
+			- make map stuff and utility functions inside city map environment 
 			- make plotting debugging for chicago map 
-			- load data from internet! 
+			- start running it 
 		you need value function to be bimodal / look good (dist ms works great, we need to show this proof!!!!)
 		profile code 
 		diagnose long blll runtime - why no convergence? 
@@ -66,6 +67,8 @@ done:
 		make gif tool 
 		make real taxi dataset environment real taxi datasets
 			- make env super class
+			- run/debug on gridworld
+			- load data from internet! 
 	make macro plot tool 
 	find swarm density/customer density parameter
 	change agent.p to vector 
