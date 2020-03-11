@@ -102,25 +102,6 @@ class Controller():
 		for agent in service_agents:
 			actions.append((agent,Empty()))
 
-		# # make final actions list 
-		# actions = []
-		# for agent in self.env.agents:
-		# # for agent in free_agents:
-		# 	if agent in [a for a,s in service_assignments]:
-		# 		for a,s in service_assignments:
-		# 			if agent is a:
-		# 				actions.append(s)	
-
-		# 	elif agent in [a for a,m in move_assignments]:
-		# 		for a,m in move_assignments:
-		# 			if agent is a:
-		# 				actions.append(m)
-		# 	else: 
-		# 		print(agent)
-		# 		exit()
-		# 		empty = Empty()
-		# 		actions.append(empty)
-
 		return actions
 
 	# ------------ dispatch -------------
@@ -128,8 +109,8 @@ class Controller():
 	def dtd(self,agents):
 
 		# gradient update
-		self.dkif_ss()
-		# self.dkif_ms()
+		# self.dkif_ss()
+		self.dkif_ms()
 
 		# blll task assignment 
 		cell_assignments = self.ta(self.env,agents)
@@ -172,7 +153,7 @@ class Controller():
 		# belllman iteration update law
 		
 		# update
-		v,q_bellman = self.env.utilities.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
+		v,q_bellman = self.env.solve_MDP(self.env, self.env.dataset,self.param.sim_times[self.env.timestep])
 
 		# update all agents
 		for agent in self.env.agents:
@@ -211,15 +192,15 @@ class Controller():
 	def cell_to_move_assignments(self,cell_assignments):
 		
 		move_assignments = [] 
-		# transition = self.env.utilities.get_MDP_P(self.env)
-		transition = self.env.utilities.P
+		# transition = self.env.get_MDP_P(self.env)
+		transition = self.env.P
 		for agent,cell in cell_assignments:
-			i = np.where(transition[cell,self.env.utilities.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
+			i = np.where(transition[cell,self.env.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
 			
 			if False:
-				x,y = self.env.utilities.random_position_in_cell(i)
+				x,y = self.env.random_position_in_cell(i)
 			else:
-				x,y = self.env.utilities.cell_index_to_cell_coordinate(i)
+				x,y = self.env.cell_index_to_cell_coordinate(i)
 				x += self.param.env_dx/2
 				y += self.param.env_dy/2
 			
@@ -416,11 +397,11 @@ class Controller():
 				for s in range(self.param.env_ncell):
 					for a in range(self.param.env_naction):
 
-						next_state = self.env.utilities.get_next_state(self.env,s,a)
-						q_idx = self.env.utilities.sa_to_q_idx(s,a)
+						next_state = self.env.get_next_state(s,a)
+						q_idx = self.env.sa_to_q_idx(s,a)
 						prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 
-						reward_instance = self.env.utilities.reward_instance(self.env,s,a,px,py)
+						reward_instance = self.env.reward_instance(s,a,px,py)
 
 						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 

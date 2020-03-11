@@ -4,21 +4,23 @@
 # taxes  
 
 todo list (deadline in 3 weeks, chicago deadline in 4 days):
+
+	3/10 
+		make real taxi dataset environment real taxi datasets
+			- run/debug on gridworld
+			- make plotting debugging for chicago map 
+			- load data from internet! 
+		you need value function to be bimodal / look good (dist ms works great, we need to show this proof!!!!)
+		profile code 
+		diagnose long blll runtime - why no convergence? 
+		distributed auction task assignment ??
 	
 	review proof
 	make fig 1 
-	make gif tool 
-	profile code 
-
-	diagnose long blll runtime - why no convergence? 
-
-	make real taxi dataset environment real taxi datasets
-		- how to encorporate traffic ?? 
-
-	- distributed auction task assignment ??
+	nice to have
+	- how to encorporate traffic ?? 
 
 	refactoring
-		- eliminate utilities into env 
 		- put render in plotter 
 		- clean 
 
@@ -60,16 +62,16 @@ todo list (deadline in 3 weeks, chicago deadline in 4 days):
 
 	
 done: 
-	gridworld experiments:
-		- micro
-			- ...
-		- macro
-			- ... 
+	3.10
+		make gif tool 
+		make real taxi dataset environment real taxi datasets
+			- make env super class
 	make macro plot tool 
 	find swarm density/customer density parameter
 	change agent.p to vector 
 	fix customer model movement 
 	refactoring
+		- eliminate utilities into env 
 		- change datahandler to be collection of functions that interact with high level python, and jsons and npys
 		- change plotter to just a collection of functions that interacts with results folder 
 	make task assignment dependent on free agent distribution (it does this already, but seems buggy)

@@ -168,7 +168,7 @@ def plot_sim_rewards(sim_results):
 	ax1.set_title('Reward at each timestep')
 	ax2.set_title('Cumulative Reward')
 
-def sim_plot(controller_name,results,timestep):
+def sim_plot(controller_name,results,timestep,fig):
 	# input: 
 	# 	- results is a dictionary of results for some controller
 	# 	- timestep is when to plot
@@ -176,14 +176,13 @@ def sim_plot(controller_name,results,timestep):
 	param = results["param"]
 	state_keys = param["state_keys"]
 
-	fig = plt.figure()
 	axs = []
 	ncol = 3
 	nrow = int(np.floor(len(state_keys)/ncol)) + 1
 	for i_key, key in enumerate(state_keys):
 		num = i_key + 1
 		curr_ax = fig.add_subplot(nrow,ncol,num)
-		curr_ax.set_title(key)
+		# curr_ax.set_title(key,fontsize=16)
 		
 		if 'action' in key:
 			im_to_plot = results["agents_ave_vec_action_distribution"][timestep]
@@ -221,15 +220,15 @@ def sim_plot(controller_name,results,timestep):
 			# create same axis
 			curr_ax.set_xticks(param["env_x"]) 
 			curr_ax.set_yticks(param["env_y"]) 
-
 			# curr_ax.set_xticks([]) 
 			# curr_ax.set_yticks([]) 
-
 			curr_ax.set_xlim(param["env_xlim"])
 			curr_ax.set_ylim(param["env_ylim"])
 			curr_ax.set_aspect('equal')
 			curr_ax.grid(True)
 
+		plt.setp(curr_ax.get_xticklabels(), visible=False)
+		plt.setp(curr_ax.get_yticklabels(), visible=False)
 		axs.append(curr_ax)
 
 	# # colorbar
@@ -241,6 +240,91 @@ def sim_plot(controller_name,results,timestep):
 	t = param["sim_times"][timestep]
 	T = param["sim_times"][-1]
 	fig.suptitle('{} at t/T = {}/{}'.format(controller_name,t,T))
+	return axs
+
+def animate_plot(controller_name,sim_result,timestep,fig):
+	# input: 
+	# 	- sim_result is a dictionary of results for some controller
+	# 	- timestep is when to plot
+
+	param = sim_result["param"]
+	state_keys = param["state_keys"]
+
+	axs = []
+	ncol = 2
+	nrow = 2 #int(np.floor(len(state_keys)/ncol)) + 1
+	plt.subplots_adjust(top=0.8,hspace=0.25)
+	myfontsize=14
+
+	plot_keys = [
+		'customers_location',
+		'agents_value_fnc_distribution',
+		'agents_location',
+		'reward'
+	]
+
+	for i_key, key in enumerate(plot_keys):
+		num = i_key + 1
+		curr_ax = fig.add_subplot(nrow,ncol,num)
+		# curr_ax.set_title(key,fontsize=16)
+		
+		if key in ['customers_location']:
+
+			locs = sim_result[key][timestep] 
+			if np.size(locs) > 0:
+				curr_ax.scatter(locs[:,0],locs[:,1])
+
+			curr_ax.set_title('Customers Location',fontsize=myfontsize)
+
+		elif key in ['agents_value_fnc_distribution']:
+
+			agent_idx = 0
+			im_to_plot = sim_result[key][timestep][agent_idx]
+			im = curr_ax.imshow(sim_to_im_coordinate(im_to_plot),
+				vmin=0,vmax=1,cmap='gray_r',
+				extent=[param["env_xlim"][0],param["env_xlim"][1],param["env_ylim"][0],param["env_ylim"][1]])
+
+			curr_ax.set_title('Value Function',fontsize=myfontsize)
+			
+		elif key in ['agents_location']:
+			
+			locs = sim_result[key][timestep] 
+			free_idx = sim_result["agents_operation"][timestep]
+			free_idx = np.asarray(free_idx,dtype=bool)
+			
+			if np.size(locs) > 0:
+				curr_ax.scatter(locs[~free_idx,0],locs[~free_idx,1])
+				curr_ax.scatter(locs[free_idx,0],locs[free_idx,1])
+
+			curr_ax.set_title('Taxi Locations',fontsize=myfontsize)
+
+		elif key in ['reward']:
+			
+			times = sim_result["times"][0:timestep]
+			rewards = np.cumsum(sim_result["rewards"][0:timestep])
+			curr_ax.plot(times,rewards)
+			curr_ax.set_xlabel('time')
+			curr_ax.set_ylabel('reward')
+			curr_ax.set_xlim([0,sim_result["times"][-1]])
+			curr_ax.set_ylim([sum(sim_result["rewards"]),1])
+
+		if 'distribution' in key or 'location' in key or 'action' in key:
+			curr_ax.set_xticks(param["env_x"]) 
+			curr_ax.set_yticks(param["env_y"]) 
+			curr_ax.set_xlim(param["env_xlim"])
+			curr_ax.set_ylim(param["env_ylim"])
+			curr_ax.set_aspect('equal')
+			curr_ax.grid(True)
+			
+		plt.setp(curr_ax.get_xticklabels(), visible=False)
+		plt.setp(curr_ax.get_yticklabels(), visible=False)
+		axs.append(curr_ax)
+
+	# title
+	t = param["sim_times"][timestep]
+	T = param["sim_times"][-1]
+	fig.suptitle('{} at t/T = {}/{} \n'.format(controller_name,t,T))
+	return axs	
 
 def plot_distribution_over_time(results,env):
 	for timestep,time in enumerate(results.times):
@@ -248,7 +332,8 @@ def plot_distribution_over_time(results,env):
 
 def sim_plot_over_time(controller_name,sim_result):
 	for timestep,time in enumerate(sim_result["times"]):
-		sim_plot(controller_name, sim_result, timestep)	
+		fig = plt.figure()
+		sim_plot(controller_name, sim_result, timestep, fig=fig)
 
 def sim_to_im_coordinate(im):
 	# im coordinates

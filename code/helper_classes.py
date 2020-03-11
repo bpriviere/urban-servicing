@@ -24,10 +24,91 @@ class Gaussian:
 		x,y = np.random.normal([self.x[timestep],self.y[timestep]],self.s)
 		return x,y
 
+# class CustomerModel:
+# 	def __init__(self,param,utilities):
+# 		self.param = param
+# 		self.utilities = utilities
+
+# 		# initialize customer model GMM
+# 		nt = len(self.param.sim_times) 
+# 		cgm_lst = []
+# 		for i in range(self.param.cm_ng):
+			
+# 			if self.param.cm_linear_move:
+# 				x0,y0 = [self.param.env_dx/2, 2*i*self.param.env_dy + self.param.env_dy/2]
+# 				th0 = 0
+# 			else:
+# 				x0,y0 = self.utilities.random_position_in_world()
+# 				th0 = np.random.random()*2*np.pi
+			
+# 			cgm_lst.append(
+# 				Gaussian(i,x0,y0,th0,self.param.cm_sigma,self.param.cm_speed, nt))
+# 			print('cgm {} initialized at (x,y) = ({},{})'.format(i,x0,y0))
+# 		self.cgm_lst = cgm_lst
+
+
+# 	def sample_cm(self,timestep):
+# 		# sample multimodal gaussian model
+
+# 		# weight vector 
+# 		w = np.ones((self.param.cm_ng))/self.param.cm_ng
+# 		# sample w 
+# 		i = np.random.choice(self.param.cm_ng,p=w)
+# 		# sample ith gaussian model of cgm_lst
+# 		x,y = self.cgm_lst[i].sample(timestep)
+# 		return x,y
+
+# 	def move_cm(self,timestep):
+# 		# move gaussians
+
+# 		dt = self.param.sim_dt 
+# 		for cgm in self.cgm_lst:
+
+# 			collision = True
+# 			while collision:
+
+# 				move = np.array([cgm.vx, cgm.vy])*cgm.v*dt
+# 				cm_p_tp1 = [cgm.x[timestep] + move[0],cgm.y[timestep] + move[1]]
+						
+# 				collision = False
+# 				if cm_p_tp1[0] > self.param.env_xlim[1] or cm_p_tp1[0] < self.param.env_xlim[0]:
+# 					cgm.vx = -1*cgm.vx
+# 					collision = True
+# 				if cm_p_tp1[1] > self.param.env_ylim[1] or cm_p_tp1[1] < self.param.env_ylim[0]:
+# 					cgm.vy = -1*cgm.vy
+# 					collision = True
+
+# 			cgm.move(move,timestep)
+
+# 	def run_cm_model(self):
+# 		for step,t in enumerate(self.param.sim_times[:-1]):
+# 			self.move_cm(step)
+
+# 	def eval_cm(self,timestep):
+# 		# input: 
+# 		# 	- self : env
+# 		# 	- t : timestep of SIM
+# 		# output: 
+# 		# 	- cm : customer model probability matrix with shape: (env_nx,env_ny), where sum(sum(cm)) = 1 
+
+# 		# for cgm in self.cgm_lst:
+# 		# 	print('(cgm.x,cgm.y) = ({},{})'.format(cgm.x,cgm.y))
+
+# 		cm = np.zeros((self.param.env_nx,self.param.env_ny))
+# 		for i in range(self.param.cm_nsample_cm):
+# 			x,y = self.sample_cm(timestep)
+# 			x,y = self.utilities.environment_barrier([x,y])
+# 			i_x,i_y = self.utilities.coordinate_to_xy_cell_index(x,y)
+# 			cm[i_x,i_y] += 1
+
+# 		# normalize
+# 		cm = cm/sum(sum(cm))
+# 		return cm 
+
 class CustomerModel:
-	def __init__(self,param,utilities):
+	def __init__(self,param,env):
 		self.param = param
-		self.utilities = utilities
+		self.env = env
 
 		# initialize customer model GMM
 		nt = len(self.param.sim_times) 
@@ -38,7 +119,7 @@ class CustomerModel:
 				x0,y0 = [self.param.env_dx/2, 2*i*self.param.env_dy + self.param.env_dy/2]
 				th0 = 0
 			else:
-				x0,y0 = self.utilities.random_position_in_world()
+				x0,y0 = self.env.random_position_in_world()
 				th0 = np.random.random()*2*np.pi
 			
 			cgm_lst.append(
@@ -97,8 +178,8 @@ class CustomerModel:
 		cm = np.zeros((self.param.env_nx,self.param.env_ny))
 		for i in range(self.param.cm_nsample_cm):
 			x,y = self.sample_cm(timestep)
-			x,y = self.utilities.environment_barrier([x,y])
-			i_x,i_y = self.utilities.coordinate_to_xy_cell_index(x,y)
+			x,y = self.env.environment_barrier([x,y])
+			i_x,i_y = self.env.coordinate_to_xy_cell_index(x,y)
 			cm[i_x,i_y] += 1
 
 		# normalize

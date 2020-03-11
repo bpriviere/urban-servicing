@@ -13,12 +13,10 @@ sim_results = [] # lst of dicts
 print('loading sim results...')
 for sim_result_dir in glob.glob(default_param.results_dir + '/*'):
 	sim_result = datahandler.load_sim_result(sim_result_dir)
-	if sim_result["param"]["ni"] == 50:
-		sim_results.append(sim_result)
+	sim_results.append(sim_result)
 
 # plotting 
 print('plotting sim results...')
-
 for sim_result in sim_results:
 	controller_name = sim_result["controller_name"]
 	plotter.sim_plot_over_time(controller_name,sim_result)

@@ -9,12 +9,12 @@ import shutil
 # my packages 
 from param import Param
 from gridworld import GridWorld
+# from env import GridWorld 
+
 from controller import Controller
-# from utilities import Utility
 
 import datahandler
 import plotter 
-
 
 def run_instance(param):
 	# runs sim with given parameters for different controllers and different trials and writes to results directory 
@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
 	varied_parameter_dict = dict()
 	# varied_parameter_dict["env_dx"] = [0.25] #[0.25, 0.3, 0.4, 0.5] 
-	varied_parameter_dict["ni"] = [10,20,30,40,50] #10,50,100,150]
+	varied_parameter_dict["ni"] = [30] #10,50,100,150]
 	controller_names = default_param.controller_names
 
 	# clean results directory
@@ -122,3 +122,4 @@ if __name__ == '__main__':
 	print('saving and opening figs...')
 	plotter.save_figs(default_param.plot_fn)
 	plotter.open_figs(default_param.plot_fn)
+	

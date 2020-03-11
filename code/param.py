@@ -12,15 +12,15 @@ class Param:
 		self.make_dataset_on = True
 		self.plot_arrows_on = True 
 
-		self.n_trials = 2
+		self.n_trials = 1
 		self.results_dir = "../results"
 
 		self.controller_names = [
 			['dtd','blll'],
 			# ['dtd','clp'],
-			['ctd','clp'],
-			['bellman','clp'],
-			['rhc','clp'],
+			# ['ctd','clp'],
+			# ['bellman','clp'],
+			# ['rhc','clp'],
 			# 'empty',
 			# 'random',
 			]
@@ -50,7 +50,7 @@ class Param:
 			# parameters
 			
 			# sim 
-			self.sim_tf = 20
+			self.sim_tf = 10
 			self.sim_dt = 0.25
 
 			# fleet 
@@ -83,7 +83,7 @@ class Param:
 
 			# mdp 
 			self.lambda_r = 0.1 #0.8
-			self.mdp_gamma = 0.9
+			self.mdp_gamma = 0.99
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
 
@@ -93,7 +93,7 @@ class Param:
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
 			self.ta_tau_decay_threshold = 1000
-			self.blll_iter_lim_per_agent = 20
+			self.blll_iter_lim_per_agent = 50
 
 			# plot 
 			self.plot_r_agent = 0.05
@@ -135,7 +135,7 @@ class Param:
 			self.sim_nt = len(self.sim_times)
 
 			# customer model
-			self.n_customers_per_time = max(int(0.1*self.ni),1)
+			self.n_customers_per_time = max(int(0.2*self.ni),1)
 			if self.cm_linear_move:
 				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf
 
