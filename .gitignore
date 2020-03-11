@@ -2,6 +2,7 @@
 data/*
 code/__pycache__/*
 code/results*
+code/video.mp4
 results/*
 saved_results/*
 # unused dir
