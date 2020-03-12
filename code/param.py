@@ -7,8 +7,8 @@ class Param:
 	def __init__(self):
 
 
-		# self.env_name = 'gridworld'
-		self.env_name = 'citymap' 
+		self.env_name = 'gridworld'
+		# self.env_name = 'citymap' 
 
 		# flags 
 		self.env_render_on = False
@@ -20,6 +20,9 @@ class Param:
 
 		self.controller_names = [
 			['dtd','blll'],
+			# ['ctd','blll'],
+			# ['bellman','blll'],
+			# ['rhc','blll'],
 			# ['dtd','clp'],
 			# ['ctd','clp'],
 			# ['bellman','clp'],
@@ -56,11 +59,11 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 5
+			self.sim_tf = 20
 			self.sim_dt = 0.25
 
 			# fleet 
-			self.ni = 5
+			self.ni = 20
 			
 			self.desired_env_ncell = 20 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2

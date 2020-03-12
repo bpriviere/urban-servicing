@@ -338,10 +338,13 @@ def sim_plot_over_time(controller_name,sim_result):
 	param = sim_result["param"]
 	if param["env_name"] in 'citymap':
 		city_boundary = make_city_boundary(param)
-
-	for timestep,time in enumerate(sim_result["times"]):
-		fig = plt.figure()
-		sim_plot(controller_name, sim_result, timestep, fig=fig, city_boundary=city_boundary)
+		for timestep,time in enumerate(sim_result["times"]):
+			fig = plt.figure()
+			sim_plot(controller_name, sim_result, timestep, fig=fig, city_boundary=city_boundary)
+	else:
+		for timestep,time in enumerate(sim_result["times"]):
+			fig = plt.figure()
+			sim_plot(controller_name, sim_result, timestep, fig=fig)
 
 def sim_to_im_coordinate(im):
 	# im coordinates

@@ -69,7 +69,7 @@ def sim(param,env,controller):
 		observation = env.observe()
 		action = controller.policy(observation)
 		reward,state = env.step(action)
-		
+
 		if param.env_render_on:
 			env.render(title='{} at t={}/{}'.format(controller.name,time,param.sim_times[-1]))
 

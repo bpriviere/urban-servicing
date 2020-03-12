@@ -29,6 +29,7 @@ def binary_log_learning(env,agents):
 	
 	H = make_H(env,agents)
 	A = get_joint_action_v2(env,agents)
+	print('   blll...')
 	while not all(converged):
 		
 		# pick a random non-converged agent 
@@ -50,10 +51,10 @@ def binary_log_learning(env,agents):
 
 		# calculate marginal utility of local action sets
 		# NOTE: we calculate marginal cost instead, and flip sign convention
-		# J = calc_J(env,agent,agent.cell_action,agents)
-		# J_p = calc_J(env,agent,action_p,agents)
-		J = calc_J_v2(env,agent,agent.cell_action,agents,H,A)
-		J_p = calc_J_v2(env,agent,action_p,agents,Hp,Ap)
+		J = calc_J(env,agent,agent.cell_action,agents)
+		J_p = calc_J(env,agent,action_p,agents)
+		# J = calc_J_v2(env,agent,agent.cell_action,agents,H,A)
+		# J_p = calc_J_v2(env,agent,action_p,agents,Hp,Ap)
 
 		# assign action probability with binary log-linear learning algorithm
 		# P_i = np.exp(J/tau)/(np.exp(J/tau) + np.exp(J_p/tau)) 
@@ -197,7 +198,7 @@ def get_joint_action_v2(env,agents):
 def make_H(env,agents):
 	# output is a matrix in ncell, naction*n_agents
 	# H[i,j] describes S[i] under A[j]
-	print('making H...')
+	# print('making H...')
 	
 	n_agents = len(agents)
 	H = np.zeros((env.param.env_ncell,env.param.env_naction*n_agents))

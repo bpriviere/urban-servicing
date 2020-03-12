@@ -155,7 +155,7 @@ class Controller():
 		# belllman iteration update law
 		
 		# update
-		v,q_bellman = self.env.solve_MDP(self.env, self.env.test_dataset,self.param.sim_times[self.env.timestep])
+		v,q_bellman = self.env.solve_MDP(self.env.test_dataset,self.param.sim_times[self.env.timestep])
 
 		# update all agents
 		for agent in self.env.agents:
