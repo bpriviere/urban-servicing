@@ -126,9 +126,11 @@ class Controller():
 		# centralized temporal difference learning 
 		
 		# gradient update
+		print('ckif...')
 		self.ckif()
 
 		# task assignment 
+		print('ta...')
 		cell_assignments = self.ta(self.env,agents)
 
 		# assignment 
@@ -143,6 +145,7 @@ class Controller():
 		# no update
 
 		# task assignment 
+		print('ta...')
 		cell_assignments = self.ta(self.env,agents)
 		
 		# assignment 
@@ -155,13 +158,15 @@ class Controller():
 		# belllman iteration update law
 		
 		# update
-		v,q_bellman = self.env.solve_MDP(self.env.test_dataset,self.param.sim_times[self.env.timestep])
+		print('bellman...')
+		v,q_bellman = self.env.solve_MDP(self.env.dataset,self.param.sim_times[self.env.timestep])
 
 		# update all agents
 		for agent in self.env.agents:
 			agent.q = q_bellman
 
 		# assignment = (agent, cell) for all free agents
+		print('ta...')
 		cell_assignments = self.ta(self.env,agents)
 
 		# assignment = (agent, action) for all agents in cell assignments
@@ -199,7 +204,7 @@ class Controller():
 		for agent,cell in cell_assignments:
 			i = np.where(transition[cell,self.env.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
 			
-			if True:
+			if False:
 				x,y = self.env.random_position_in_cell(i)
 			else:
 				x,y = self.env.cell_index_to_cell_coordinate(i)

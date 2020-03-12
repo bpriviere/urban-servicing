@@ -6,18 +6,13 @@
 
 todo list (deadline in 3 weeks, citymap deadline in 2 days):
 
-	3/11
-		make real taxi dataset environment real taxi datasets
-			- make map stuff and utility functions inside city map environment 
-			- make plotting debugging for chicago map 
-			- start running it 
-		profile code 
-		diagnose long blll runtime - why no convergence? 
-		distributed auction task assignment ??
 
+	profile code 
+	diagnose long blll runtime - why no convergence? 
+	distributed auction task assignment ??
 	app token? 
 	refactor gridworld utilities that you changed in citymap 
-	it looks like agents are avoiding value function?? 
+	it looks like agents are avoiding value function?? -> increase beta ?? 
 	review proof
 	make fig 1 
 	nice to have
@@ -68,6 +63,13 @@ todo list (deadline in 3 weeks, citymap deadline in 2 days):
 
 	
 done: 
+	3.12
+		fast ta
+	3.11
+		citymap
+			- make map stuff and utility functions inside city map environment 
+			- make plotting debugging for chicago map 
+			- start running it 
 	3.10
 		make gif tool 
 		make real taxi dataset environment real taxi datasets

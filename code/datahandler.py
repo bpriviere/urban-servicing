@@ -38,6 +38,7 @@ def load_dataset(env):
 
 	env.train_dataset = np.load(f_train)
 	env.test_dataset = np.load(f_test)
+	env.dataset = np.vstack((env.train_dataset,env.test_dataset))
 
 	print('   train_dataset.shape: ', env.train_dataset.shape)
 	print('   test_dataset.shape: ', env.test_dataset.shape)

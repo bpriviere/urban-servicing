@@ -202,9 +202,17 @@ def sim_plot(controller_name,results,timestep,fig,city_boundary=None):
 			# im = curr_ax.imshow(sim_to_im_coordinate(im_to_plot),vmin=0,vmax=1,cmap='gray_r')
 
 		elif 'location' in key:
+			service_color = 'orange'
+			dispatch_color = 'blue'
 			locs = results[key][timestep] # sim coordinates ... 
 			if np.size(locs) > 0:
-				curr_ax.scatter(locs[:,0],locs[:,1])
+				if 'agent' in key:
+					service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+					curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=service_color)
+					curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=dispatch_color)
+
+				elif 'customer' in key:
+					curr_ax.scatter(locs[:,0],locs[:,1],c=service_color)
 
 		elif 'operation' in key:
 			nmode = 2

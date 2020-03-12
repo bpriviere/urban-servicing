@@ -41,20 +41,24 @@ def binary_log_learning(env,agents):
 		
 		# propose a random action 
 		action_p = np.random.randint(0,env.param.env_naction)
-		next_state_proposed = env.get_next_state(state,action_p)
-		while next_state == next_state_proposed:
+		next_state_p = env.get_next_state(state,action_p)
+		while next_state == next_state_p:
 			action_p = np.random.randint(0,env.param.env_naction)
-			next_state_proposed = env.get_next_state(state,action_p)
+			next_state_p = env.get_next_state(state,action_p)
 
-		Hp = get_proposed_H(H,agent,action_p,env,agents)
-		Ap = get_proposed_A(A,agent,action_p,env,agents)
-
+		H_p = make_H_p(H,agent,action_p,env,a_idx,n_agents)
+		A_p = make_A_p(A,agent,action_p,env,a_idx)
+		
 		# calculate marginal utility of local action sets
 		# NOTE: we calculate marginal cost instead, and flip sign convention
-		J = calc_J(env,agent,agent.cell_action,agents)
-		J_p = calc_J(env,agent,action_p,agents)
-		# J = calc_J_v2(env,agent,agent.cell_action,agents,H,A)
-		# J_p = calc_J_v2(env,agent,action_p,agents,Hp,Ap)
+
+		# old slow 
+		# J,H,A = calc_J(env,agent,agent.cell_action,agents)
+		# J_p,H_p,A_p = calc_J(env,agent,action_p,agents)
+
+		# new fast
+		J = calc_J_v2(env,agent,H,A)
+		J_p = calc_J_v2(env,agent,H_p,A_p)
 
 		# assign action probability with binary log-linear learning algorithm
 		# P_i = np.exp(J/tau)/(np.exp(J/tau) + np.exp(J_p/tau)) 
@@ -73,8 +77,9 @@ def binary_log_learning(env,agents):
 		else:
 			agent.cell_action = action_p 
 			same_action_count[a_idx] = 0
-			H = Hp
-			A = Ap
+
+			H = H_p
+			A = A_p
 
 		count += 1 
 		if count >= k_count*env.param.ta_tau_decay_threshold:
@@ -110,9 +115,9 @@ def calc_J(env,agent_i,action_i,agents):
 	# marginal cost 
 	J = np.linalg.norm(local_agent_dist - local_q_dist)
 
-	return J 
+	return J,H,A
 
-def calc_J_v2(env,agent_i,action_i,agents,H,A):
+def calc_J_v2(env,agent_i,H,A):
 
 	# get local q values
 	local_q = env.get_local_q_values(agent_i)
@@ -121,7 +126,7 @@ def calc_J_v2(env,agent_i,action_i,agents,H,A):
 	# get local agent distribution
 	state = env.coordinate_to_cell_index(agent_i.x,agent_i.y)
 	local_s_idx = env.get_local_states(state)
-	local_agent_dist = np.matmul(H[local_s_idx,:],A)
+	local_agent_dist = np.matmul(H,A)[local_s_idx]
 
 	# marginal cost 
 	J = np.linalg.norm(local_agent_dist - local_q_dist)
@@ -223,19 +228,13 @@ def make_H(env,agents):
 	H /= n_agents
 	return H 
 
-def get_proposed_H(H,agent,action,env,agents):
-
-	n_agents = len(agents)
+def make_H_p(H,agent,action,env,a_idx,n_agents):
 
 	# unnormalize
-	Hp = n_agents*H
+	Hp = n_agents*np.copy(H)
 	P = env.P
-
-	for step,agent_j in enumerate(agents):
-		if agent is agent_j:
-			break
 	
-	idx = step*env.param.env_naction
+	idx = a_idx*env.param.env_naction
 	state = env.coordinate_to_cell_index(agent.x,agent.y)
 	next_state = env.get_next_state(state,action)
 	Hp[state,idx+action] = -1
@@ -245,15 +244,12 @@ def get_proposed_H(H,agent,action,env,agents):
 	Hp /= n_agents
 	return Hp
 
-def get_proposed_A(A,agent,action,env,agents):
-	Ap = A 
-	for step,agent_j in enumerate(agents):
-		if agent is agent_j:
-			break
+def make_A_p(A,agent,action,env,a_idx):
+	Ap = np.copy(A) 
 	# remove prev action
-	idx = step*env.param.env_naction + agent.cell_action
+	idx = a_idx*env.param.env_naction + agent.cell_action
 	Ap[idx] = 0 
 	# add new action 
-	idx = step*env.param.env_naction + action 
+	idx = a_idx*env.param.env_naction + action 
 	Ap[idx] = 1
 	return Ap 

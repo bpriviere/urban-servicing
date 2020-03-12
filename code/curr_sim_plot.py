@@ -23,5 +23,6 @@ for sim_result in sim_results:
 	
 plotter.plot_cumulative_reward(sim_results)
 
+print('saving and opening results...')
 plotter.save_figs(default_param.plot_fn)
 plotter.open_figs(default_param.plot_fn)

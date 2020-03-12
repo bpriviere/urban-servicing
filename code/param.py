@@ -15,14 +15,14 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = True 
 
-		self.n_trials = 1
+		self.n_trials = 2
 		self.results_dir = "../results"
 
 		self.controller_names = [
 			['dtd','blll'],
-			# ['ctd','blll'],
-			# ['bellman','blll'],
-			# ['rhc','blll'],
+			['ctd','blll'],
+			['bellman','blll'],
+			['rhc','blll'],
 			# ['dtd','clp'],
 			# ['ctd','clp'],
 			# ['bellman','clp'],
@@ -59,13 +59,13 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 20
-			self.sim_dt = 0.25
+			self.sim_tf = 100
+			self.sim_dt = 0.5
 
 			# fleet 
-			self.ni = 20
+			self.ni = 50
 			
-			self.desired_env_ncell = 20 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 60 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 
@@ -73,14 +73,15 @@ class Param:
 			# customer model
 			self.cm_linear_move = False
 			if self.cm_linear_move:
-				self.cm_ng = 2
-				self.cm_sigma = 0.05 
+				self.cm_ng = 1
+				self.cm_sigma = 0.0005 
+				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 2
 				self.cm_sigma = 0.05 # ~1/4 env dx -> 2 sigma rule within a dx
-				self.cm_speed = 0.1 # 1/10 taxi speed?
+				self.cm_speed = 0.05 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
 
@@ -94,7 +95,7 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.beta = 15 # 150.
+			self.beta = 1500 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
@@ -200,7 +201,7 @@ class Param:
 			# customer model
 			self.n_customers_per_time = max(int(0.2*self.ni),1)
 			if self.cm_linear_move:
-				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0] - self.env_dx) / self.sim_tf
+				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0]) / self.sim_tf
 			self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
 			# estimation
 			self.process_noise = self.cm_speed
