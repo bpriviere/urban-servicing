@@ -12,7 +12,7 @@ from helper_classes import Gaussian, Agent, Service, Dispatch, Empty, CustomerMo
 import plotter
 
 class Env():
-	# superclass of 'citymaps' and 'gridworld'
+	# superclass of 'citymap' and 'gridworld'
 	def __init__(self,param):
 		self.param = param
 		self.name = param.env_name 
@@ -108,6 +108,11 @@ class Env():
 			agent.update = True
 
 			curr_time = self.param.sim_times[self.timestep] 
+
+			if agent.x == agent.service.x_p and agent.y == agent.service.y_p:
+				agent.x += 0.0001
+				agent.y += 0.0001
+
 			time_to_customer = self.eta(agent.x,agent.y,agent.service.x_p,agent.service.y_p) 
 			wait_time = time_to_customer
 
@@ -117,6 +122,10 @@ class Env():
 			agent.pickup_vector = agent.pickup_vector / agent.pickup_dist
 			agent.pickup_speed = agent.pickup_dist/time_to_customer
 			agent.pickup_finish_time = curr_time + time_to_customer
+
+			if agent.service.x_p == agent.service.x_d and agent.service.y_p == agent.service.y_d:
+				agent.service.x_p += 0.0001
+				agent.service.y_p += 0.0001
 
 			agent.dropoff_vector = np.array([agent.service.x_d - agent.service.x_p,agent.service.y_d-agent.service.y_p])
 			agent.dropoff_dist = np.linalg.norm(agent.dropoff_vector)
@@ -195,10 +204,6 @@ class Env():
 		agent.x,agent.y = self.environment_barrier([agent.x,agent.y])
 
 		return wait_time		
-
-	def eta(self,x_i,y_i,x_j,y_j):
-		dist = np.linalg.norm([x_i-x_j,y_i-y_j])
-		return dist/self.param.taxi_speed
 
 	# utility stuff 
 	def softmax(self,x):
@@ -351,3 +356,76 @@ class Env():
 		R = R/time_discount_sum
 
 		return R  	
+
+	# plotting stuff 
+	def get_curr_customer_locations(self):		
+		customers_location = []
+		t0 = self.param.sim_times[self.timestep]
+		t1 = self.param.sim_times[self.timestep+1]
+		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
+		count = 0 
+		for data in self.test_dataset[idxs,:]:
+			count += 1
+
+			tor = data[0]
+			px = data[2]
+			py = data[3]
+
+			customers_location.append([px,py])
+
+		customers_location = np.asarray(customers_location)
+		return customers_location
+
+	def get_curr_im_value(self):
+
+		value_fnc_ims = np.zeros((self.param.ni,self.param.env_nx,self.param.env_ny))
+		for agent in self.agents:
+			# get value
+			value_fnc_i = self.q_value_to_value_fnc(agent.q)
+			# normalize
+			value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
+			# convert to im
+			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
+			for i in range(self.param.env_ncell):
+				i_x,i_y = self.cell_index_to_grid_index_map[i]
+				im_v[i_x,i_y] = value_fnc_i[i]
+			# add
+			value_fnc_ims[agent.i,:,:] = im_v
+		return value_fnc_ims
+
+	def get_curr_ave_vec_action(self,locs,vec_action):
+		# locs is (ni,2)
+		# vec_actions is (ni,2)
+		ni = locs.shape[0]
+		im_a = np.zeros((self.param.env_nx,self.param.env_ny,2))
+		count = np.zeros((self.param.env_nx,self.param.env_ny,1))
+		for i in range(ni):
+			idx_x,idx_y = self.coordinate_to_grid_index(locs[i][0],locs[i][1])
+			im_a[idx_x,idx_y,:] += vec_action[i][:]
+			count[idx_x,idx_y] += 1
+
+		idx = np.nonzero(count)
+		# im_a[idx] = (im_a[idx].T/count[idx]).T
+		im_a[idx] = im_a[idx]/count[idx]
+		return im_a
+
+	def get_curr_im_agents(self):
+
+		locs = np.zeros((self.param.ni,2))
+		for agent in self.agents:
+			locs[agent.i,0] = agent.x
+			locs[agent.i,1] = agent.y
+
+		# im is [nx,ny] where im[0,0] is bottom left
+		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
+		for agent in self.agents:
+			i = agent.i
+			idx_x,idx_y = self.coordinate_to_grid_index(
+				locs[agent.i,0],
+				locs[agent.i,1])
+			im_agent[idx_x][idx_y] += 1
+
+		# normalize
+		im_agent = im_agent / self.param.ni
+
+		return im_agent

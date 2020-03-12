@@ -1,7 +1,7 @@
 
 
 import numpy as np 
-
+from datetime import datetime 
 
 class Param:
 	def __init__(self):
@@ -12,8 +12,7 @@ class Param:
 
 		# flags 
 		self.env_render_on = False
-		self.plot_sim_over_time = True
-		self.make_dataset_on = False
+		self.plot_sim_over_time = False
 		self.plot_arrows_on = True 
 
 		self.n_trials = 1
@@ -36,11 +35,12 @@ class Param:
 		self.plot_colors = ['b','g','r','c','m']
 
 		self.state_keys = [
-			'gmm_distribution',
+			# 'gmm_distribution',
 			'customers_location',
 			'agents_value_fnc_distribution',
 			'agents_location',
-			'free_agents_distribution',
+			# 'free_agents_distribution',
+			'agents_distribution',
 			'agents_operation',
 			# 'agents_ave_vec_action_distribution'
 		]
@@ -48,18 +48,19 @@ class Param:
 		# action space
 		self.env_naction = 5 
 
-
 		# environment parameters
 		if self.env_name is 'gridworld':
 			
-			# parameters
-			
+			# flags
+			self.make_dataset_on = True
+
 			# sim 
-			self.sim_tf = 10
+			self.sim_t0 = 0 
+			self.sim_tf = 5
 			self.sim_dt = 0.25
 
 			# fleet 
-			self.ni = 20
+			self.ni = 5
 			
 			self.desired_env_ncell = 20 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
@@ -103,30 +104,27 @@ class Param:
 
 		elif self.env_name is 'citymap':
 
+			self.make_dataset_on = False
+
 			# determine from data 
-			self.taxi_speed = 0.1 # temp 
-			self.process_noise = 1.0
-			self.measurement_noise = 1.0 
+			self.taxi_speed = 0.007 # temp 
+			self.process_noise = 0.1
+			self.measurement_noise = 0.1 
 
 			# 
 			self.city = 'chicago'
 			self.shp_path = '../data/maps/{}.shp'.format(self.city)
 
-
-			# sim 
-			self.sim_tf = 10
-			self.sim_dt = 0.25
-
 			# fleet 
-			self.ni = 20
+			self.ni = 200
 			
-			self.desired_env_ncell = 50 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 100 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 
 
 			# estimation
-			self.initial_covariance = 0.0001 
+			self.initial_covariance = 0.01 
 
 			# mdp 
 			self.lambda_r = 0.1 #0.8
@@ -135,12 +133,12 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.beta = 15 # 150.
+			self.beta = 15000 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
 			self.ta_tau_decay_threshold = 1000
-			self.blll_iter_lim_per_agent = 50
+			self.blll_iter_lim_per_agent = 20
 
 			# plot 
 			self.plot_r_agent = 0.05
@@ -174,8 +172,8 @@ class Param:
 			self.test_end_year = 2015
 			self.test_end_month = 1
 			self.test_end_day = 10
-			self.test_end_hour = 0
-			self.test_end_minute = 15
+			self.test_end_hour = 6
+			self.test_end_minute = 0
 			self.test_end_second = 0
 			self.test_end_microsecond = 0
 
@@ -188,17 +186,14 @@ class Param:
 			# state space
 			
 			l = (self.ni/self.desired_swarm_density)**(1/2)
-			
 			if False:
 				dx = l / self.desired_env_ncell**(1/2)
 			else:
 				dx = (self.desired_agents_per_cell / self.desired_swarm_density)**0.5
-			
 			l = dx * int(l/dx)
-
 			self.env_xlim = [0,l+dx]
 			self.env_ylim = [0,l+dx] #,1]
-
+			self.env_lengthscale = ((self.env_xlim[1]-self.env_xlim[0])**2+(self.env_ylim[1]-self.env_ylim[0])**2)**(1/2)
 			# customer model
 			self.n_customers_per_time = max(int(0.2*self.ni),1)
 			if self.cm_linear_move:
@@ -209,11 +204,35 @@ class Param:
 			self.measurement_noise = self.cm_sigma 
 
 		elif self.env_name is 'citymap':
+			
+			# lengthscale stuff
 			self.env_lengthscale = ((self.env_xlim[1]-self.env_xlim[0])**2+(self.env_ylim[1]-self.env_ylim[0])**2)**(1/2)
 			dx = self.env_lengthscale / self.desired_env_ncell**(1/2)
 			self.env_xlim[1] += dx
 			self.env_ylim[1] += dx
 
+			# datetime stuff 
+			train_end = datetime(self.train_end_year, 
+				self.train_end_month, 
+				self.train_end_day, 
+				self.train_end_hour, 
+				self.train_end_minute, 
+				self.train_end_second, 
+				self.train_end_microsecond) 
+			test_end = datetime(self.test_end_year, 
+				self.test_end_month, 
+				self.test_end_day, 
+				self.test_end_hour, 
+				self.test_end_minute, 
+				self.test_end_second, 
+				self.test_end_microsecond) 
+
+			# sim 
+			self.sim_t0 = train_end.timestamp()
+			self.sim_tf = test_end.timestamp()
+			self.sim_dt = 60 # 1 minutes 
+
+		# lengthscale and cell space 
 		self.env_dx = dx # 0.5 # length/cell
 		self.env_dy = self.env_dx
 		self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
@@ -224,22 +243,14 @@ class Param:
 		self.nv = self.env_ncell 
 		self.nq = self.env_ncell*self.env_naction
 		self.env_lengthscale = ((self.env_xlim[1] - self.env_xlim[0])**2 + (self.env_ylim[1] - self.env_ylim[0])**2)**(1/2)
-
-		# sim 
-		self.sim_times = np.arange(0,self.sim_tf+self.sim_dt,self.sim_dt)
-		self.sim_nt = len(self.sim_times)
-
 		# fleet 
 		self.r_comm = 3*self.env_dx
 		self.r_sense = self.env_lengthscale # 2*self.r_comm
-		# self.lambda_a = 1.0 # (cost of customer waiting time)/(cost of agent movement)
-
+		# times  
+		self.sim_times = np.arange(self.sim_t0,self.sim_tf+self.sim_dt,self.sim_dt)
+		self.sim_nt = len(self.sim_times)
 		# plotting 
 		self.plot_arrow_width = self.plot_r_agent/5
 		self.plot_arrow_length = 1.2*self.plot_r_agent
 		self.plot_arrow_head_width = self.plot_arrow_width*3
 		self.plot_arrow_head_length = self.plot_arrow_head_width
-
-
-
-

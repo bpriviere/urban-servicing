@@ -26,6 +26,9 @@ def binary_log_learning(env,agents):
 	count = 0 
 	k_count = 1
 	tau = env.param.ta_tau
+	
+	H = make_H(env,agents)
+	A = get_joint_action_v2(env,agents)
 	while not all(converged):
 		
 		# pick a random non-converged agent 
@@ -42,10 +45,15 @@ def binary_log_learning(env,agents):
 			action_p = np.random.randint(0,env.param.env_naction)
 			next_state_proposed = env.get_next_state(state,action_p)
 
+		Hp = get_proposed_H(H,agent,action_p,env,agents)
+		Ap = get_proposed_A(A,agent,action_p,env,agents)
+
 		# calculate marginal utility of local action sets
 		# NOTE: we calculate marginal cost instead, and flip sign convention
-		J = calc_J(env,agent,agent.cell_action,agents)
-		J_p = calc_J(env,agent,action_p,agents)
+		# J = calc_J(env,agent,agent.cell_action,agents)
+		# J_p = calc_J(env,agent,action_p,agents)
+		J = calc_J_v2(env,agent,agent.cell_action,agents,H,A)
+		J_p = calc_J_v2(env,agent,action_p,agents,Hp,Ap)
 
 		# assign action probability with binary log-linear learning algorithm
 		# P_i = np.exp(J/tau)/(np.exp(J/tau) + np.exp(J_p/tau)) 
@@ -58,9 +66,14 @@ def binary_log_learning(env,agents):
 			same_action_count[a_idx] += 1
 			if same_action_count[a_idx] > env.param.ta_converged:
 				converged[a_idx] = True
+			# H = H
+			# A = A
+
 		else:
 			agent.cell_action = action_p 
 			same_action_count[a_idx] = 0
+			H = Hp
+			A = Ap
 
 		count += 1 
 		if count >= k_count*env.param.ta_tau_decay_threshold:
@@ -68,10 +81,10 @@ def binary_log_learning(env,agents):
 			k_count += 1 
 
 		if count >= np.max((500,env.param.blll_iter_lim_per_agent*env.param.ni)):
-			print('blll not converging')
+			print('   blll not converging: {}'.format(count))
 			break
 
-	if False:
+	if True:
 		print('   blll count: ',count)
 		print('   n free agent: ', len(agents))
 
@@ -98,16 +111,22 @@ def calc_J(env,agent_i,action_i,agents):
 
 	return J 
 
+def calc_J_v2(env,agent_i,action_i,agents,H,A):
 
-def get_joint_action(env,agent_i,action_i,agents):
-	A = np.zeros((env.param.env_naction*len(agents)))
-	for j,agent_j in enumerate(agents):
-		if agent_i is agent_j:
-			idx = j*env.param.env_naction + action_i
-		else:
-			idx = j*env.param.env_naction + agent_j.cell_action 
-		A[idx] = 1
-	return A 
+	# get local q values
+	local_q = env.get_local_q_values(agent_i)
+	local_q_dist = env.value_to_probability(local_q)
+
+	# get local agent distribution
+	state = env.coordinate_to_cell_index(agent_i.x,agent_i.y)
+	local_s_idx = env.get_local_states(state)
+	local_agent_dist = np.matmul(H[local_s_idx,:],A)
+
+	# marginal cost 
+	J = np.linalg.norm(local_agent_dist - local_q_dist)
+
+	return J 
+
 
 def centralized_linear_program(env,agents):
 	# input: 
@@ -152,17 +171,33 @@ def centralized_linear_program(env,agents):
 
 
 def make_S(env,agents):
-
 	S = np.zeros((env.param.env_ncell))
 	for agent in agents:
 		state = env.coordinate_to_cell_index(agent.x,agent.y)
 		S[state] += 1 
 	return S/len(agents)
 
+def get_joint_action(env,agent_i,action_i,agents):
+	A = np.zeros((env.param.env_naction*len(agents)))
+	for j,agent_j in enumerate(agents):
+		if agent_i is agent_j:
+			idx = j*env.param.env_naction + action_i
+		else:
+			idx = j*env.param.env_naction + agent_j.cell_action 
+		A[idx] = 1
+	return A 
+
+def get_joint_action_v2(env,agents):
+	A = np.zeros((env.param.env_naction*len(agents)))
+	for step,agent in enumerate(agents):
+		idx = step*env.param.env_naction + agent.cell_action
+		A[idx] = 1
+	return A 
 
 def make_H(env,agents):
 	# output is a matrix in ncell, naction*n_agents
 	# H[i,j] describes S[i] under A[j]
+	print('making H...')
 	
 	n_agents = len(agents)
 	H = np.zeros((env.param.env_ncell,env.param.env_naction*n_agents))
@@ -187,4 +222,37 @@ def make_H(env,agents):
 	H /= n_agents
 	return H 
 
+def get_proposed_H(H,agent,action,env,agents):
 
+	n_agents = len(agents)
+
+	# unnormalize
+	Hp = n_agents*H
+	P = env.P
+
+	for step,agent_j in enumerate(agents):
+		if agent is agent_j:
+			break
+	
+	idx = step*env.param.env_naction
+	state = env.coordinate_to_cell_index(agent.x,agent.y)
+	next_state = env.get_next_state(state,action)
+	Hp[state,idx+action] = -1
+	Hp[next_state,idx+action] = 1
+
+	# renormalize
+	Hp /= n_agents
+	return Hp
+
+def get_proposed_A(A,agent,action,env,agents):
+	Ap = A 
+	for step,agent_j in enumerate(agents):
+		if agent is agent_j:
+			break
+	# remove prev action
+	idx = step*env.param.env_naction + agent.cell_action
+	Ap[idx] = 0 
+	# add new action 
+	idx = step*env.param.env_naction + action 
+	Ap[idx] = 1
+	return Ap 

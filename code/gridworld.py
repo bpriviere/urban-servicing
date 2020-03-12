@@ -53,8 +53,12 @@ class GridWorld(Env):
 
 		train_dataset = dataset[dataset[:,0] < 0,:]
 		test_dataset = dataset[dataset[:,0] > 0,:]
-		
+
 		return train_dataset, test_dataset 
+
+	def eta(self,x_i,y_i,x_j,y_j):
+		dist = np.linalg.norm([x_i-x_j,y_i-y_j])
+		return dist/self.param.taxi_speed
 
 	# ----- plotting -----
 	def get_curr_im_value(self):
@@ -90,7 +94,7 @@ class GridWorld(Env):
 		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
 		for agent in self.agents:
 			i = agent.i
-			idx_x,idx_y = self.coordinate_to_xy_cell_index(
+			idx_x,idx_y = self.coordinate_to_grid_index(
 				locs[agent.i,0],
 				locs[agent.i,1])
 			im_agent[idx_x][idx_y] += 1
@@ -115,7 +119,7 @@ class GridWorld(Env):
 		for agent in self.agents:
 			i = agent.i
 			if modes[i] in [0,3]:
-				idx_x,idx_y = self.coordinate_to_xy_cell_index(
+				idx_x,idx_y = self.coordinate_to_grid_index(
 					locs[agent.i,0],
 					locs[agent.i,1])
 				im_agent[idx_x][idx_y] += 1
@@ -194,7 +198,7 @@ class GridWorld(Env):
 		im_a = np.zeros((self.param.env_nx,self.param.env_ny,2))
 		count = np.zeros((self.param.env_nx,self.param.env_ny,1))
 		for i in range(ni):
-			idx_x,idx_y = self.coordinate_to_xy_cell_index(locs[i][0],locs[i][1])
+			idx_x,idx_y = self.coordinate_to_grid_index(locs[i][0],locs[i][1])
 			im_a[idx_x,idx_y,:] += vec_action[i][:]
 			count[idx_x,idx_y] += 1
 
@@ -221,11 +225,11 @@ class GridWorld(Env):
 
 	def cell_index_to_xy_cell_index(self,i):
 		x,y = self.cell_index_to_cell_coordinate(i)
-		i_x,i_y = self.coordinate_to_xy_cell_index(x,y)
+		i_x,i_y = self.coordinate_to_grid_index(x,y)
 		return i_x,i_y
 
 
-	def coordinate_to_xy_cell_index(self,x,y):
+	def coordinate_to_grid_index(self,x,y):
 		i = self.coordinate_to_cell_index(x,y)
 		x,y = self.cell_index_to_cell_coordinate(i)
 		i_x = x/self.param.env_dx

@@ -64,7 +64,7 @@ def sim(param,env,controller):
 	env.reset()
 	print('   running sim with {}...'.format(controller.name))	
 	for step,time in enumerate(param.sim_times[:-1]):
-		print('      t = {}/{}'.format(time,param.sim_times[-1]))
+		print('      t = {}/{}'.format(step,len(param.sim_times)))
 		
 		observation = env.observe()
 		action = controller.policy(observation)
@@ -112,6 +112,8 @@ if __name__ == '__main__':
 
 	# micro sim 
 	else:
+		if default_param.env_name in 'gridworld':
+			default_param.update()
 		run_instance(default_param)
 
 	# load sim results 

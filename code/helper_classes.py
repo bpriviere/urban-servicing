@@ -98,7 +98,9 @@ class CustomerModel:
 		for i in range(self.param.cm_nsample_cm):
 			x,y = self.sample_cm(timestep)
 			x,y = self.env.environment_barrier([x,y])
-			i_x,i_y = self.env.coordinate_to_xy_cell_index(x,y)
+			print(x,y)
+			
+			i_x,i_y = self.env.coordinate_to_grid_index(x,y)
 			cm[i_x,i_y] += 1
 
 		# normalize

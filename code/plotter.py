@@ -168,7 +168,7 @@ def plot_sim_rewards(sim_results):
 	ax1.set_title('Reward at each timestep')
 	ax2.set_title('Cumulative Reward')
 
-def sim_plot(controller_name,results,timestep,fig):
+def sim_plot(controller_name,results,timestep,fig,city_boundary=None):
 	# input: 
 	# 	- results is a dictionary of results for some controller
 	# 	- timestep is when to plot
@@ -183,7 +183,6 @@ def sim_plot(controller_name,results,timestep,fig):
 		num = i_key + 1
 		curr_ax = fig.add_subplot(nrow,ncol,num)
 		# curr_ax.set_title(key,fontsize=16)
-		
 		if 'action' in key:
 			im_to_plot = results["agents_ave_vec_action_distribution"][timestep]
 			ave_actions_vector_plot(param,im_to_plot,xlim=param["env_xlim"],ylim=param["env_ylim"],fig=fig,ax=curr_ax)
@@ -217,6 +216,10 @@ def sim_plot(controller_name,results,timestep,fig):
 			plt.xticks(range(nmode),param["mode_names"],rotation='vertical')
 		
 		if 'distribution' in key or 'location' in key or 'action' in key:
+
+			if param["env_name"] in 'citymap':
+				curr_ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1)
+
 			# create same axis
 			curr_ax.set_xticks(param["env_x"]) 
 			curr_ax.set_yticks(param["env_y"]) 
@@ -331,9 +334,14 @@ def plot_distribution_over_time(results,env):
 		plot_distribution(results, timestep, env)
 
 def sim_plot_over_time(controller_name,sim_result):
+	
+	param = sim_result["param"]
+	if param["env_name"] in 'citymap':
+		city_boundary = make_city_boundary(param)
+
 	for timestep,time in enumerate(sim_result["times"]):
 		fig = plt.figure()
-		sim_plot(controller_name, sim_result, timestep, fig=fig)
+		sim_plot(controller_name, sim_result, timestep, fig=fig, city_boundary=city_boundary)
 
 def sim_to_im_coordinate(im):
 	# im coordinates
@@ -579,6 +587,34 @@ def plot_runtime_vs_number_of_agents(sim_results):
 		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	ax.legend()
+
+def make_city_boundary(param):
+	
+	import shapefile
+	from shapely.geometry import shape 
+	from shapely.ops import unary_union, nearest_points, split
+	from shapely.geometry import Point, Polygon, LineString
+
+	# read shapefile 
+	shp = shapefile.Reader(param["shp_path"])
+	shapes = [shape(polygon) for polygon in shp.shapes()]
+
+	# union shape
+	print('   merge polygons in mapfile...')
+	union = unary_union(shapes)
+	if union.geom_type == 'MultiPolygon':
+		city_polygon = union[0]			
+		for polygon in union:
+			if polygon.area > city_polygon.area:
+				city_polygon = polygon
+	else:
+		city_polygon = union
+
+	# make boundary
+	x,y = city_polygon.exterior.coords.xy
+	city_boundary = np.asarray([x,y]).T # [npoints x 2]
+	return city_boundary
+
 
 # def render(self,title=None):
 	

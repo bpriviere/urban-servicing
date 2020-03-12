@@ -39,6 +39,9 @@ def load_dataset(env):
 	env.train_dataset = np.load(f_train)
 	env.test_dataset = np.load(f_test)
 
+	print('   train_dataset.shape: ', env.train_dataset.shape)
+	print('   test_dataset.shape: ', env.test_dataset.shape)
+
 def write_sim_result( sim_result, sim_result_dir):
 
 	if not os.path.exists(sim_result_dir):
@@ -99,8 +102,10 @@ def load_sim_result(sim_result_dir):
 def make_citymap_dataset(env):
 
 	param = env.param
-	# increment 
+	# time increment 
 	delta_minute = 15
+	# dilute data by factor
+	stepsize = 10
 
 	train_start = datetime(param.train_start_year, 
 		param.train_start_month, 
@@ -131,12 +136,12 @@ def make_citymap_dataset(env):
 		param.test_end_second, 
 		param.test_end_microsecond) 
 
-	train_dataset = make_citymap_dataset_instance(train_start, train_end,delta_minute)
-	test_dataset = make_citymap_dataset_instance(test_start,test_end,delta_minute)
+	train_dataset = make_citymap_dataset_instance(train_start, train_end,delta_minute,stepsize)
+	test_dataset = make_citymap_dataset_instance(test_start,test_end,delta_minute,stepsize)
 
 	return train_dataset,test_dataset 
 
-def make_citymap_dataset_instance(datetime_start,datetime_end,delta_minute):
+def make_citymap_dataset_instance(datetime_start,datetime_end,delta_minute,stepsize):
 
 	input_timestamp_key = "'%Y-%m-%dT%H:%M:%S'"
 	output_timestamp_key = "%Y-%m-%dT%H:%M:%S"
@@ -164,24 +169,28 @@ def make_citymap_dataset_instance(datetime_start,datetime_end,delta_minute):
 		nrows = results_df.shape[0]
 		if nrows > 0:
 
-			dataset_i = np.empty((nrows,6))
 
 			time_of_requests = []
 			for trip_start_timestamp in results_df["trip_start_timestamp"]:
-				time_of_requests.append(datetime.strptime(trip_start_timestamp[0:-4], output_timestamp_key).timestamp())
-			
+				starttime = datetime.strptime(trip_start_timestamp[0:-4], output_timestamp_key).timestamp()
+				starttime += np.random.uniform()*60*15
+				time_of_requests.append(starttime)
+
+			idx = np.arange(0,nrows,stepsize,dtype=int)
+			dataset_i = np.empty((len(idx),6))
+
 			# time of request [s]
-			dataset_i[:,0] = np.asarray(time_of_requests)
+			dataset_i[:,0] = np.asarray(time_of_requests)[idx]
 			# time to complete [s]
-			dataset_i[:,1] = results_df["trip_seconds"]
+			dataset_i[:,1] = results_df["trip_seconds"][idx]
 			# x_p (longitude) [degrees]
-			dataset_i[:,2] = results_df["pickup_centroid_longitude"]
+			dataset_i[:,2] = results_df["pickup_centroid_longitude"][idx]
 			# y_p (latitude) [degrees]
-			dataset_i[:,3] = results_df["pickup_centroid_latitude"]
+			dataset_i[:,3] = results_df["pickup_centroid_latitude"][idx]
 			# x_p (longitude) [degrees]
-			dataset_i[:,4] = results_df["dropoff_centroid_longitude"]
+			dataset_i[:,4] = results_df["dropoff_centroid_longitude"][idx]
 			# y_p (latitude) [degrees]
-			dataset_i[:,5] = results_df["dropoff_centroid_latitude"]
+			dataset_i[:,5] = results_df["dropoff_centroid_latitude"][idx]
 		
 			if 'dataset' in locals():
 				dataset = np.vstack((dataset,dataset_i))
