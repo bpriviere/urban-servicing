@@ -13,7 +13,9 @@ sim_results = [] # lst of dicts
 print('loading sim results...')
 for sim_result_dir in glob.glob(default_param.results_dir + '/*'):
 	sim_result = datahandler.load_sim_result(sim_result_dir)
-	sim_results.append(sim_result)
+
+	if 'dtd' in sim_result["controller_name"]:
+		sim_results.append(sim_result)
 
 # plotting 
 print('plotting sim results...')

@@ -198,6 +198,8 @@ class CityMap(Env):
 		# input
 		# 	- point is x,y point 
 		# 	- x,y is bottom left point of grid cell 
+		# output
+		# 	- bool: true if point in cell 
 		return (point[0] > x and point[0] < x + self.param.env_dx) and \
 			(point[1] > y and point[1] < y + self.param.env_dy)
 

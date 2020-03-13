@@ -124,13 +124,31 @@ if __name__ == '__main__':
 
 	# plotting 
 	print('plotting sim results...')
+
+	# 	- plot sim 
 	if default_param.plot_sim_over_time:
 		for sim_result in sim_results:
 			controller_name = sim_result["controller_name"]
 			plotter.sim_plot_over_time(controller_name,sim_result)
+	else:
+		for sim_result in sim_results:
+			controller_name = sim_result["controller_name"]
+			timestep = 0 
+			import matplotlib.pyplot as plt 
+			fig = plt.figure()
+			plotter.sim_plot(controller_name, sim_result, timestep, fig=fig)
+			break
 
+	# 	- plot reward
 	plotter.plot_cumulative_reward(sim_results)
 
+	# 	- plot q value estimation 
+	for controller_name in default_param.controller_names:
+		if 'bellman' in controller_name:
+			plotter.plot_q_error(sim_results)
+			break 
+
+	# 	- plot parameter variation 
 	if macro_sim_on:
 		if varied_parameter == "env_dx":
 			plotter.plot_runtime_vs_state_space(sim_results)

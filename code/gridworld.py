@@ -13,8 +13,21 @@ import plotter
 class GridWorld(Env):
 	def __init__(self,param):
 		super().__init__(param)
+		self.init_map()
 		self.cm = CustomerModel(self.param,self)
 		
+	def init_map(self):
+		# make utility maps 
+		self.grid_index_to_cell_index_map = np.zeros((self.param.env_nx,self.param.env_ny),dtype=int)
+		self.cell_index_to_grid_index_map = np.zeros((self.param.env_ncell,2),dtype=int)
+		count = 0
+		for i_y,y in enumerate(self.param.env_y):
+			for i_x,x in enumerate(self.param.env_x):
+				self.grid_index_to_cell_index_map[i_x,i_y] = count
+				self.cell_index_to_grid_index_map[count,:] = [i_x,i_y]
+				count += 1
+
+
 	def make_dataset(self):
 		# make dataset that will be used for training and testing
 		# training time: [tf_train,0]
@@ -72,7 +85,7 @@ class GridWorld(Env):
 			# convert to im
 			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
 			for i in range(self.param.env_ncell):
-				i_x,i_y = self.cell_index_to_xy_cell_index(i)
+				i_x,i_y = self.cell_index_to_grid_index_map[i]
 				im_v[i_x,i_y] = value_fnc_i[i]
 			# add
 			value_fnc_ims[agent.i,:,:] = im_v
@@ -211,53 +224,42 @@ class GridWorld(Env):
 	# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
 	# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
 	# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
+	# 'cell_index_to_grid_index_map' : a
+	# 'grid_index_to_cell_index_map' : a 
 
 	def cell_index_to_cell_coordinate(self,i):
-		x = self.param.env_dx*np.remainder(i,self.param.env_nx)
-		y = self.param.env_dy*np.floor_divide(i,self.param.env_nx)
+		# takes in valid cell index and returns bottom left corner coordinate of cell
+		# dim(self.cell_index_to_cell_coordinate_map) = [nvalidcells, 2]
+		i_x,i_y = self.cell_index_to_grid_index_map[i,:]
+		x,y = self.grid_index_to_coordinate(i_x,i_y)
 		return x,y
-
-
-	def xy_cell_index_to_cell_index(self,i_x,i_y):
-		i = i_y*len(self.param.env_x) + i_x
-		return int(i) 
-
-
-	def cell_index_to_xy_cell_index(self,i):
-		x,y = self.cell_index_to_cell_coordinate(i)
-		i_x,i_y = self.coordinate_to_grid_index(x,y)
-		return i_x,i_y
-
 
 	def coordinate_to_grid_index(self,x,y):
-		i = self.coordinate_to_cell_index(x,y)
-		x,y = self.cell_index_to_cell_coordinate(i)
-		i_x = x/self.param.env_dx
-		i_y = y/self.param.env_dy
-		return int(i_x),int(i_y)
-
+		# takes in coordinate and returns which i_x,i_y cell it is in
+		i_x = np.where(self.param.env_x <= x)[0][-1] # last index where input-x is larger than grid 
+		i_y = np.where(self.param.env_y <= y)[0][-1]
+		return i_x,i_y
 
 	def coordinate_to_cell_index(self,x,y):
-		if self.param.env_name is 'gridworld':
-			i_x = np.where(self.param.env_x <= x)[0][-1]
-			i_y = np.where(self.param.env_y <= y)[0][-1]
-			i = self.xy_cell_index_to_cell_index(i_x,i_y)
-		return int(i)
+		i_x,i_y = self.coordinate_to_grid_index(x,y)
+		i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
+		return i
 
-
-	def random_position_in_cell(self,i):
-		if self.param.env_name is 'gridworld':
-			x,y = self.cell_index_to_cell_coordinate(i)
-			x = self.param.env_dx*random() + x
-			y = self.param.env_dy*random() + y
+	def grid_index_to_coordinate(self,i_x,i_y):
+		x = self.param.env_x[i_x]
+		y = self.param.env_y[i_y]
 		return x,y
 
+	def random_position_in_cell(self,i):
+		x,y = self.cell_index_to_cell_coordinate(i)
+		x = self.param.env_dx*random() + x
+		y = self.param.env_dy*random() + y
+		return x,y
 
 	def random_position_in_world(self):
 		x = random()*(self.param.env_xlim[1] - self.param.env_xlim[0]) + self.param.env_xlim[0]
 		y = random()*(self.param.env_ylim[1] - self.param.env_ylim[0]) + self.param.env_ylim[0]
 		return x,y 
-
 
 	def environment_barrier(self,p):
 		eps = 1e-16

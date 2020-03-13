@@ -175,11 +175,12 @@ def sim_plot(controller_name,results,timestep,fig,city_boundary=None):
 
 	param = results["param"]
 	state_keys = param["state_keys"]
+	plot_keys = param["plot_keys"]
 
 	axs = []
 	ncol = 3
 	nrow = int(np.floor(len(state_keys)/ncol)) + 1
-	for i_key, key in enumerate(state_keys):
+	for i_key, key in enumerate(plot_keys):
 		num = i_key + 1
 		curr_ax = fig.add_subplot(nrow,ncol,num)
 		# curr_ax.set_title(key,fontsize=16)
@@ -260,19 +261,13 @@ def animate_plot(controller_name,sim_result,timestep,fig):
 
 	param = sim_result["param"]
 	state_keys = param["state_keys"]
+	plot_keys = param["plot_keys"]
 
 	axs = []
 	ncol = 2
 	nrow = 2 #int(np.floor(len(state_keys)/ncol)) + 1
 	plt.subplots_adjust(top=0.8,hspace=0.25)
 	myfontsize=14
-
-	plot_keys = [
-		'customers_location',
-		'agents_value_fnc_distribution',
-		'agents_location',
-		'reward'
-	]
 
 	for i_key, key in enumerate(plot_keys):
 		num = i_key + 1
@@ -625,6 +620,69 @@ def make_city_boundary(param):
 	x,y = city_polygon.exterior.coords.xy
 	city_boundary = np.asarray([x,y]).T # [npoints x 2]
 	return city_boundary
+
+def plot_q_error(sim_results):
+
+	# plot e(t), where e = (\|q^i - q^b\|)/n_i (average taxi error)
+	# 	- for different controllers
+	# 	- for different trials 
+
+	# use dict of lsts of np arrays
+
+	# init with empty lst
+	q_values_by_controller_dict = dict() 
+	for sim_result in sim_results:
+		if not sim_result["controller_name"] in q_values_by_controller_dict.keys():
+			q_values_by_controller_dict[sim_result["controller_name"]] = []
+
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+	times = sim_result["times"]
+
+	print('nt:',sim_result["param"]["nt"])
+	print('ni:',sim_result["param"]["ni"])
+	print('nq:',sim_result["param"]["nq"])
+	print('n_trials:',sim_result["param"]["n_trials"])
+
+	# load np arrays of shape: [(nt-1), ni, nq]
+	for sim_result in sim_results:
+		# print('sim_result["agents_q_value"].shape',sim_result["agents_q_value"].shape)
+		# correct! 
+		q_values_by_controller_dict[sim_result["controller_name"]].append(sim_result["agents_q_value"])
+
+	# get bellman soln, should be in 
+	for controller_name, controller_values in q_values_by_controller_dict.items():
+		if 'bellman' in controller_name:
+			q_bellman = controller_values
+			break 
+	
+	# q_bellman in [ntrials, nt, ni, nq]
+	q_bellman = np.asarray(q_bellman)
+
+	fig,ax = make_fig()
+	for controller_name,controller_values in q_values_by_controller_dict.items():
+
+		if not 'bellman' in controller_name:
+			# controller_values is a lst of np arrays of [nt, ni, nq]
+			# controller_values_np is an np arrays of [ntrials, nt, ni, nq]
+			controller_values_np = np.asarray(controller_values)
+			ntrials = controller_values_np.shape[0]
+
+			# [ntrials,nt,ni,nq] -> [ntrials,nt,ni]
+			error = np.linalg.norm(controller_values_np - q_bellman, axis=3)
+			# [ntrials,nt,ni] -> [ntrials,nt]
+			error = np.mean(error,axis=2)
+			# [ntrials,nt] -> [nt]
+			error_mean = np.mean(error,axis=0)
+			error_std = np.std(error,axis=0)
+
+			ax.errorbar(times, error_mean, 
+				yerr=error_std, 
+				color=color_dict[controller_name], 
+				label=controller_name)
+			ax.fill_between(times,error_mean-error_std,error_mean+error_std,
+				facecolor=color_dict[controller_name],
+				linewidth=1e-3,alpha=0.2)
+	ax.legend()
 
 
 # def render(self,title=None):

@@ -22,7 +22,7 @@ class Param:
 			['dtd','blll'],
 			['ctd','blll'],
 			['bellman','blll'],
-			['rhc','blll'],
+			# ['rhc','blll'],
 			# ['dtd','clp'],
 			# ['ctd','clp'],
 			# ['bellman','clp'],
@@ -41,11 +41,19 @@ class Param:
 			# 'gmm_distribution',
 			'customers_location',
 			'agents_value_fnc_distribution',
+			'agents_q_value',
 			'agents_location',
 			# 'free_agents_distribution',
 			'agents_distribution',
 			'agents_operation',
 			# 'agents_ave_vec_action_distribution'
+		]
+
+		self.plot_keys = [
+			'customers_location',
+			'agents_value_fnc_distribution',
+			'agents_location',
+			'reward'
 		]
 
 		# action space
@@ -61,14 +69,23 @@ class Param:
 			self.sim_t0 = 0 
 			self.sim_tf = 100
 			self.sim_dt = 0.5
+		
+			# parameter tuning with hand picked variables 
+			self.swarm_parameters_ver = 1
 
-			# fleet 
-			self.ni = 50
-			
-			self.desired_env_ncell = 60 # self.env_nx*self.env_ny
-			self.desired_swarm_density = 5.0 # agents/m^2
-			self.desired_swarm_param = 1.0 
-			self.desired_agents_per_cell = 1.0 
+			if self.swarm_parameters_ver == 0:
+				self.desired_env_ncell = 60 # self.env_nx*self.env_ny
+				self.desired_swarm_density = 1.0 # agents/m^2
+				self.desired_swarm_param = 1.0 
+				self.desired_agents_per_cell = 1.0 
+
+			elif self.swarm_parameters_ver == 1:
+				self.ni = 10
+				self.taxi_speed = 0.1 
+				self.desired_agents_per_cell = 0.1 
+				self.n_customers_per_time_ratio = 0.2 
+				self.cm_taxi_speed_ratio = 0.2
+				self.desired_swarm_param = 1.0 
 
 			# customer model
 			self.cm_linear_move = False
@@ -95,7 +112,7 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.beta = 1500 # 150.
+			self.beta = 150 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
@@ -137,7 +154,7 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.beta = 15000 # 150.
+			self.beta = 150 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
@@ -189,21 +206,31 @@ class Param:
 			# functions 
 			# state space
 			
-			l = (self.ni/self.desired_swarm_density)**(1/2)
-			if False:
-				dx = l / self.desired_env_ncell**(1/2)
-			else:
-				dx = (self.desired_agents_per_cell / self.desired_swarm_density)**0.5
-			l = dx * int(l/dx)
-			self.env_xlim = [0,l+dx]
-			self.env_ylim = [0,l+dx] #,1]
-			self.env_lengthscale = ((self.env_xlim[1]-self.env_xlim[0])**2+(self.env_ylim[1]-self.env_ylim[0])**2)**(1/2)
-			# customer model
-			self.n_customers_per_time = max(int(0.2*self.ni),1)
-			if self.cm_linear_move:
-				self.cm_speed = (self.env_xlim[1] - self.env_xlim[0]) / self.sim_tf
-			self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
-			# estimation
+			if self.swarm_parameters_ver == 0:
+				self.env_lengthscale = (self.ni/self.desired_swarm_density)**(1/2)
+				if False:
+					self.dx = (self.env_lengthscale) / (self.desired_env_ncell**(1/2))
+				else:
+					self.dx = (self.desired_agents_per_cell / self.desired_swarm_density)**0.5
+				self.env_lengthscale = self.dx * np.ceil(self.env_lengthscale/self.dx)
+				self.env_xlim = [0,self.env_lengthscale]
+				self.env_ylim = [0,self.env_lengthscale] #,1]
+				# customer model
+				self.n_customers_per_time = max(int(0.2*self.ni),1)
+				if self.cm_linear_move:
+					self.cm_speed = (self.env_xlim[1] - self.env_xlim[0]) / self.sim_tf
+				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
+
+			elif self.swarm_parameters_ver == 1:
+				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
+				self.n_customers_per_time = max(int(self.n_customers_per_time_ratio*self.ni),1)
+				self.env_lengthscale = (self.taxi_speed*self.ni)/(self.desired_swarm_param*self.n_customers_per_time)
+				self.dx = np.sqrt(self.desired_agents_per_cell*self.env_lengthscale*self.env_lengthscale/self.ni)
+				self.env_lengthscale = self.dx*int(self.env_lengthscale/self.dx)
+				self.env_xlim = [0,self.env_lengthscale]
+				self.env_ylim = [0,self.env_lengthscale]
+
+				# estimation
 			self.process_noise = self.cm_speed
 			self.measurement_noise = self.cm_sigma 
 
@@ -211,9 +238,9 @@ class Param:
 			
 			# lengthscale stuff
 			self.env_lengthscale = ((self.env_xlim[1]-self.env_xlim[0])**2+(self.env_ylim[1]-self.env_ylim[0])**2)**(1/2)
-			dx = self.env_lengthscale / self.desired_env_ncell**(1/2)
-			self.env_xlim[1] += dx
-			self.env_ylim[1] += dx
+			self.dx = self.env_lengthscale / self.desired_env_ncell**(1/2)
+			# self.env_xlim[1] += dx
+			# self.env_ylim[1] += dx
 
 			# datetime stuff 
 			train_end = datetime(self.train_end_year, 
@@ -236,15 +263,22 @@ class Param:
 			self.sim_tf = test_end.timestamp()
 			self.sim_dt = 60 # 1 minutes 
 
+		# print('self.dx',self.dx)
+		# print('self.env_xlim',self.env_xlim)
+		# print('self.env_ylim',self.env_ylim)
+		# print('self.n_customers_per_time',self.n_customers_per_time)
+		# print('self.taxi_speed',self.taxi_speed)
+		# exit()
+
 		# lengthscale and cell space 
-		self.env_dx = dx # 0.5 # length/cell
+		self.env_dx = self.dx # 0.5 # length/cell
 		self.env_dy = self.env_dx
+		# env_x,env_y are the bottom left hand corner of each cell in the map 
 		self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
 		self.env_y = np.arange(self.env_ylim[0],self.env_ylim[1],self.env_dy)
 		self.env_nx = len(self.env_x)
 		self.env_ny = len(self.env_y)
 		self.env_ncell = self.env_nx*self.env_ny
-		self.nv = self.env_ncell 
 		self.nq = self.env_ncell*self.env_naction
 		self.env_lengthscale = ((self.env_xlim[1] - self.env_xlim[0])**2 + (self.env_ylim[1] - self.env_ylim[0])**2)**(1/2)
 		# fleet 
@@ -252,7 +286,7 @@ class Param:
 		self.r_sense = self.env_lengthscale # 2*self.r_comm
 		# times  
 		self.sim_times = np.arange(self.sim_t0,self.sim_tf+self.sim_dt,self.sim_dt)
-		self.sim_nt = len(self.sim_times)
+		self.nt = len(self.sim_times)
 		# plotting 
 		self.plot_arrow_width = self.plot_r_agent/5
 		self.plot_arrow_length = 1.2*self.plot_r_agent

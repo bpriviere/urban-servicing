@@ -6,17 +6,17 @@
 
 todo list (deadline in 3 weeks, citymap deadline in 2 days):
 
-
+	recreate gridworld sim smallworld 
+	make q error plot 
 	profile code 
-	diagnose long blll runtime - why no convergence? 
-	distributed auction task assignment ??
 	app token? 
 	refactor gridworld utilities that you changed in citymap 
 	it looks like agents are avoiding value function?? -> increase beta ?? 
 	review proof
 	make fig 1 
 	nice to have
-	- how to encorporate traffic ?? 
+		- how to encorporate traffic ?? 
+		- distributed auction task assignment ??
 	
 	develop uniform baseline
 
@@ -65,6 +65,7 @@ todo list (deadline in 3 weeks, citymap deadline in 2 days):
 done: 
 	3.12
 		fast ta
+		diagnose long blll runtime - why no convergence? 
 	3.11
 		citymap
 			- make map stuff and utility functions inside city map environment 

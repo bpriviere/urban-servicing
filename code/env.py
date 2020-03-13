@@ -63,10 +63,12 @@ class Env():
 		agents_operation = np.empty(self.param.ni)
 		agents_location = np.empty((self.param.ni,2))
 		agents_value_fnc_vector = np.empty((self.param.ni,self.param.env_ncell))
+		agents_q_value = np.empty((self.param.ni,self.param.nq))
 		for agent in self.agents:
 			agents_operation[agent.i] = agent.mode # mode = 0 -> on dispatch 
 			agents_location[agent.i,:] = [agent.x,agent.y]
 			agents_value_fnc_vector[agent.i,:] = self.q_value_to_value_fnc(agent.q)
+			agents_q_value[agent.i,:] = agent.q
 
 		# - agent actions
 		agents_int_action = self.get_agents_int_action(actions)
