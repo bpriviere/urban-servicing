@@ -6,7 +6,6 @@ from datetime import datetime
 class Param:
 	def __init__(self):
 
-
 		self.env_name = 'gridworld'
 		# self.env_name = 'citymap' 
 
@@ -67,25 +66,46 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 100
+			self.sim_tf = 50
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
-			self.swarm_parameters_ver = 1
+			self.swarm_parameters_ver = 2
 
 			if self.swarm_parameters_ver == 0:
+				# swarm param 
+				self.ni = 75
 				self.desired_env_ncell = 60 # self.env_nx*self.env_ny
 				self.desired_swarm_density = 1.0 # agents/m^2
 				self.desired_swarm_param = 1.0 
 				self.desired_agents_per_cell = 1.0 
 
 			elif self.swarm_parameters_ver == 1:
-				self.ni = 10
-				self.taxi_speed = 0.1 
+				self.ni = 75
+				self.taxi_speed = 0.5
+
+				# swarm param 
 				self.desired_agents_per_cell = 0.1 
-				self.n_customers_per_time_ratio = 0.2 
-				self.cm_taxi_speed_ratio = 0.2
-				self.desired_swarm_param = 1.0 
+				self.desired_aspect_ratio = 2.0 # numx/numy
+				self.desired_swarm_param = 0.5 
+
+				# customer model
+				self.n_customers_per_time_ratio = 0.1 
+				self.cm_taxi_speed_ratio = 0.1 
+
+			elif self.swarm_parameters_ver == 2:
+				# other 
+				self.ni = 75
+				
+				# customer model
+				self.cm_taxi_speed_ratio = 0.1 
+				self.n_customers_per_time_ratio = 0.1 
+
+				# swarm param 
+				self.env_lengthscale = 1.0 # 
+				self.desired_env_ncell = 100
+				self.desired_aspect_ratio = 2.0 # numx/numy
+				self.desired_swarm_param = 0.5 
 
 			# customer model
 			self.cm_linear_move = False
@@ -97,7 +117,7 @@ class Param:
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 2
-				self.cm_sigma = 0.05 # ~1/4 env dx -> 2 sigma rule within a dx
+				self.cm_sigma = 0.1 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.05 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
@@ -207,14 +227,15 @@ class Param:
 			# state space
 			
 			if self.swarm_parameters_ver == 0:
+				
+				# map 
 				self.env_lengthscale = (self.ni/self.desired_swarm_density)**(1/2)
-				if False:
-					self.dx = (self.env_lengthscale) / (self.desired_env_ncell**(1/2))
-				else:
-					self.dx = (self.desired_agents_per_cell / self.desired_swarm_density)**0.5
-				self.env_lengthscale = self.dx * np.ceil(self.env_lengthscale/self.dx)
+				self.env_dx = (self.desired_agents_per_cell / self.desired_swarm_density)**0.5
+				self.env_lengthscale = self.env_dx * np.ceil(self.env_lengthscale/self.env_dx)
 				self.env_xlim = [0,self.env_lengthscale]
 				self.env_ylim = [0,self.env_lengthscale] #,1]
+				self.env_dy = self.env_dx
+
 				# customer model
 				self.n_customers_per_time = max(int(0.2*self.ni),1)
 				if self.cm_linear_move:
@@ -222,13 +243,39 @@ class Param:
 				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
 
 			elif self.swarm_parameters_ver == 1:
+
+				# cm 
 				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
-				self.n_customers_per_time = max(int(self.n_customers_per_time_ratio*self.ni),1)
+				self.n_customers_per_time = int(self.n_customers_per_time_ratio*self.ni)
+
+				# map 
 				self.env_lengthscale = (self.taxi_speed*self.ni)/(self.desired_swarm_param*self.n_customers_per_time)
-				self.dx = np.sqrt(self.desired_agents_per_cell*self.env_lengthscale*self.env_lengthscale/self.ni)
-				self.env_lengthscale = self.dx*int(self.env_lengthscale/self.dx)
-				self.env_xlim = [0,self.env_lengthscale]
-				self.env_ylim = [0,self.env_lengthscale]
+				self.env_dx = np.sqrt(self.desired_aspect_ratio*self.desired_agents_per_cell*self.env_lengthscale*self.env_lengthscale/self.ni)
+				self.env_dy = self.env_dx 
+				self.env_xlengthscale = self.env_dx*int(self.env_lengthscale/self.env_dx)
+				self.env_ylengthscale = self.env_dy*int((self.env_lengthscale/self.desired_aspect_ratio)/self.env_dy)
+				self.env_xlim = [0,self.env_xlengthscale]
+				self.env_ylim = [0,self.env_ylengthscale]
+
+			elif self.swarm_parameters_ver == 2:
+
+				# cm
+				self.n_customers_per_time = int(self.n_customers_per_time_ratio*self.ni)
+				
+				# map 
+				self.env_dx = ((self.env_lengthscale*self.env_lengthscale/self.desired_aspect_ratio) / self.desired_env_ncell)**(1/2)
+				self.env_dy = self.env_dx
+				self.env_xlengthscale = self.env_dx*int(self.env_lengthscale/self.env_dx)
+				self.env_ylengthscale = self.env_dy*int((self.env_lengthscale/self.desired_aspect_ratio)/self.env_dy)
+				self.env_xlim = [0,self.env_xlengthscale]
+				self.env_ylim = [0,self.env_ylengthscale] #,1]
+				self.env_dy = self.env_dx
+
+				# map
+				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
+				
+				# cm 
+				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
 
 				# estimation
 			self.process_noise = self.cm_speed
@@ -238,9 +285,8 @@ class Param:
 			
 			# lengthscale stuff
 			self.env_lengthscale = ((self.env_xlim[1]-self.env_xlim[0])**2+(self.env_ylim[1]-self.env_ylim[0])**2)**(1/2)
-			self.dx = self.env_lengthscale / self.desired_env_ncell**(1/2)
-			# self.env_xlim[1] += dx
-			# self.env_ylim[1] += dx
+			self.env_dx = self.env_lengthscale / self.desired_env_ncell**(1/2)
+			self.env_dy = self.env_dx
 
 			# datetime stuff 
 			train_end = datetime(self.train_end_year, 
@@ -263,16 +309,8 @@ class Param:
 			self.sim_tf = test_end.timestamp()
 			self.sim_dt = 60 # 1 minutes 
 
-		# print('self.dx',self.dx)
-		# print('self.env_xlim',self.env_xlim)
-		# print('self.env_ylim',self.env_ylim)
-		# print('self.n_customers_per_time',self.n_customers_per_time)
-		# print('self.taxi_speed',self.taxi_speed)
-		# exit()
+		# common for all set of parameters
 
-		# lengthscale and cell space 
-		self.env_dx = self.dx # 0.5 # length/cell
-		self.env_dy = self.env_dx
 		# env_x,env_y are the bottom left hand corner of each cell in the map 
 		self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
 		self.env_y = np.arange(self.env_ylim[0],self.env_ylim[1],self.env_dy)
@@ -280,7 +318,7 @@ class Param:
 		self.env_ny = len(self.env_y)
 		self.env_ncell = self.env_nx*self.env_ny
 		self.nq = self.env_ncell*self.env_naction
-		self.env_lengthscale = ((self.env_xlim[1] - self.env_xlim[0])**2 + (self.env_ylim[1] - self.env_ylim[0])**2)**(1/2)
+		# self.env_lengthscale = ((self.env_xlim[1] - self.env_xlim[0])**2 + (self.env_ylim[1] - self.env_ylim[0])**2)**(1/2)
 		# fleet 
 		self.r_comm = 3*self.env_dx
 		self.r_sense = self.env_lengthscale # 2*self.r_comm
@@ -292,3 +330,9 @@ class Param:
 		self.plot_arrow_length = 1.2*self.plot_r_agent
 		self.plot_arrow_head_width = self.plot_arrow_width*3
 		self.plot_arrow_head_length = self.plot_arrow_head_width
+
+		# print('self.env_dx',self.env_dx)
+		# print('self.env_nx',self.env_nx)
+		# print('self.env_ny',self.env_ny)
+		# print('self.env_ncell',self.env_ncell)
+		# exit()

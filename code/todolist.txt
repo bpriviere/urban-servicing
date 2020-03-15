@@ -4,28 +4,24 @@
 # taxes  
 # check flight reimbursement 
 
-todo list (deadline in 3 weeks, citymap deadline in 2 days):
+todo list (deadline in 3 weeks, citymap deadline in 0 days):
 
 	recreate gridworld sim smallworld 
-	make q error plot 
-	profile code 
-	app token? 
-	refactor gridworld utilities that you changed in citymap 
-	it looks like agents are avoiding value function?? -> increase beta ?? 
 	review proof
-	make fig 1 
+
 	nice to have
 		- how to encorporate traffic ?? 
 		- distributed auction task assignment ??
+		- app token? 
+		- profile code 
+		refactoring
+			- put render in plotter 
+			- clean 
 	
 	develop uniform baseline
 
 	hardcore debug 
 		- is ncells correct in current gridworld formulation? shouldnt it be (nx-1)*(ny-1) bc there are less cells than grid intersections (bc of endpoints) 
-
-	refactoring
-		- put render in plotter 
-		- clean 
 
 	experiments
 		- micro: 
@@ -60,9 +56,14 @@ todo list (deadline in 3 weeks, citymap deadline in 2 days):
 	writeup
 		- edit proof ?? oh god i hope not... ah ah ah
 		- review the game theory part 
+		- make fig 1 
 
 	
 done: 
+	3.13
+		make q error plot 
+		refactor gridworld utilities that you changed in citymap 
+		it looks like agents are avoiding value function?? -> increase beta ?? 
 	3.12
 		fast ta
 		diagnose long blll runtime - why no convergence? 

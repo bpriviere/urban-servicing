@@ -675,10 +675,13 @@ def plot_q_error(sim_results):
 			error_mean = np.mean(error,axis=0)
 			error_std = np.std(error,axis=0)
 
+			ax.plot(times,error_mean,
+				color=color_dict[controller_name], 
+				label=controller_name)
 			ax.errorbar(times, error_mean, 
 				yerr=error_std, 
 				color=color_dict[controller_name], 
-				label=controller_name)
+				linewidth=1e-3)
 			ax.fill_between(times,error_mean-error_std,error_mean+error_std,
 				facecolor=color_dict[controller_name],
 				linewidth=1e-3,alpha=0.2)
