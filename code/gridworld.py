@@ -39,24 +39,26 @@ class GridWorld(Env):
 		# 'move' gaussians around for full simulation time 
 		self.cm.run_cm_model()
 
-		# training dataset part 
+		# training dataset 
 		dataset = []
 		customer_time_array_train = np.arange(-tf_train,0,1,dtype=int)
 		for time in customer_time_array_train:
 			for customer in range(self.param.n_customers_per_time):
 				time_of_request = time + np.random.random()
 				x_p,y_p = self.cm.sample_cm(0)
+				x_p,y_p = self.environment_barrier([x_p,y_p])
 				x_d,y_d = self.random_position_in_world()
 				time_to_complete = self.eta(x_p,y_p,x_d,y_d)
 				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))
 
-		# testing dataset part 
+		# testing dataset 
 		customer_time_array_sim = np.arange(0,tf_sim,1,dtype=int)
 		for timestep,time in enumerate(customer_time_array_sim):
 			sim_timestep = int(timestep/self.param.sim_dt)
 			for customer in range(self.param.n_customers_per_time):
 				time_of_request = time + np.random.random()
 				x_p,y_p = self.cm.sample_cm(sim_timestep)
+				x_p,y_p = self.environment_barrier([x_p,y_p])
 				x_d,y_d = self.random_position_in_world()
 				time_to_complete = self.eta(x_p,y_p,x_d,y_d)
 				dataset.append(np.array([time_of_request,time_to_complete,x_p,y_p,x_d,y_d]))

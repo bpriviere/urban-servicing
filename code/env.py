@@ -22,7 +22,7 @@ class Env():
 	def init_agents(self):
 		# initialize list of agents  
 		self.agents = []
-		p0 = self.param.initial_covariance*np.ones((self.q0.shape))
+		p0 = self.param.initial_covariance #*np.ones((self.q0.shape))
 		for i in range(self.param.ni):
 			x,y = self.random_position_in_world()
 			self.agents.append(Agent(i,x,y,self.v0,self.q0,p0))
@@ -266,7 +266,7 @@ class Env():
 		return local 
 
 
-	def reward_instance(self,s,a,px,py):
+	def reward_instance(self,s,a,px,py,time_diff):
 
 		# input 
 		# 	-env: 
@@ -287,11 +287,15 @@ class Env():
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
 		reward = -1*(time_s_to_sp + time_sp_to_c)
+
+		# discount 
+		time_discount = self.param.lambda_r**time_diff
+		reward = reward * time_discount		
 		
 		# action_cost = param.lambda_a*(not a==0)
 		# cost = cwt + action_cost 
 
-		return reward
+		return reward 
 
 	# mdp stuff 
 	def solve_MDP(self,dataset,curr_time):
@@ -329,6 +333,7 @@ class Env():
 	def get_MDP_R(self,dataset,curr_time):
 		# R in SxA
 		R = np.zeros((self.param.env_ncell,self.param.env_naction))
+		# R = -100*np.ones((self.param.env_ncell,self.param.env_naction))
 		P = self.P
 
 		count = 0
@@ -345,17 +350,41 @@ class Env():
 			px = data[2]
 			py = data[3]
 
-			for s in range(self.param.env_ncell):
-				for a in range(self.param.env_naction):
+			# if global update 
+			if self.param.global_reward_on:
+				for s in range(self.param.env_ncell):
+					for a in range(self.param.env_naction):
+						
+						# time_discount = self.param.lambda_r**time_diff
+						# R[s,a] += self.reward_instance(s,a,px,py)*time_discount
+						# time_discount_sum[s,a] += time_discount
+
+						R[s,a] += self.reward_instance(s,a,px,py,time_diff)
+
+			# if local update 
+			else:
+
+				customer_state = self.coordinate_to_cell_index(px,py)
+				local_states = self.get_local_states(customer_state)
 					
-					time_discount = self.param.lambda_r**time_diff
-					R[s,a] += self.reward_instance(s,a,px,py)*time_discount
-					time_discount_sum[s,a] += time_discount
+				for local_state in local_states:
+					a = self.s_sp_to_a(customer_state,local_state)
+					q_idx = self.sa_to_q_idx(local_state,a)
+
+					prime_idxs = local_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
+					reward_instance = self.reward_instance(local_state,a,px,py,time_diff)
+					R[local_state,a] += reward_instance
 
 		if count > 0 :
 			R /= count
 
-		R = R/time_discount_sum
+		# add noise for mdp stability 
+		mean_R = np.mean(np.mean(R))
+		R += mean_R/100 * np.random.random(R.shape)
+
+		# R = R/time_discount_sum
+
+		# print('R:',R)
 
 		return R  	
 

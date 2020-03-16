@@ -6,6 +6,11 @@
 
 todo list (deadline in 3 weeks, citymap deadline in 0 days):
 
+	check if reward is best choice.... 
+		- bellman error should make sense
+		- bellman > ctd > dtd in sim 
+		- local reward? 
+		
 	recreate gridworld sim smallworld 
 	review proof
 
@@ -14,7 +19,7 @@ todo list (deadline in 3 weeks, citymap deadline in 0 days):
 		- distributed auction task assignment ??
 		- app token? 
 		- profile code 
-		refactoring
+		- refactoring
 			- put render in plotter 
 			- clean 
 	
@@ -60,6 +65,8 @@ todo list (deadline in 3 weeks, citymap deadline in 0 days):
 
 	
 done: 
+	3.14
+		make scalar kif 
 	3.13
 		make q error plot 
 		refactor gridworld utilities that you changed in citymap 

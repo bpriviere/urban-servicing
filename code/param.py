@@ -9,12 +9,14 @@ class Param:
 		self.env_name = 'gridworld'
 		# self.env_name = 'citymap' 
 
+		self.global_reward_on = False
+
 		# flags 
 		self.env_render_on = False
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = True 
 
-		self.n_trials = 2
+		self.n_trials = 1
 		self.results_dir = "../results"
 
 		self.controller_names = [
@@ -66,7 +68,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 20
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -95,7 +97,7 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 75
+				self.ni = 20
 				
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
@@ -103,9 +105,9 @@ class Param:
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 100
-				self.desired_aspect_ratio = 2.0 # numx/numy
-				self.desired_swarm_param = 0.5 
+				self.desired_env_ncell = 2 * self.ni 
+				self.desired_aspect_ratio = 5.0 # numx/numy
+				self.desired_swarm_param = 1.0
 
 			# customer model
 			self.cm_linear_move = False
@@ -123,10 +125,10 @@ class Param:
 				self.n_training_data = 100
 
 			# estimation
-			self.initial_covariance = 0.0001 
+			self.initial_covariance = 0.01 
 
 			# mdp 
-			self.lambda_r = 0.1 #0.8
+			self.lambda_r = 0.99 #0.8
 			self.mdp_gamma = 0.99
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
@@ -237,7 +239,7 @@ class Param:
 				self.env_dy = self.env_dx
 
 				# customer model
-				self.n_customers_per_time = max(int(0.2*self.ni),1)
+				self.n_customers_per_time = max((int(0.2*self.ni),1))
 				if self.cm_linear_move:
 					self.cm_speed = (self.env_xlim[1] - self.env_xlim[0]) / self.sim_tf
 				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
@@ -246,7 +248,7 @@ class Param:
 
 				# cm 
 				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
-				self.n_customers_per_time = int(self.n_customers_per_time_ratio*self.ni)
+				self.n_customers_per_time = max((int(self.n_customers_per_time_ratio*self.ni),1))
 
 				# map 
 				self.env_lengthscale = (self.taxi_speed*self.ni)/(self.desired_swarm_param*self.n_customers_per_time)
@@ -260,7 +262,7 @@ class Param:
 			elif self.swarm_parameters_ver == 2:
 
 				# cm
-				self.n_customers_per_time = int(self.n_customers_per_time_ratio*self.ni)
+				self.n_customers_per_time = max((int(self.n_customers_per_time_ratio*self.ni),1))
 				
 				# map 
 				self.env_dx = ((self.env_lengthscale*self.env_lengthscale/self.desired_aspect_ratio) / self.desired_env_ncell)**(1/2)

@@ -222,100 +222,100 @@ class Controller():
 		
 		measurements = self.get_measurements()
 
-		# get matrices
-		F = np.eye(self.param.nq)
-		Q = self.param.process_noise*np.eye(self.param.nq)
-		R = self.param.measurement_noise*np.eye(self.param.nq)
-		invF = np.eye(self.param.nq)
-		invQ = 1.0/self.param.process_noise*np.eye(self.param.nq)
-		invR = 1.0/self.param.measurement_noise*np.eye(self.param.nq)
-
-		H = np.zeros((self.param.nq,self.param.nq,self.param.ni),dtype=np.float32)
+		# get matrices 
+		F = 1.0
+		Q = self.param.process_noise
+		R = self.param.measurement_noise
+		invF = 1.0 
+		invQ = 1.0/self.param.process_noise
+		invR = 1.0/self.param.measurement_noise
+		H = np.zeros((self.param.ni),dtype=np.float32)
 		for i,(agent_i,measurement_i) in enumerate(measurements):
 			if np.count_nonzero(measurement_i) > 0:
-				H[:,:,i] = np.eye(self.param.nq)
+				H[i] = 1.0 
 
 		# information transformation
-		Y_km1km1 = np.diag(1/self.env.agents[0].p) 
-		y_km1km1 = np.dot(Y_km1km1,self.env.agents[0].q)
+		Y_km1km1 = 1/self.env.agents[0].p
+		y_km1km1 = Y_km1km1 * self.env.agents[0].q
 
-		# predict
-		M = np.dot(invF.T, np.dot(Y_km1km1,invF))
-		C = np.dot(M, np.linalg.pinv(M + invQ))
-		L = np.eye(self.param.nq) - C 
-		Y_kkm1 = np.dot(L,np.dot(M,L.T)) + np.dot(C,np.dot(invQ,C.T))
-		y_kkm1 = np.dot(L,np.dot(invF.T,y_km1km1))
+		# predict 
+		M = invF * Y_km1km1 * invF
+		C = M / (M + invQ)
+		L = 1 - C
+		Y_kkm1 = L * M * L + C * invQ * C 
+		y_kkm1 = L * invF * y_km1km1 
 
-		# innovate
-		mat_I = np.zeros((self.param.nq,self.param.nq))
+		# innovate 
+		mat_I = 0.0 #np.zeros((self.param.nq,self.param.nq))
 		vec_I = np.zeros((self.param.nq))
 		for agent_i, measurement_i in measurements:
-			mat_I += np.dot(H[:,:,agent_i.i].T, np.dot(invR, H[:,:,agent_i.i]))
-			vec_I += np.dot(H[:,:,agent_i.i].T, np.dot(invR, measurement_i))
+			mat_I += H[agent_i.i] * invR * H[agent_i.i] 
+			vec_I += H[agent_i.i] * invR * measurement_i
 
 		# invert information transformation
 		Y_kk = Y_kkm1 + mat_I
 		y_kk = y_kkm1 + vec_I
-		P_k = np.linalg.pinv(Y_kk)
-		q_k = np.dot(P_k,y_kk)
+		p_k = 1 / Y_kk
+		q_k = p_k * y_kk
 	
 		for agent in self.env.agents:
 			agent.q = q_k
-			agent.p = np.diag(P_k) 
+			agent.p = p_k
 
 	def dkif_ms(self):
 		# distributed kalman information filter (measurement sharing variant)
 		
 		measurements = self.get_measurements()
 		adjacency_matrix = self.make_adjacency_matrix()
+
+		# init 
 		q_kp1 = np.zeros((self.param.nq,self.param.ni))
-		p_kp1 = np.zeros((self.param.nq,self.param.ni))
+		p_kp1 = np.zeros((self.param.ni))
 
-		# get matrices
-		F = np.eye(self.param.nq)
-		Q = self.param.process_noise*np.eye(self.param.nq)
-		R = self.param.measurement_noise*np.eye(self.param.nq)
-		invF = np.eye(self.param.nq)
-		invQ = 1.0/self.param.process_noise*np.eye(self.param.nq)
-		invR = 1.0/self.param.measurement_noise*np.eye(self.param.nq)
-
-		H = np.zeros((self.param.nq,self.param.nq,self.param.ni),dtype=np.float32)
+		# get matrices v2 
+		F = 1.0
+		Q = self.param.process_noise
+		R = self.param.measurement_noise
+		invF = 1.0
+		invQ = 1.0/self.param.process_noise
+		invR = 1.0/self.param.measurement_noise
+		H = np.zeros((self.param.ni),dtype=np.float32)
 		for agent,measurement in measurements:
 			if np.count_nonzero(measurement) > 0:
-				H[:,:,agent.i] = np.eye(self.param.nq)
+				H[agent.i] = 1
 
 		for agent_i,measurement_i in measurements:
 
-			# information transformation
-			Y_km1km1 = np.diag(1/agent_i.p)
-			y_km1km1 = np.dot(Y_km1km1,agent_i.q)
+			# information transformation version 2
+			Y_km1km1 = 1/agent_i.p
+			y_km1km1 = Y_km1km1*agent_i.q
 
-			# predict
-			M = np.dot(invF.T, np.dot(Y_km1km1,invF))
-			C = np.dot(M, np.linalg.pinv(M + invQ))
-			L = np.eye(self.param.nq) - C 
-			Y_kkm1 = np.dot(L,np.dot(M,L.T)) + np.dot(C,np.dot(invQ,C.T))
-			y_kkm1 = np.dot(L,np.dot(invF.T,y_km1km1))
+			# predict v2 
+			M = invF * Y_km1km1 * invF
+			C = M/(M+invQ)
+			L = 1 - C 
+			Y_kkm1 = L*M*L + C*invQ*C 
+			y_kkm1 = L*invF*y_km1km1 
 
-			# innovate
-			mat_I = np.zeros((self.param.nq,self.param.nq))
+			# innovate v2 
+			mat_I = 0.0 #np.zeros((self.param.nq))
 			vec_I = np.zeros((self.param.nq))
 			for agent_j, measurement_j in measurements:
 				if adjacency_matrix[agent_i.i,agent_j.i] > 0:
-					mat_I += np.dot(H[:,:,agent_j.i].T, np.dot(invR, H[:,:,agent_j.i]))
-					vec_I += np.dot(H[:,:,agent_j.i].T, np.dot(invR, measurement_j))
+					mat_I += H[agent_j.i] * invR
+					vec_I += H[agent_j.i] * invR * measurement_j
 
-			# invert information transformation
+			# invert it v2 
 			Y_kk = Y_kkm1 + mat_I
 			y_kk = y_kkm1 + vec_I
-			P_k = np.linalg.pinv(Y_kk)
-			q_kp1[:,agent_i.i] = np.dot(P_k,y_kk)
-			p_kp1[:,agent_i.i] = np.diag(P_k)
+			P_k = 1 / Y_kk
+			q_kp1[:,agent_i.i] = P_k * y_kk
+			p_kp1[agent_i.i] = P_k # * np.ones((p_kp1.shape[0]))
 
+		# assign v2
 		for agent in self.env.agents:
 			agent.q = q_kp1[:,agent.i]
-			agent.p = p_kp1[:,agent.i]
-
+			agent.p = p_kp1[agent.i]
 
 
 	def dkif_ss(self):
@@ -401,15 +401,30 @@ class Controller():
 				time_of_request = agent.service.time
 				time_diff = self.param.sim_times[self.env.timestep] - time_of_request
 
-				for s in range(self.param.env_ncell):
-					for a in range(self.param.env_naction):
+				# if global update 
+				if self.param.global_reward_on:
+					for s in range(self.param.env_ncell):
+						for a in range(self.param.env_naction):
 
-						next_state = self.env.get_next_state(s,a)
-						q_idx = self.env.sa_to_q_idx(s,a)
-						prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
+							next_state = self.env.get_next_state(s,a)
+							q_idx = self.env.sa_to_q_idx(s,a)
+							prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 
-						reward_instance = self.env.reward_instance(s,a,px,py)
+							reward_instance = self.env.reward_instance(s,a,px,py,time_diff)
 
+							measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
+
+				# if local update
+				else:
+					customer_state = self.env.coordinate_to_cell_index(px,py)
+					local_states = self.env.get_local_states(customer_state)
+					
+					for local_state in local_states:
+						a = self.env.s_sp_to_a(customer_state,local_state)
+						q_idx = self.env.sa_to_q_idx(local_state,a)
+
+						prime_idxs = local_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
+						reward_instance = self.env.reward_instance(local_state,a,px,py,time_diff)
 						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 
 			measurements.append((agent,measurement))
