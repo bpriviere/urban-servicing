@@ -4,7 +4,9 @@
 # taxes  
 # check flight reimbursement 
 
-todo list (deadline in 3 weeks, citymap deadline in 0 days):
+todo list (deadline in 1 weeks):
+
+	faster plot 
 
 	check if reward is best choice.... 
 		- bellman error should make sense
@@ -13,6 +15,7 @@ todo list (deadline in 3 weeks, citymap deadline in 0 days):
 		
 	recreate gridworld sim smallworld 
 	review proof
+	make htd algorithm 
 
 	nice to have
 		- how to encorporate traffic ?? 

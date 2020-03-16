@@ -287,6 +287,7 @@ class Env():
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
 		reward = -1*(time_s_to_sp + time_sp_to_c)
+		# reward = 1/(time_s_to_sp + time_sp_to_c)
 
 		# discount 
 		time_discount = self.param.lambda_r**time_diff
@@ -333,11 +334,10 @@ class Env():
 	def get_MDP_R(self,dataset,curr_time):
 		# R in SxA
 		R = np.zeros((self.param.env_ncell,self.param.env_naction))
-		# R = -100*np.ones((self.param.env_ncell,self.param.env_naction))
 		P = self.P
 
 		count = 0
-		time_discount_sum = np.ones(R.shape)
+		time_discount_sum = np.zeros(R.shape)
 		for data in dataset:
 			
 			tor = data[0]
@@ -359,7 +359,11 @@ class Env():
 						# R[s,a] += self.reward_instance(s,a,px,py)*time_discount
 						# time_discount_sum[s,a] += time_discount
 
+						time_discount = self.param.lambda_r**time_diff
 						R[s,a] += self.reward_instance(s,a,px,py,time_diff)
+						time_discount_sum[s,a] += time_discount
+
+						# R[s,a], time_discount_sum[s,a] += self.reward_instance(s,a,px,py,time_diff)
 
 			# if local update 
 			else:
@@ -375,16 +379,19 @@ class Env():
 					reward_instance = self.reward_instance(local_state,a,px,py,time_diff)
 					R[local_state,a] += reward_instance
 
-		if count > 0 :
+		if count > 0:
 			R /= count
 
-		# add noise for mdp stability 
-		mean_R = np.mean(np.mean(R))
-		R += mean_R/100 * np.random.random(R.shape)
+		if self.param.global_reward_on:
+			s_idx,a_idx = np.nonzero(time_discount_sum)
+			R[s_idx,a_idx] /= time_discount_sum[s_idx,a_idx]
 
-		# R = R/time_discount_sum
+			# R /= time_discount_sum
 
-		# print('R:',R)
+		else:
+			# add noise for mdp stability 
+			mean_R = np.mean(np.mean(R))
+			R += mean_R/100 * np.random.random(R.shape)
 
 		return R  	
 

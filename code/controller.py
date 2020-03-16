@@ -280,6 +280,8 @@ class Controller():
 		invQ = 1.0/self.param.process_noise
 		invR = 1.0/self.param.measurement_noise
 		H = np.zeros((self.param.ni),dtype=np.float32)
+		# for agent,measurement in measurements:
+		# 	H[agent.i] = np.where
 		for agent,measurement in measurements:
 			if np.count_nonzero(measurement) > 0:
 				H[agent.i] = 1
@@ -409,9 +411,7 @@ class Controller():
 							next_state = self.env.get_next_state(s,a)
 							q_idx = self.env.sa_to_q_idx(s,a)
 							prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
-
 							reward_instance = self.env.reward_instance(s,a,px,py,time_diff)
-
 							measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 
 				# if local update
@@ -425,7 +425,7 @@ class Controller():
 
 						prime_idxs = local_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 						reward_instance = self.env.reward_instance(local_state,a,px,py,time_diff)
-						measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
+						measurement[q_idx] = reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
 
 			measurements.append((agent,measurement))
 

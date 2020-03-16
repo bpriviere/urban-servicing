@@ -9,14 +9,14 @@ class Param:
 		self.env_name = 'gridworld'
 		# self.env_name = 'citymap' 
 
-		self.global_reward_on = False
+		self.global_reward_on = True
 
 		# flags 
 		self.env_render_on = False
 		self.plot_sim_over_time = False
-		self.plot_arrows_on = True 
+		self.plot_arrows_on = False
 
-		self.n_trials = 1
+		self.n_trials = 2
 		self.results_dir = "../results"
 
 		self.controller_names = [
@@ -68,7 +68,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 20
+			self.sim_tf = 100
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -97,7 +97,7 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 20
+				self.ni = 100
 				
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
@@ -105,8 +105,8 @@ class Param:
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 2 * self.ni 
-				self.desired_aspect_ratio = 5.0 # numx/numy
+				self.desired_env_ncell = 1 * self.ni 
+				self.desired_aspect_ratio = 2.0 # numx/numy
 				self.desired_swarm_param = 1.0
 
 			# customer model
@@ -128,7 +128,7 @@ class Param:
 			self.initial_covariance = 0.01 
 
 			# mdp 
-			self.lambda_r = 0.99 #0.8
+			self.lambda_r = 0.8 #0.8
 			self.mdp_gamma = 0.99
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
