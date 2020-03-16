@@ -286,8 +286,8 @@ class Env():
 
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
-		reward = -1*(time_s_to_sp + time_sp_to_c)
-		# reward = 1/(time_s_to_sp + time_sp_to_c)
+		# reward = -1*(time_s_to_sp + time_sp_to_c)
+		reward = 1/(time_s_to_sp + time_sp_to_c)
 
 		# discount 
 		time_discount = self.param.lambda_r**time_diff
@@ -382,16 +382,16 @@ class Env():
 		if count > 0:
 			R /= count
 
-		if self.param.global_reward_on:
-			s_idx,a_idx = np.nonzero(time_discount_sum)
-			R[s_idx,a_idx] /= time_discount_sum[s_idx,a_idx]
+		# if self.param.global_reward_on:
+		# 	s_idx,a_idx = np.nonzero(time_discount_sum)
+		# 	R[s_idx,a_idx] /= time_discount_sum[s_idx,a_idx]
 
-			# R /= time_discount_sum
+		# 	# R /= time_discount_sum
 
-		else:
-			# add noise for mdp stability 
-			mean_R = np.mean(np.mean(R))
-			R += mean_R/100 * np.random.random(R.shape)
+		# else:
+		# 	# add noise for mdp stability 
+		# 	mean_R = np.mean(np.mean(R))
+		# 	R += mean_R/100 * np.random.random(R.shape)
 
 		return R  	
 

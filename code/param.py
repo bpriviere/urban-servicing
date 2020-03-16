@@ -16,7 +16,7 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 2
+		self.n_trials = 3
 		self.results_dir = "../results"
 
 		self.controller_names = [
@@ -105,7 +105,7 @@ class Param:
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 1 * self.ni 
+				self.desired_env_ncell = 4 * self.ni 
 				self.desired_aspect_ratio = 2.0 # numx/numy
 				self.desired_swarm_param = 1.0
 
