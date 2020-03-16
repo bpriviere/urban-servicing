@@ -97,7 +97,7 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 100
+				self.ni = 75
 				
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
@@ -107,7 +107,7 @@ class Param:
 				self.env_lengthscale = 1.0 # 
 				self.desired_env_ncell = 4 * self.ni 
 				self.desired_aspect_ratio = 2.0 # numx/numy
-				self.desired_swarm_param = 1.0
+				self.desired_swarm_param = 1.5
 
 			# customer model
 			self.cm_linear_move = False
