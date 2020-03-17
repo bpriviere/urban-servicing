@@ -63,16 +63,15 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 10
-				
+				self.ni = 10				
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
 				self.n_customers_per_time_ratio = 0.1 
 
 				# swarm param 
-				self.env_lengthscale = 1.0 # 
+				self.env_lengthscale = 2.0 # 
 				self.desired_env_ncell = 5 * self.ni 
-				self.desired_aspect_ratio = 2.0 # numx/numy
+				self.desired_aspect_ratio = 3.0 # numx/numy
 				self.desired_swarm_param = 1.5
 
 			elif self.swarm_parameters_ver == 3:
