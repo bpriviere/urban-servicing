@@ -16,14 +16,14 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 2
+		self.n_trials = 5
 		self.results_dir = "../results"
 
 		self.controller_names = [
 			['dtd','blll'],
 			['ctd','blll'],
 			['bellman','blll'],
-			# ['rhc','blll'],
+			['rhc','blll'],
 			# ['dtd','clp'],
 			# ['ctd','clp'],
 			# ['bellman','clp'],
@@ -68,7 +68,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 100
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -97,16 +97,16 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 50
+				self.ni = 100
 				
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
 				self.n_customers_per_time_ratio = 0.1 
 
 				# swarm param 
-				self.env_lengthscale = 1.0 # 
+				self.env_lengthscale = 2.0 # 
 				self.desired_env_ncell = 5 * self.ni 
-				self.desired_aspect_ratio = 2.0 # numx/numy
+				self.desired_aspect_ratio = 3.0 # numx/numy
 				self.desired_swarm_param = 1.5
 
 			# customer model
