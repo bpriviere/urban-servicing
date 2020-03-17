@@ -286,12 +286,12 @@ class Env():
 
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
-		# reward = -1*(time_s_to_sp + time_sp_to_c)
-		reward = 1/(time_s_to_sp + time_sp_to_c)
+		reward = -1*(time_s_to_sp + time_sp_to_c)
+		# reward = 1/(time_s_to_sp + time_sp_to_c)
 
 		# discount 
 		time_discount = self.param.lambda_r**time_diff
-		reward = reward * time_discount		
+		reward = reward * time_discount
 		
 		# action_cost = param.lambda_a*(not a==0)
 		# cost = cwt + action_cost 
@@ -356,14 +356,12 @@ class Env():
 					for a in range(self.param.env_naction):
 						
 						# time_discount = self.param.lambda_r**time_diff
-						# R[s,a] += self.reward_instance(s,a,px,py)*time_discount
+						# R[s,a] += self.reward_instance(s,a,px,py,time_diff)*time_discount
 						# time_discount_sum[s,a] += time_discount
 
 						time_discount = self.param.lambda_r**time_diff
 						R[s,a] += self.reward_instance(s,a,px,py,time_diff)
 						time_discount_sum[s,a] += time_discount
-
-						# R[s,a], time_discount_sum[s,a] += self.reward_instance(s,a,px,py,time_diff)
 
 			# if local update 
 			else:

@@ -7,8 +7,6 @@
 todo list (deadline in 1 weeks):
 
 	faster plot 
-	save result functionality
-	major debug... 
 
 	check if reward is best choice.... 
 		- bellman error should make sense
@@ -70,6 +68,8 @@ todo list (deadline in 1 weeks):
 
 	
 done: 
+	3.17
+		save result functionality
 	3.14
 		make scalar kif 
 	3.13

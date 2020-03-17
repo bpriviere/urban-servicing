@@ -145,9 +145,12 @@ if __name__ == '__main__':
 			for sim_result in sim_results:
 				import matplotlib.pyplot as plt 
 				timestep = 0 
-				city_boundary = plotter.make_city_boundary(sim_result["param"])
 				fig = plt.figure()
-				plotter.sim_plot(sim_result["controller_name"],sim_result,timestep,fig=fig,city_boundary=city_boundary)
+				if sim_result["param"]["env_name"] in 'citymap':
+					city_boundary = plotter.make_city_boundary(sim_result["param"])
+					plotter.sim_plot(sim_result["controller_name"],sim_result,timestep,fig=fig,city_boundary=city_boundary)
+				else:
+					plotter.sim_plot(sim_result["controller_name"],sim_result,timestep,fig=fig)
 				break
 
 		# 	- plot reward
