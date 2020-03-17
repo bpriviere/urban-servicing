@@ -605,6 +605,7 @@ def make_city_boundary(param):
 
 	# read shapefile 
 	shp = shapefile.Reader(param["shp_path"])
+	print(param["shp_path"])
 	shapes = [shape(polygon) for polygon in shp.shapes()]
 
 	# union shape
@@ -663,7 +664,8 @@ def plot_q_error(sim_results):
 	fig,ax = make_fig()
 	for controller_name,controller_values in q_values_by_controller_dict.items():
 
-		if not 'bellman' in controller_name:
+		if not 'bellman' in controller_name and not 'rhc' in controller_name:
+
 			# controller_values is a lst of np arrays of [nt, ni, nq]
 			# controller_values_np is an np arrays of [ntrials, nt, ni, nq]
 			controller_values_np = np.asarray(controller_values)

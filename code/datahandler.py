@@ -1,6 +1,7 @@
 
 import numpy as np
 import os
+import shutil
 import json
 import glob
 import pandas as pd
@@ -15,12 +16,19 @@ class NumpyEncoder(json.JSONEncoder):
 		return json.JSONEncoder.default(self,obj)
 
 def make_dataset(env):
+
 	if env.name is 'gridworld':
 		return env.make_dataset()
 	elif env.name is 'citymap':
 		return make_citymap_dataset(env)
 
 def write_dataset(env, train_dataset, test_dataset):
+
+	current_data_dir = '../current_data/*'
+	if not os.path.exists('../current_data/*'):
+		os.makedirs('../current_data/*',exist_ok=True)
+	for old_data_dir in glob.glob(current_data_dir):
+		shutil.rmtree(old_data_dir)
 
 	datadir = "../current_data/{}".format(env.name)
 	if not os.path.exists(datadir):

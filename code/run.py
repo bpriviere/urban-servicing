@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
 
 	default_param = Param()
-	macro_sim_on = True
+	macro_sim_on = False
 
 	# clean results directory
 	current_results_dir = '../current_results/*'
@@ -143,11 +143,11 @@ if __name__ == '__main__':
 				plotter.sim_plot_over_time(controller_name,sim_result)
 		else:
 			for sim_result in sim_results:
-				controller_name = sim_result["controller_name"]
-				timestep = 0 
 				import matplotlib.pyplot as plt 
+				timestep = 0 
+				city_boundary = plotter.make_city_boundary(sim_result["param"])
 				fig = plt.figure()
-				plotter.sim_plot(controller_name, sim_result, timestep, fig=fig)
+				plotter.sim_plot(sim_result["controller_name"],sim_result,timestep,fig=fig,city_boundary=city_boundary)
 				break
 
 		# 	- plot reward

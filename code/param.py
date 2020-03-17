@@ -6,8 +6,8 @@ from datetime import datetime
 class Param:
 	def __init__(self):
 
-		self.env_name = 'gridworld'
-		# self.env_name = 'citymap' 
+		# self.env_name = 'gridworld'
+		self.env_name = 'citymap' 
 
 		self.global_reward_on = True
 
@@ -129,7 +129,7 @@ class Param:
 
 		elif self.env_name is 'citymap':
 
-			self.make_dataset_on = False
+			self.make_dataset_on = True
 
 			# determine from data 
 			self.taxi_speed = 0.007 # temp 
@@ -138,10 +138,10 @@ class Param:
 
 			# 
 			self.city = 'chicago'
-			self.shp_path = '../data/maps/{}.shp'.format(self.city)
+			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni = 200
+			self.ni = 2
 			
 			self.desired_env_ncell = 100 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
@@ -197,8 +197,8 @@ class Param:
 			self.test_end_year = 2015
 			self.test_end_month = 1
 			self.test_end_day = 10
-			self.test_end_hour = 6
-			self.test_end_minute = 0
+			self.test_end_hour = 0
+			self.test_end_minute = 15
 			self.test_end_second = 0
 			self.test_end_microsecond = 0
 
@@ -329,8 +329,8 @@ class Param:
 			self.sim_tf = test_end.timestamp()
 			self.sim_dt = 60 # 1 minutes 
 
-		# common for all set of parameters
 
+		# common for all set of parameters
 		# env_x,env_y are the bottom left hand corner of each cell in the map 
 		self.env_x = np.arange(self.env_xlim[0],self.env_xlim[1],self.env_dx)
 		self.env_y = np.arange(self.env_ylim[0],self.env_ylim[1],self.env_dy)

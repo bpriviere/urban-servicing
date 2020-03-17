@@ -51,6 +51,8 @@ class CityMap(Env):
 		# make grid 
 		city_bounds = self.city_polygon.bounds # [xmin,ymin,xmax,ymax]
 		eps = 0.001
+		# self.param.env_xlim = [self.city_polygon.bounds[0]+eps,self.city_polygon.bounds[2]-eps]
+		# self.param.env_ylim = [self.city_polygon.bounds[1]+eps,self.city_polygon.bounds[3]-eps]
 		self.param.env_xlim = [self.city_polygon.bounds[0]-eps,self.city_polygon.bounds[2]+eps]
 		self.param.env_ylim = [self.city_polygon.bounds[1]-eps,self.city_polygon.bounds[3]+eps]
 

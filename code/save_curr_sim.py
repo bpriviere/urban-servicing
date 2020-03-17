@@ -14,13 +14,20 @@ def main(name):
 	today = datetime.datetime.today()
 	timestamp = '{0:04}-{1:02}-{2:02}_'.format(today.year, today.month, today.day)
 
-	temp_results_dir = '../current_results'
-	new_results_dir = '../results/{}'.format(timestamp+name)
-	shutil.copytree(temp_results_dir, new_results_dir)
+	# save input data 
+	src_data_dir = '../current_data'
+	dest_data_dir = '../data/{}'.format(timestamp+name)
+	shutil.copytree(src_data_dir, dest_data_dir)	
 
-	temp_data_dir = '../current_data'
-	new_data_dir = '../data/{}'.format(timestamp+name)
-	shutil.copytree(temp_data_dir, new_data_dir)	
+	# save results files 
+	src_results_dir = '../current_results'
+	dest_results_dir = '../results/{}'.format(timestamp+name)
+	shutil.copytree(src_results_dir, dest_results_dir)
+
+	# save plots 
+	src_plot = 'plots.pdf'
+	dest_plot = '../results/{}/plots.pdf'.format(timestamp+name)
+	shutil.copy(src_plot, dest_plot)
 
 
 if __name__ == '__main__':
