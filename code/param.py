@@ -16,7 +16,7 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 2
+		self.n_trials = 5
 
 		self.controller_names = [
 			['dtd','blll'],
@@ -35,7 +35,7 @@ class Param:
 			# sim 
 			self.sim_t0 = 0 
 			self.sim_tf = 50
-			self.sim_dt = 0.20
+			self.sim_dt = 0.25
 		
 			# parameter tuning with hand picked variables 
 			self.swarm_parameters_ver = 4

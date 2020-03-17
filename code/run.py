@@ -27,20 +27,23 @@ def run_instance(param):
 	else:
 		exit('env_name not recognized: ', param.env_name)
 
-	# init datasets
-	if param.make_dataset_on:
-		print('   making dataset...')
-		train_dataset, test_dataset = datahandler.make_dataset(env)
-		datahandler.write_dataset(env, train_dataset, test_dataset)
-	print('   loading dataset...')
-	datahandler.load_dataset(env)
 
 	# run sim 
 	for (dispatch,task_assignment) in param.controller_names:
 		controller = Controller(param,env,dispatch,task_assignment)
 		for i_trial in range(param.n_trials):
+		
+			# init datasets
+			if param.make_dataset_on:
+				print('   making dataset...')
+				train_dataset, test_dataset = datahandler.make_dataset(env)
+				datahandler.write_dataset(env, train_dataset, test_dataset)
+			print('   loading dataset...')
+			datahandler.load_dataset(env)
+		
 			# sim 
 			sim_result = sim(param,env,controller)
+		
 			# write results
 			case_count = len(glob.glob('../current_results/*')) + 1
 			results_dir = '../current_results/sim_result_{}'.format(case_count)
