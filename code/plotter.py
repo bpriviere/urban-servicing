@@ -484,66 +484,68 @@ def get_marker_color_dicts(param):
 	return marker_dict,color_dict
 
 
-def plot_runtime_vs_state_space(sim_results):
+# def plot_runtime_vs_state_space(sim_results):
 
-	# init dict 
-	sim_results_by_controller_and_param = dict()
-	for sim_result in sim_results:
-		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
-		if not key in sim_results_by_controller_and_param.keys():
-			sim_results_by_controller_and_param[key] = []
+# 	# init dict 
+# 	sim_results_by_controller_and_param = dict()
+# 	for sim_result in sim_results:
+# 		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
+# 		if not key in sim_results_by_controller_and_param.keys():
+# 			sim_results_by_controller_and_param[key] = []
 
-	sim_results_by_controller = dict()
-	for sim_result in sim_results:
-		key = sim_result["controller_name"]
-		if not key in sim_results_by_controller.keys():
-			sim_results_by_controller[key] = []
+# 	sim_results_by_controller = dict()
+# 	for sim_result in sim_results:
+# 		key = sim_result["controller_name"]
+# 		if not key in sim_results_by_controller.keys():
+# 			sim_results_by_controller[key] = []
 
-	# get ni array
-	sizeS_set = set()
-	for sim_result in sim_results:
-		sizeS_set.add(sim_result["param"]["env_ncell"])
-	np_sizeS = np.asarray(list(sizeS_set))
+# 	# get ni array
+# 	sizeS_set = set()
+# 	for sim_result in sim_results:
+# 		sizeS_set.add(sim_result["param"]["env_ncell"])
+# 	np_sizeS = np.asarray(list(sizeS_set))
 
-	# get marker and color dict 
-	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+# 	# get marker and color dict 
+# 	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
 
-	# load data
-	for sim_result in sim_results:
-		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
-		sim_results_by_controller_and_param[key].append(sim_result["sim_run_time"])
-	n_ntrials = len(sim_results_by_controller_and_param[key])
+# 	# load data
+# 	for sim_result in sim_results:
+# 		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
+# 		sim_results_by_controller_and_param[key].append(sim_result["sim_run_time"])
+# 	n_ntrials = len(sim_results_by_controller_and_param[key])
 	
-	# load data again 
-	for (controller_name, env_dx), sim_results in sim_results_by_controller_and_param.items():
-		sim_results_by_controller[controller_name].append(sim_results)
+# 	# load data again 
+# 	for (controller_name, env_dx), sim_results in sim_results_by_controller_and_param.items():
+# 		sim_results_by_controller[controller_name].append(sim_results)
 
-	fig,ax = make_fig()
-	for controller_name,rt_values in sim_results_by_controller.items():
+# 	fig,ax = make_fig()
+# 	for controller_name,rt_values in sim_results_by_controller.items():
 
-		# after transpose: axis 1: across varied_parameter, axis 0: across trials 
-		np_rt = np.asarray(rt_values)
-		np_rt = np_rt.T
+# 		# after transpose: axis 1: across varied_parameter, axis 0: across trials 
+# 		np_rt = np.asarray(rt_values)
+# 		np_rt = np_rt.T
 
-		np_rt_mean = np.mean(np_rt,axis=0)
-		ax.plot( np_sizeS, np_rt_mean, 
-			color = color_dict[controller_name], 
-			marker = marker_dict[controller_name], 
-			label = controller_name)
+# 		# 
+
+
+# 		np_rt_mean = np.mean(np_rt,axis=0)
+# 		ax.plot( np_sizeS, np_rt_mean, 
+# 			color = color_dict[controller_name], 
+# 			marker = marker_dict[controller_name], 
+# 			label = controller_name)
 		
-		if np_rt.shape[0] > 1:
-			np_rt_std = np.std(np_rt,axis=0)
-			print('controller {} std {}'.format(controller_name,np_rt_std))
-			ax.fill_between(np_sizeS,np_rt_mean-np_rt_std,np_rt_mean+np_rt_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+# 		if np_rt.shape[0] > 1:
+# 			np_rt_std = np.std(np_rt,axis=0)
+# 			print('controller {} std {}'.format(controller_name,np_rt_std))
+# 			ax.fill_between(np_sizeS,np_rt_mean-np_rt_std,np_rt_mean+np_rt_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 
-	ax.legend()
-	ax.set_ylabel('Runtime')
-	ax.set_xlabel('Number of Cells')
-	ax.set_xticks(np_sizeS)
+# 	ax.legend()
+# 	ax.set_ylabel('Runtime')
+# 	ax.set_xlabel('Number of Cells')
+# 	ax.set_xticks(np_sizeS)
 
 
 def plot_runtime_vs_number_of_agents(sim_results):
-
 
 	ni_lst = []
 	controller_name_lst = []
@@ -629,7 +631,7 @@ def plot_q_error(sim_results):
 
 	# use dict of lsts of np arrays
 
-	# init with empty lst
+	# init dict of lst
 	q_values_by_controller_dict = dict() 
 	for sim_result in sim_results:
 		if not sim_result["controller_name"] in q_values_by_controller_dict.keys():
@@ -687,6 +689,59 @@ def plot_q_error(sim_results):
 				linewidth=1e-3,alpha=0.2)
 	ax.set_title('Average Q Error')
 	ax.legend()
+
+def plot_runtime_vs_state_space(sim_results):
+
+	ncell_lst = []
+	controller_name_lst = []
+	for sim_result in sim_results:
+		if not sim_result["controller_name"] in controller_name_lst:
+			controller_name_lst.append(sim_result["controller_name"])
+		if not sim_result["param"]["env_ncell"] in ncell_lst:
+			ncell_lst.append(sim_result["param"]["env_ncell"])
+
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+
+	runtimes_by_controller_and_ni_dict = dict() # dict of dict of lsts
+	for controller_name in controller_name_lst:
+		runtimes_by_controller_and_ni_dict[controller_name] = dict()
+		for ncell in ncell_lst:
+			runtimes_by_controller_and_ni_dict[controller_name][ncell] = []
+
+	for sim_result in sim_results:
+		runtimes_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["env_ncell"]].append(sim_result["sim_run_time"])
+
+	fig,ax = make_fig()
+	for controller_name,controller_dict in runtimes_by_controller_and_ni_dict.items():
+		plot_ncell = []
+		plot_mean = []
+		plot_std = []
+		for ncell,rt_values in controller_dict.items():
+			plot_ncell.append(ncell)
+			plot_mean.append(np.mean(rt_values))
+			plot_std.append(np.std(rt_values))
+		
+		# as numpy
+		plot_ncell = np.asarray(plot_ncell)
+		plot_mean = np.asarray(plot_mean)
+		plot_std = np.asarray(plot_std)
+
+		# sorted
+		idxs = plot_ncell.argsort()
+		plot_ncell = plot_ncell[idxs]
+		plot_mean = plot_mean[idxs]
+		plot_std = plot_std[idxs]
+
+		ax.plot( plot_ncell, plot_mean, 
+			color = color_dict[controller_name], 
+			marker = marker_dict[controller_name], 
+			label = controller_name)
+		
+		ax.errorbar(plot_ncell, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+		ax.fill_between(plot_ncell,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+	ax.legend()
+
+
 
 
 # def render(self,title=None):

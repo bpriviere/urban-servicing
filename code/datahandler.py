@@ -22,7 +22,7 @@ def make_dataset(env):
 
 def write_dataset(env, train_dataset, test_dataset):
 
-	datadir = "../data/{}".format(env.name)
+	datadir = "../current_data/{}".format(env.name)
 	if not os.path.exists(datadir):
 		os.makedirs(datadir,exist_ok=True)
 
@@ -33,8 +33,8 @@ def write_dataset(env, train_dataset, test_dataset):
 
 def load_dataset(env):
 
-	f_train = "../data/{}/train_dataset.npy".format(env.name)
-	f_test = "../data/{}/test_dataset.npy".format(env.name)
+	f_train = "../current_data/{}/train_dataset.npy".format(env.name)
+	f_test = "../current_data/{}/test_dataset.npy".format(env.name)
 
 	env.train_dataset = np.load(f_train)
 	env.test_dataset = np.load(f_test)
@@ -137,7 +137,7 @@ def make_citymap_dataset(env):
 		param.test_end_second, 
 		param.test_end_microsecond) 
 
-	train_dataset = make_citymap_dataset_instance(train_start, train_end,delta_minute,stepsize)
+	train_dataset = make_citymap_dataset_instance(train_start,train_end,delta_minute,stepsize)
 	test_dataset = make_citymap_dataset_instance(test_start,test_end,delta_minute,stepsize)
 
 	return train_dataset,test_dataset 

@@ -16,49 +16,15 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 2
-		self.results_dir = "../results"
+		self.n_trials = 1
 
 		self.controller_names = [
 			['dtd','blll'],
-			['ctd','blll'],
-			['bellman','blll'],
+			# ['ctd','blll'],
+			# ['bellman','blll'],
 			# ['rhc','blll'],
-			# ['dtd','clp'],
-			# ['ctd','clp'],
-			# ['bellman','clp'],
 			# ['rhc','clp'],
 			]
-
-		# plotting
-		self.plot_fn = 'plots.pdf'
-		self.mode_names = ['dispatch','service']
-		self.plot_agent_mode_color = ['blue','orange'] 
-		self.plot_customer_color = 'orange'
-		self.plot_markers = ['s','p','P','*','+']
-		self.plot_colors = ['b','g','r','c','m']
-
-		self.state_keys = [
-			# 'gmm_distribution',
-			'customers_location',
-			'agents_value_fnc_distribution',
-			'agents_q_value',
-			'agents_location',
-			# 'free_agents_distribution',
-			'agents_distribution',
-			'agents_operation',
-			# 'agents_ave_vec_action_distribution'
-		]
-
-		self.plot_keys = [
-			'customers_location',
-			'agents_value_fnc_distribution',
-			'agents_location',
-			'reward'
-		]
-
-		# action space
-		self.env_naction = 5 
 
 		# environment parameters
 		if self.env_name is 'gridworld':
@@ -68,11 +34,11 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 0.5
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
-			self.swarm_parameters_ver = 2
+			self.swarm_parameters_ver = 3
 
 			if self.swarm_parameters_ver == 0:
 				# swarm param 
@@ -97,7 +63,7 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 50
+				self.ni = 10
 				
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
@@ -108,6 +74,22 @@ class Param:
 				self.desired_env_ncell = 5 * self.ni 
 				self.desired_aspect_ratio = 2.0 # numx/numy
 				self.desired_swarm_param = 1.5
+
+			elif self.swarm_parameters_ver == 3:
+
+				self.ni = 10
+
+				self.env_lengthscale = 2.0
+				self.env_xlim = [0,self.env_lengthscale]
+				self.env_ylim = [0,self.env_lengthscale]
+				self.env_dx = 0.25
+				self.env_dy = self.env_dx
+
+				self.desired_swarm_param = 1.0 
+
+				self.cm_taxi_speed_ratio = 0.1 
+				self.n_customers_per_time_ratio = 0.1 
+
 
 			# customer model
 			self.cm_linear_move = False
@@ -220,6 +202,37 @@ class Param:
 			self.test_end_second = 0
 			self.test_end_microsecond = 0
 
+		# plotting
+		self.plot_fn = 'plots.pdf'
+		self.mode_names = ['dispatch','service']
+		self.plot_agent_mode_color = ['blue','orange'] 
+		self.plot_customer_color = 'orange'
+		self.plot_markers = ['s','p','P','*','+']
+		self.plot_colors = ['b','g','r','c','m']
+
+		self.state_keys = [
+			# 'gmm_distribution',
+			'customers_location',
+			'agents_value_fnc_distribution',
+			'agents_q_value',
+			'agents_location',
+			# 'free_agents_distribution',
+			'agents_distribution',
+			'agents_operation',
+			# 'agents_ave_vec_action_distribution'
+		]
+
+		self.plot_keys = [
+			'customers_location',
+			'agents_value_fnc_distribution',
+			'agents_location',
+			'reward'
+		]
+
+		# action space
+		self.env_naction = 5 
+
+
 	def to_dict(self):
 		return self.__dict__
 
@@ -277,6 +290,11 @@ class Param:
 				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
 				
 				# cm 
+				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
+
+			elif self.swarm_parameters_ver == 3:
+				self.n_customers_per_time = max((int(self.n_customers_per_time_ratio*self.ni),1))
+				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
 				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
 
 				# estimation

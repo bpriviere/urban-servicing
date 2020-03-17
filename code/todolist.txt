@@ -7,6 +7,8 @@
 todo list (deadline in 1 weeks):
 
 	faster plot 
+	save result functionality
+	major debug... 
 
 	check if reward is best choice.... 
 		- bellman error should make sense

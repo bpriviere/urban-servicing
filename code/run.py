@@ -42,8 +42,8 @@ def run_instance(param):
 			# sim 
 			sim_result = sim(param,env,controller)
 			# write results
-			case_count = len(glob.glob('../results/*')) + 1
-			results_dir = param.results_dir + '/sim_result_{}'.format(case_count)
+			case_count = len(glob.glob('../current_results/*')) + 1
+			results_dir = '../current_results/sim_result_{}'.format(case_count)
 			datahandler.write_sim_result(sim_result, results_dir)
 	return 
 
@@ -89,18 +89,21 @@ if __name__ == '__main__':
 
 
 	default_param = Param()
-	macro_sim_on = False
+	macro_sim_on = True
 
 	# clean results directory
-	for old_sim_result_dir in glob.glob(default_param.results_dir + '/*'):
+	current_results_dir = '../current_results/*'
+	if not os.path.exists('../current_results/*'):
+		os.makedirs('../current_results/*',exist_ok=True)
+	for old_sim_result_dir in glob.glob(current_results_dir):
 		shutil.rmtree(old_sim_result_dir)
 		
 	# macro sim 
 	if macro_sim_on: 
 		
 		varied_parameter_dict = dict()
-		# varied_parameter_dict["env_dx"] = [0.25] #[0.25, 0.3, 0.4, 0.5] 
-		varied_parameter_dict["ni"] = [30] #10,50,100,150]
+		# varied_parameter_dict["env_dx"] = [0.1,0.3,0.5,1.0] 
+		varied_parameter_dict["ni"] = [5,10] #10,50,100,150]
 		controller_names = default_param.controller_names
 
 		for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
@@ -119,41 +122,44 @@ if __name__ == '__main__':
 	# load sim results 
 	sim_results = [] # lst of dicts
 	print('loading sim results...')
-	for sim_result_dir in glob.glob(default_param.results_dir + '/*'):
+	for sim_result_dir in glob.glob(current_results_dir):
 		sim_results.append(datahandler.load_sim_result(sim_result_dir))
 
 	# plotting 
 	print('plotting sim results...')
 
-	# 	- plot sim 
-	if default_param.plot_sim_over_time:
-		for sim_result in sim_results:
-			controller_name = sim_result["controller_name"]
-			plotter.sim_plot_over_time(controller_name,sim_result)
-	else:
-		for sim_result in sim_results:
-			controller_name = sim_result["controller_name"]
-			timestep = 0 
-			import matplotlib.pyplot as plt 
-			fig = plt.figure()
-			plotter.sim_plot(controller_name, sim_result, timestep, fig=fig)
-			break
-
-	# 	- plot reward
-	plotter.plot_cumulative_reward(sim_results)
-
-	# 	- plot q value estimation 
-	for controller_name in default_param.controller_names:
-		if 'bellman' in controller_name:
-			plotter.plot_q_error(sim_results)
-			break 
-
-	# 	- plot parameter variation 
 	if macro_sim_on:
+	# 	- plot parameter variation 
 		if varied_parameter == "env_dx":
 			plotter.plot_runtime_vs_state_space(sim_results)
 		elif varied_parameter == "ni":
 			plotter.plot_runtime_vs_number_of_agents(sim_results)
+
+	else:
+		# 	- plot sim 
+		if default_param.plot_sim_over_time:
+			for sim_result in sim_results:
+				controller_name = sim_result["controller_name"]
+				plotter.sim_plot_over_time(controller_name,sim_result)
+		else:
+			for sim_result in sim_results:
+				controller_name = sim_result["controller_name"]
+				timestep = 0 
+				import matplotlib.pyplot as plt 
+				fig = plt.figure()
+				plotter.sim_plot(controller_name, sim_result, timestep, fig=fig)
+				break
+
+		# 	- plot reward
+		plotter.plot_cumulative_reward(sim_results)
+
+		# 	- plot q value estimation 
+		for controller_name in default_param.controller_names:
+			if 'bellman' in controller_name:
+				plotter.plot_q_error(sim_results)
+				break 
+
+		
 
 	print('saving and opening figs...')
 	plotter.save_figs(default_param.plot_fn)

@@ -1,12 +1,18 @@
-# ignore data
-data/*
+# ignore 
 code/__pycache__/*
-code/results*
 code/video.mp4
-results/*
-saved_results/*
-# unused dir
-matlab_code/*
-mdp_toolbox_files/*
-review/*
+code/plots.pdf
 tex/*
+old/*
+current_data/*
+current_results/*
+# old 
+# data/*
+# code/results*
+# results/*
+# saved_results/*
+# # unused dir
+# matlab_code/*
+# mdp_toolbox_files/*
+# review/*
+# tex/*
