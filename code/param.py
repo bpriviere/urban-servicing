@@ -17,7 +17,7 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 1
+		self.n_trials = 2
 
 		self.controller_names = [
 			['dtd','blll'],
@@ -64,14 +64,14 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 50				
+				self.ni = 50
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1 
 				self.n_customers_per_time_ratio = 0.1 
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 1 * self.ni 
+				self.desired_env_ncell = 3 * self.ni 
 				self.desired_aspect_ratio = 3.0 # numx/numy
 				self.desired_swarm_param = 1.0
 
@@ -119,7 +119,7 @@ class Param:
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 2
-				self.cm_sigma = 0.1 # ~1/4 env dx -> 2 sigma rule within a dx
+				self.cm_sigma = 0.25 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.05 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
