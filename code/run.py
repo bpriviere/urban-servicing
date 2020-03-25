@@ -29,20 +29,24 @@ def run_instance(param):
 
 
 	# run sim 
-	for (dispatch,task_assignment) in param.controller_names:
-		controller = Controller(param,env,dispatch,task_assignment)
-		for i_trial in range(param.n_trials):
-		
-			# init datasets
-			if param.make_dataset_on:
-				print('   making dataset...')
-				train_dataset, test_dataset = datahandler.make_dataset(env)
-				datahandler.write_dataset(env, train_dataset, test_dataset)
-			print('   loading dataset...')
-			datahandler.load_dataset(env)
+	for i_trial in range(param.n_trials):
+
+		# init datasets
+		if param.make_dataset_on:
+			print('   making dataset...')
+			train_dataset, test_dataset = datahandler.make_dataset(env)
+			datahandler.write_dataset(env, train_dataset, test_dataset)
+		print('   loading dataset...')
+		datahandler.load_dataset(env)
+
+		# initial condition
+		s0 = env.get_s0()
+
+		for (dispatch,task_assignment) in param.controller_names:
+			controller = Controller(param,env,dispatch,task_assignment)
 		
 			# sim 
-			sim_result = sim(param,env,controller)
+			sim_result = sim(param,env,controller,s0)
 		
 			# write results
 			case_count = len(glob.glob('../current_results/*')) + 1
@@ -50,7 +54,7 @@ def run_instance(param):
 			datahandler.write_sim_result(sim_result, results_dir)
 	return 
 
-def sim(param,env,controller):
+def sim(param,env,controller,s0):
 	# outputs:
 	# 	- dictionary with all state variables for all time, plus rewards, times, runtime, controller_name . 
 
@@ -64,7 +68,7 @@ def sim(param,env,controller):
 	sim_result["sim_start_time"] = time_pkg.time()
 	sim_result["controller_name"] = controller.name 
 	
-	env.reset()
+	env.reset(s0)
 	print('   running sim with {}...'.format(controller.name))	
 	for step,time in enumerate(param.sim_times[:-1]):
 		print('      t = {}/{}'.format(step,len(param.sim_times)))

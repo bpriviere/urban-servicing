@@ -217,9 +217,14 @@ class Controller():
 
 		return move_assignments		
 
-
+	# estimation methods 
 	def ckif(self):
+
+		q_t = self.env.agents[0].q
+		q_tp1 = np.copy(q_t)
+		p_k = np.zeros((self.param.nq))
 		
+		# measurements are \hat{R}^i_t
 		measurements = self.get_measurements()
 
 		# get matrices 
@@ -229,38 +234,94 @@ class Controller():
 		invF = 1.0 
 		invQ = 1.0/self.param.process_noise
 		invR = 1.0/self.param.measurement_noise
-		H = np.zeros((self.param.ni),dtype=np.float32)
-		for i,(agent_i,measurement_i) in enumerate(measurements):
-			if np.count_nonzero(measurement_i) > 0:
-				H[i] = 1.0 
 
-		# information transformation
-		Y_km1km1 = 1/self.env.agents[0].p
-		y_km1km1 = Y_km1km1 * self.env.agents[0].q
-
-		# predict 
-		M = invF * Y_km1km1 * invF
-		C = M / (M + invQ)
-		L = 1 - C
-		Y_kkm1 = L * M * L + C * invQ * C 
-		y_kkm1 = L * invF * y_km1km1 
-
-		# innovate 
-		mat_I = 0.0 #np.zeros((self.param.nq,self.param.nq))
+		# innovate and measurement 
+		mat_I = 0.0 
 		vec_I = np.zeros((self.param.nq))
-		for agent_i, measurement_i in measurements:
-			mat_I += H[agent_i.i] * invR * H[agent_i.i] 
-			vec_I += H[agent_i.i] * invR * measurement_i
+		H = np.zeros((self.param.ni),dtype=np.float32)
+		for agent,measurement in measurements:
+			if np.count_nonzero(measurement) > 0:
+				H[agent.i] = 1.0 
+			mat_I += H[agent.i] * invR * H[agent.i] 
+			vec_I += H[agent.i] * invR * measurement
 
-		# invert information transformation
-		Y_kk = Y_kkm1 + mat_I
-		y_kk = y_kkm1 + vec_I
-		p_k = 1 / Y_kk
-		q_k = p_k * y_kk
-	
+		for agent, measurement in measurements:
+
+			# information transformation
+			Y_km1km1 = 1/agent.p
+			y_km1km1 = Y_km1km1 * agent.q
+
+			# predict 
+			M = invF * Y_km1km1 * invF
+			C = M / (M + invQ)
+			L = 1 - C
+			Y_kkm1 = L * M * L + C * invQ * C 
+			y_kkm1 = L * invF * y_km1km1 
+
+			# innovate step outside loop 
+
+			# invert information transformation
+			Y_kk = Y_kkm1 + mat_I
+			y_kk = y_kkm1 + vec_I
+			p_k = 1 / Y_kk
+
+			# learning rate
+			S = H[agent.i] * Y_kkm1 * H[agent.i] + R
+			invS = 1/S 
+			alpha = Y_kkm1 * H[agent.i] * invS 
+
+			# td 
+			Pq = self.env.get_MDP_Pq(agent.q)
+			td_error = measurement + np.dot(self.param.mdp_gamma*Pq - np.eye(self.param.nq), agent.q)
+
+			q_tp1 += alpha * H[agent.i] * td_error
+
 		for agent in self.env.agents:
-			agent.q = q_k
+			agent.q = q_tp1
 			agent.p = p_k
+
+	# def ckif(self):
+
+		# get matrices 
+		# F = 1.0
+		# Q = self.param.process_noise
+		# R = self.param.measurement_noise
+		# invF = 1.0 
+		# invQ = 1.0/self.param.process_noise
+		# invR = 1.0/self.param.measurement_noise
+		# H = np.zeros((self.param.ni),dtype=np.float32)
+		# for i,(agent_i,measurement_i) in enumerate(measurements):
+		# 	if np.count_nonzero(measurement_i) > 0:
+		# 		H[i] = 1.0 
+
+		# # information transformation
+		# Y_km1km1 = 1/self.env.agents[0].p
+		# y_km1km1 = Y_km1km1 * self.env.agents[0].q
+
+		# # predict 
+		# M = invF * Y_km1km1 * invF
+		# C = M / (M + invQ)
+		# L = 1 - C
+		# Y_kkm1 = L * M * L + C * invQ * C 
+		# y_kkm1 = L * invF * y_km1km1 
+
+		# # innovate 
+		# mat_I = 0.0 #np.zeros((self.param.nq,self.param.nq))
+		# vec_I = np.zeros((self.param.nq))
+		# for agent_i, measurement_i in measurements:
+		# 	mat_I += H[agent_i.i] * invR * H[agent_i.i] 
+		# 	vec_I += H[agent_i.i] * invR * measurement_i
+
+		# # invert information transformation
+		# Y_kk = Y_kkm1 + mat_I
+		# y_kk = y_kkm1 + vec_I
+		# p_k = 1 / Y_kk
+		# q_k = p_k * y_kk
+	
+		# for agent in self.env.agents:
+		# 	agent.q = q_k
+		# 	agent.p = p_k
+
 
 	def dkif_ms(self):
 		# distributed kalman information filter (measurement sharing variant)
@@ -272,52 +333,128 @@ class Controller():
 		q_kp1 = np.zeros((self.param.nq,self.param.ni))
 		p_kp1 = np.zeros((self.param.ni))
 
-		# get matrices v2 
+		# get matrices 
 		F = 1.0
 		Q = self.param.process_noise
 		R = self.param.measurement_noise
 		invF = 1.0
 		invQ = 1.0/self.param.process_noise
 		invR = 1.0/self.param.measurement_noise
+
+		# get measurement matrices
 		H = np.zeros((self.param.ni),dtype=np.float32)
-		# for agent,measurement in measurements:
-		# 	H[agent.i] = np.where
 		for agent,measurement in measurements:
 			if np.count_nonzero(measurement) > 0:
 				H[agent.i] = 1
 
-		for agent_i,measurement_i in measurements:
+		# get learning rates and covariance 
+		alpha = np.zeros((self.param.ni))
+		for agent,measurement in measurements:
+			# information transform (IT)
+			Y_km1km1 = 1/agent.p
+			y_km1km1 = Y_km1km1*agent.q
 
-			# information transformation version 2
-			Y_km1km1 = 1/agent_i.p
-			y_km1km1 = Y_km1km1*agent_i.q
-
-			# predict v2 
+			# predict 
 			M = invF * Y_km1km1 * invF
 			C = M/(M+invQ)
 			L = 1 - C 
 			Y_kkm1 = L*M*L + C*invQ*C 
 			y_kkm1 = L*invF*y_km1km1 
 
-			# innovate v2 
-			mat_I = 0.0 #np.zeros((self.param.nq))
-			vec_I = np.zeros((self.param.nq))
-			for agent_j, measurement_j in measurements:
-				if adjacency_matrix[agent_i.i,agent_j.i] > 0:
-					mat_I += H[agent_j.i] * invR
-					vec_I += H[agent_j.i] * invR * measurement_j
+			# innovate 
+			mat_I = H[agent.i] * invR
+			vec_I = H[agent.i] * invR * measurement
+			
+			# learning rate 
+			S = H[agent.i] * Y_kkm1 * H[agent.i] + R
+			invS = 1/S
+			alpha[agent.i] = Y_kkm1 * H[agent.i] * invS 
 
-			# invert it v2 
+			# invert IT 
 			Y_kk = Y_kkm1 + mat_I
 			y_kk = y_kkm1 + vec_I
 			P_k = 1 / Y_kk
-			q_kp1[:,agent_i.i] = P_k * y_kk
-			p_kp1[agent_i.i] = P_k # * np.ones((p_kp1.shape[0]))
+			p_kp1[agent.i] = P_k 
 
-		# assign v2
+		# reward update 
+		reward_term = np.zeros((self.param.nq, self.param.ni))
+		for agent, measurement in measurements:
+			if H[agent.i] > 0:
+				Pq = self.env.get_MDP_Pq(agent.q)
+				reward_term[:,agent.i] = alpha[agent.i] * (measurement+np.dot(self.param.mdp_gamma*Pq-np.eye(self.param.nq), agent.q))
+
+		# consensus update 
+		consensus_term = np.zeros((self.param.nq, self.param.ni))
+		for agent_i,_ in measurements:
+			for agent_j, measurement_j in measurements:
+				if adjacency_matrix[agent_i.i,agent_j.i] > 0: 
+					Pq = self.env.get_MDP_Pq(agent_j.q)
+					# consensus_term[:,agent_i.i] += alpha[agent_j.i]*np.dot(self.param.mdp_gamma*Pq-np.eye(self.param.nq), agent_j.q-agent_i.q)
+					consensus_term[:,agent_i.i] += alpha[agent_j.i]*(measurement_j+np.dot(self.param.mdp_gamma*Pq-np.eye(self.param.nq), agent_i.q))
+		
+		# explicit update 
+		for agent in self.env.agents:
+			q_kp1[:,agent.i] = agent.q + reward_term[:,agent.i] + consensus_term[:,agent.i]
+
+		# assign 
 		for agent in self.env.agents:
 			agent.q = q_kp1[:,agent.i]
 			agent.p = p_kp1[agent.i]
+
+	# def dkif_ms(self):
+	# 	# distributed kalman information filter (measurement sharing variant)
+		
+	# 	measurements = self.get_measurements()
+	# 	adjacency_matrix = self.make_adjacency_matrix()
+
+	# 	# init 
+	# 	q_kp1 = np.zeros((self.param.nq,self.param.ni))
+	# 	p_kp1 = np.zeros((self.param.ni))
+
+	# 	# get matrices 
+	# 	F = 1.0
+	# 	Q = self.param.process_noise
+	# 	R = self.param.measurement_noise
+	# 	invF = 1.0
+	# 	invQ = 1.0/self.param.process_noise
+	# 	invR = 1.0/self.param.measurement_noise
+	# 	H = np.zeros((self.param.ni),dtype=np.float32)
+	# 	for agent,measurement in measurements:
+	# 		if np.count_nonzero(measurement) > 0:
+	# 			H[agent.i] = 1
+
+	# 	for agent_i,measurement_i in measurements:
+
+	# 		# information transform (IT)
+	# 		Y_km1km1 = 1/agent_i.p
+	# 		y_km1km1 = Y_km1km1*agent_i.q
+
+	# 		# predict 
+	# 		M = invF * Y_km1km1 * invF
+	# 		C = M/(M+invQ)
+	# 		L = 1 - C 
+	# 		Y_kkm1 = L*M*L + C*invQ*C 
+	# 		y_kkm1 = L*invF*y_km1km1 
+
+	# 		# innovate 
+	# 		mat_I = 0.0 
+	# 		vec_I = np.zeros((self.param.nq))
+	# 		for agent_j, measurement_j in measurements:
+	# 			if adjacency_matrix[agent_i.i,agent_j.i] > 0:
+	# 				mat_I += H[agent_j.i] * invR
+	# 				vec_I += H[agent_j.i] * invR * measurement_j
+
+	# 		# invert IT 
+	# 		Y_kk = Y_kkm1 + mat_I
+	# 		y_kk = y_kkm1 + vec_I
+	# 		P_k = 1 / Y_kk
+	# 		q_kp1[:,agent_i.i] = P_k * y_kk
+	# 		p_kp1[agent_i.i] = P_k # * np.ones((p_kp1.shape[0]))
+
+	# 	# assign 
+	# 	for agent in self.env.agents:
+	# 		agent.q = q_kp1[:,agent.i]
+	# 		agent.p = p_kp1[agent.i]
 
 
 	def dkif_ss(self):
@@ -387,6 +524,11 @@ class Controller():
 					dist = np.linalg.norm(p_i-p_j)
 					if dist < self.param.r_comm:
 						A[agent_i.i,agent_j.i] = 1
+
+		# normalize 
+		for agent_i in self.env.agents:
+			A[agent_i.i,:] /= sum(A[agent_i.i,:])
+
 		return A
 
 	def get_measurements(self):
@@ -408,11 +550,15 @@ class Controller():
 					for s in range(self.param.env_ncell):
 						for a in range(self.param.env_naction):
 
-							next_state = self.env.get_next_state(s,a)
+							# q_idx = self.env.sa_to_q_idx(s,a)
+							# next_state = self.env.get_next_state(s,a)
+							# prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
+							# reward_instance = self.env.reward_instance(s,a,px,py,time_diff)
+							# measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
+
 							q_idx = self.env.sa_to_q_idx(s,a)
-							prime_idxs = next_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
 							reward_instance = self.env.reward_instance(s,a,px,py,time_diff)
-							measurement[q_idx] += reward_instance + self.param.mdp_gamma*max(agent.q[prime_idxs]) - agent.q[q_idx]
+							measurement[q_idx] = reward_instance 
 
 				# if local update
 				else:

@@ -61,7 +61,7 @@ if __name__ == "__main__":
 	# load sim sim_results 
 	sim_results = [] # lst of dicts
 	print('loading sim results...')
-	for sim_result_dir in glob.glob(param.results_dir + '/*'):
+	for sim_result_dir in glob.glob('../current_results/*'):
 		sim_results.append(datahandler.load_sim_result(sim_result_dir))
 
 	print('making animation...')

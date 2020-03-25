@@ -150,10 +150,11 @@ class CityMap(Env):
 				exit('get_agents_vec_action type error')
 		return agents_vec_action
 
-	# 'cell_index' : element of [0,...,env_ncell]
-	# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
-	# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
-	# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
+	# Utility Stuff
+		# 'cell_index' : element of [0,...,env_ncell]
+		# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
+		# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
+		# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
 
 	def cell_index_to_cell_coordinate(self,i):
 		# takes in valid cell index and returns bottom left corner coordinate of cell
@@ -221,59 +222,6 @@ class CityMap(Env):
 	def eta(self,x_i,y_i,x_j,y_j):
 		dist = np.linalg.norm([x_i-x_j,y_i-y_j])
 		return dist/self.param.taxi_speed		
-
-	def get_MDP_P(self):
-		# P in AxSxS 
-		P = np.zeros((self.param.env_naction,self.param.env_ncell,self.param.env_ncell))
-
-		for s in range(self.param.env_ncell):
-
-			i_x,i_y = self.cell_index_to_grid_index_map[s]
-			
-			# 'empty' action  
-			P[0,s,s] = 1.
-
-			# 'right' action
-			i_x_tp1, i_y_tp1 = (i_x+1,i_y)
-			try:
-				# this will fail if 
-				# 	- corresponding cell index does not exist (invalid desired cell)
-				# 	- outside grid index map dimensions (outside map)
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[1,s,s_tp1] = 1.
-			except:
-				P[1,s,s] = 1.
-
-			# 'up' action
-			i_x_tp1, i_y_tp1 = (i_x,i_y+1)
-			try:
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[2,s,s_tp1] = 1.
-			except:
-				P[2,s,s] = 1.
-
-			# 'left' action
-			i_x_tp1, i_y_tp1 = (i_x-1,i_y)
-			try:
-				# this will fail if (i_x_tp1,i_y_tp1) -> cell index does not exist 
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[3,s,s_tp1] = 1.
-			except:
-				P[3,s,s] = 1.
-
-			# 'down' action
-			i_x_tp1, i_y_tp1 = (i_x,i_y-1)
-			try:
-				# this will fail if (i_x_tp1,i_y_tp1) -> cell index does not exist 
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[4,s,s_tp1] = 1.
-			except:
-				P[4,s,s] = 1.
-
-		# print(P)
-		# exit()
-
-		return P  
 
 	def dbg_utilities(self):
 

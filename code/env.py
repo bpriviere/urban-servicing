@@ -19,20 +19,29 @@ class Env():
 		self.timestep = 0
 		self.observation = []
 
-	def init_agents(self):
+	def init_agents(self,s0):
+		
 		# initialize list of agents  
 		self.agents = []
 		p0 = self.param.initial_covariance #*np.ones((self.q0.shape))
 		for i in range(self.param.ni):
-			x,y = self.random_position_in_world()
-			self.agents.append(Agent(i,x,y,self.v0,self.q0,p0))
-			print('agent {} initialized at (x,y) = ({},{})'.format(i,x,y))
+			self.agents.append(Agent(i,s0[0,i],s0[1,i],self.v0,self.q0,p0))
+			print('agent {} initialized at (x,y) = ({},{})'.format(i,s0[0,i],s0[1,i]))
+		return s0
 
-	def reset(self):
+	def get_s0(self):
+		s0 = np.zeros((2,self.param.ni))
+		for i in range(self.param.ni):
+			x,y = self.random_position_in_world()
+			s0[:,i] = [x,y]
+		return s0
+
+	def reset(self,s0):
 		self.timestep = 0
 		self.observation = []
 		self.v0,self.q0 = self.solve_MDP(self.train_dataset,self.param.sim_times[self.timestep])
-		self.init_agents()
+		s0 = self.init_agents(s0)
+		return s0
 
 	def observe(self):
 		t0 = self.param.sim_times[self.timestep]
@@ -71,8 +80,8 @@ class Env():
 			agents_q_value[agent.i,:] = agent.q
 
 		# - agent actions
-		agents_int_action = self.get_agents_int_action(actions)
-		agents_vec_action = self.get_agents_vec_action(actions)
+		# agents_int_action = self.get_agents_int_action(actions)
+		# agents_vec_action = self.get_agents_vec_action(actions)
 
 		# - customer states
 		customers_location = self.get_curr_customer_locations()
@@ -82,7 +91,7 @@ class Env():
 		agents_distribution = self.get_curr_im_agents()
 		free_agents_distribution = self.get_curr_im_free_agents()
 		agents_value_fnc_distribution = self.get_curr_im_value()
-		agents_ave_vec_action_distribution = self.get_curr_ave_vec_action(agents_location, agents_vec_action)
+		# agents_ave_vec_action_distribution = self.get_curr_ave_vec_action(agents_location, agents_vec_action)
 
 		# put desired numpy arrays into dictionary
 		state = dict()
@@ -287,7 +296,9 @@ class Env():
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
 		reward = -1*(time_s_to_sp + time_sp_to_c)
+		# reward = -1 * time_sp_to_c
 		# reward = 1/(time_s_to_sp + time_sp_to_c)
+		# reward = 1 / time_sp_to_c
 
 		# discount 
 		time_discount = self.param.lambda_r**time_diff
@@ -302,6 +313,7 @@ class Env():
 	def solve_MDP(self,dataset,curr_time):
 
 		self.P = self.get_MDP_P() # in AxSxS
+		# self.Pq = self.get_MDP_Pq()
 
 		P = self.P
 		R = self.get_MDP_R(dataset,curr_time) # in SxA
@@ -377,8 +389,10 @@ class Env():
 					reward_instance = self.reward_instance(local_state,a,px,py,time_diff)
 					R[local_state,a] += reward_instance
 
+		# if count > 0:
+		# 	R /= count
 		if count > 0:
-			R /= count
+			R /= time_discount_sum 
 
 		# if self.param.global_reward_on:
 		# 	s_idx,a_idx = np.nonzero(time_discount_sum)
@@ -392,6 +406,72 @@ class Env():
 		# 	R += mean_R/100 * np.random.random(R.shape)
 
 		return R  	
+
+	def get_MDP_P(self):
+		# P in AxSxS 
+		P = np.zeros((self.param.env_naction,self.param.env_ncell,self.param.env_ncell))
+
+		for s in range(self.param.env_ncell):
+
+			i_x,i_y = self.cell_index_to_grid_index_map[s]
+			
+			# 'empty' action  
+			P[0,s,s] = 1.
+
+			# 'right' action
+			i_x_tp1, i_y_tp1 = (i_x+1,i_y)
+			try:
+				# this will fail if 
+				# 	- corresponding cell index does not exist (invalid desired cell)
+				# 	- outside grid index map dimensions (outside map)
+				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+				P[1,s,s_tp1] = 1.
+			except:
+				P[1,s,s] = 1.
+
+			# 'up' action
+			i_x_tp1, i_y_tp1 = (i_x,i_y+1)
+			try:
+				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+				P[2,s,s_tp1] = 1.
+			except:
+				P[2,s,s] = 1.
+
+			# 'left' action
+			i_x_tp1, i_y_tp1 = (i_x-1,i_y)
+			try:
+				# this will fail if (i_x_tp1,i_y_tp1) -> cell index does not exist 
+				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+				P[3,s,s_tp1] = 1.
+			except:
+				P[3,s,s] = 1.
+
+			# 'down' action
+			i_x_tp1, i_y_tp1 = (i_x,i_y-1)
+			try:
+				# this will fail if (i_x_tp1,i_y_tp1) -> cell index does not exist 
+				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+				P[4,s,s_tp1] = 1.
+			except:
+				P[4,s,s] = 1.
+
+		# print(P)
+		# exit()
+
+		return P  		
+
+	def get_MDP_Pq(self,q):
+
+		Pq = np.zeros((self.param.nq,self.param.nq))
+		for s in range(self.param.env_ncell):
+			for a in range(self.param.env_naction):
+				q_idx = self.sa_to_q_idx(s,a)
+				sp = self.get_next_state(s,a)
+				ap = np.argmax(q[sp*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)])
+				qp_idx = self.sa_to_q_idx(sp,ap)
+				Pq[q_idx,qp_idx] = 1
+		self.Pq = Pq
+		return Pq 
 
 	# plotting stuff 
 	def get_curr_customer_locations(self):		

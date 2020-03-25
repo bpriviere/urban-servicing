@@ -222,12 +222,13 @@ class GridWorld(Env):
 		im_a[idx] = im_a[idx]/count[idx]
 		return im_a
 
-	# 'cell_index' : element of [0,...,env_ncell]
-	# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
-	# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
-	# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
-	# 'cell_index_to_grid_index_map' : a
-	# 'grid_index_to_cell_index_map' : a 
+	# Utility stuff
+		# 'cell_index' : element of [0,...,env_ncell]
+		# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
+		# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
+		# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
+		# 'cell_index_to_grid_index_map' : a
+		# 'grid_index_to_cell_index_map' : a 
 
 	def cell_index_to_cell_coordinate(self,i):
 		# takes in valid cell index and returns bottom left corner coordinate of cell
@@ -268,49 +269,3 @@ class GridWorld(Env):
 		x = np.clip(p[0],self.param.env_xlim[0]+eps,self.param.env_xlim[1]-eps)
 		y = np.clip(p[1],self.param.env_ylim[0]+eps,self.param.env_ylim[1]-eps)
 		return x,y
-
-	def get_MDP_P(self):
-		# P in AxSxS 
-		P = np.zeros((self.param.env_naction,self.param.env_ncell,self.param.env_ncell))
-
-		for s in range(self.param.env_ncell):
-
-			x,y = self.cell_index_to_cell_coordinate(s)
-
-			# print('s: ',s)
-			# print('x: ',x)
-			# print('y: ',y)
-			
-			# 'empty' action  
-			P[0,s,s] = 1.
-
-			# 'right' action
-			if not x == self.param.env_x[-1]:
-				P[1,s,s+1] = 1.
-			else:
-				P[1,s,s] = 1.
-
-			# 'top' action
-			if not y == self.param.env_y[-1]:
-				next_s = self.coordinate_to_cell_index(x,y+self.param.env_dy)
-				P[2,s,next_s] = 1.
-			else:
-				P[2,s,s] = 1.
-
-			# 'left' action
-			if not x == self.param.env_x[0]:
-				P[3,s,s-1] = 1.
-			else:
-				P[3,s,s] = 1.			
-
-			# 'down' action
-			if not y == self.param.env_y[0]:
-				next_s = self.coordinate_to_cell_index(x,y-self.param.env_dy)
-				P[4,s,next_s] = 1. 
-			else:
-				P[4,s,s] = 1.
-
-			# print('P[:,s,:]:', P[:,s,:])
-		# exit()
-
-		return P  

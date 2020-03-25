@@ -1,20 +1,28 @@
 
 
 # clean apartment
-# taxes  
+# taxes
 # check flight reimbursement 
+# gamestop reimbursement 
 
 todo list (deadline in 1 weeks):
 
-	faster plot 
 
-	check if reward is best choice.... 
-		- bellman error should make sense
-		- bellman > ctd > dtd in sim 
-		- local reward? 
+	local reward implementation 
+
+	sjc comments: 
+		- proof in step 1 step 2
+		- variation in color 
+
+	create gridworld sim smallworld 
+		- check if reward is best choice.... 
+			- bellman error should make sense
+			- bellman > ctd > dtd in sim 
+		- local reward 
+		- debug max
 		
-	recreate gridworld sim smallworld 
-	review proof
+	faster plot 
+	develop uniform baseline
 	make htd algorithm 
 
 	nice to have
@@ -26,16 +34,12 @@ todo list (deadline in 1 weeks):
 			- put render in plotter 
 			- clean 
 	
-	develop uniform baseline
-
-	hardcore debug 
-		- is ncells correct in current gridworld formulation? shouldnt it be (nx-1)*(ny-1) bc there are less cells than grid intersections (bc of endpoints) 
-
 	experiments
 		- micro: 
 			- exp1. cumulative reward for different algorithms with standard deviation plots  
 			- exp2. gif of evolving simulation - > data generating 
 			- largescale sim -> one trial one algorithm, 1000 agents
+			- learning rate experiment? 
 		- macro: 
 			- exp3. plot reward across number of agents (is this important??) 
 			- exp3. plot reward for increasing r-comm 
@@ -68,6 +72,13 @@ todo list (deadline in 1 weeks):
 
 	
 done: 
+	3.23
+		broke proof 
+		clean env reset 
+		fix ctd,dtd 
+		fix task assignment ?? 
+	3.19
+		- proof 
 	3.17
 		save result functionality
 	3.14

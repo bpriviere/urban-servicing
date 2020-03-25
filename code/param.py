@@ -7,22 +7,23 @@ class Param:
 	def __init__(self):
 
 		self.env_name = 'gridworld'
+		self.verbose = True
 		# self.env_name = 'citymap' 
 
 		self.global_reward_on = True
 
 		# flags 
 		self.env_render_on = False
-		self.plot_sim_over_time = False
+		self.plot_sim_over_time = True
 		self.plot_arrows_on = False
 
-		self.n_trials = 5
+		self.n_trials = 1
 
 		self.controller_names = [
 			['dtd','blll'],
 			['ctd','blll'],
 			['bellman','blll'],
-			['rhc','blll'],
+			# ['rhc','blll'],
 			# ['rhc','clp'],
 			]
 
@@ -34,11 +35,11 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
-			self.sim_dt = 0.25
+			self.sim_tf = 20
+			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
-			self.swarm_parameters_ver = 4
+			self.swarm_parameters_ver = 3
 
 			if self.swarm_parameters_ver == 0:
 				# swarm param 
@@ -76,9 +77,9 @@ class Param:
 
 			elif self.swarm_parameters_ver == 3:
 
-				self.ni = 10
+				self.ni = 20
 
-				self.env_lengthscale = 2.0
+				self.env_lengthscale = 1.0
 				self.env_xlim = [0,self.env_lengthscale]
 				self.env_ylim = [0,self.env_lengthscale]
 				self.env_dx = 0.25
@@ -93,23 +94,23 @@ class Param:
 				# recreate smallscale gridworld sim 
 
 				# fleet
-				self.ni = 20
+				self.ni = 50
 				self.taxi_speed = 0.25
 
 				# map
 				self.env_dx = 0.25
 				self.env_dy = self.env_dx 
-				self.env_xlim = [0,2]
-				self.env_ylim = [0,1]
+				self.env_xlim = [0,4]
+				self.env_ylim = [0,2]
 				self.env_lengthscale = self.env_xlim[1] - self.env_xlim[0]
 
 				# customer model
 				self.cm_sigma = 0.05
-				self.cm_speed = 0.2
+				# self.cm_speed = 0.2
 				self.n_customers_per_time = 3
 
 			# customer model
-			self.cm_linear_move = False
+			self.cm_linear_move = True
 			if self.cm_linear_move:
 				self.cm_ng = 1
 				self.cm_sigma = 0.0005 
@@ -128,7 +129,7 @@ class Param:
 
 			# mdp 
 			self.lambda_r = 0.1 #0.1
-			self.mdp_gamma = 0.99
+			self.mdp_gamma = 0.8
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
 
