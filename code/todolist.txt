@@ -7,7 +7,7 @@
 
 todo list (deadline in 1 weeks):
 
-
+	normalization 
 	local reward implementation 
 
 	sjc comments: 

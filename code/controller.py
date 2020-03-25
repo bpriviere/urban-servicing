@@ -221,7 +221,6 @@ class Controller():
 	def ckif(self):
 
 		q_t = self.env.agents[0].q
-		q_tp1 = np.copy(q_t)
 		p_k = np.zeros((self.param.nq))
 		
 		# measurements are \hat{R}^i_t
@@ -245,6 +244,8 @@ class Controller():
 			mat_I += H[agent.i] * invR * H[agent.i] 
 			vec_I += H[agent.i] * invR * measurement
 
+		update_sum = np.zeros((self.param.nq))
+		normalize_sum = 0
 		for agent, measurement in measurements:
 
 			# information transformation
@@ -274,54 +275,17 @@ class Controller():
 			Pq = self.env.get_MDP_Pq(agent.q)
 			td_error = measurement + np.dot(self.param.mdp_gamma*Pq - np.eye(self.param.nq), agent.q)
 
-			q_tp1 += alpha * H[agent.i] * td_error
+			update_sum += alpha*td_error
+			normalize_sum += alpha
+
+		if normalize_sum > 0:
+			update_sum /= normalize_sum
+		
+		q_tp1 = q_t + update_sum 
 
 		for agent in self.env.agents:
 			agent.q = q_tp1
 			agent.p = p_k
-
-	# def ckif(self):
-
-		# get matrices 
-		# F = 1.0
-		# Q = self.param.process_noise
-		# R = self.param.measurement_noise
-		# invF = 1.0 
-		# invQ = 1.0/self.param.process_noise
-		# invR = 1.0/self.param.measurement_noise
-		# H = np.zeros((self.param.ni),dtype=np.float32)
-		# for i,(agent_i,measurement_i) in enumerate(measurements):
-		# 	if np.count_nonzero(measurement_i) > 0:
-		# 		H[i] = 1.0 
-
-		# # information transformation
-		# Y_km1km1 = 1/self.env.agents[0].p
-		# y_km1km1 = Y_km1km1 * self.env.agents[0].q
-
-		# # predict 
-		# M = invF * Y_km1km1 * invF
-		# C = M / (M + invQ)
-		# L = 1 - C
-		# Y_kkm1 = L * M * L + C * invQ * C 
-		# y_kkm1 = L * invF * y_km1km1 
-
-		# # innovate 
-		# mat_I = 0.0 #np.zeros((self.param.nq,self.param.nq))
-		# vec_I = np.zeros((self.param.nq))
-		# for agent_i, measurement_i in measurements:
-		# 	mat_I += H[agent_i.i] * invR * H[agent_i.i] 
-		# 	vec_I += H[agent_i.i] * invR * measurement_i
-
-		# # invert information transformation
-		# Y_kk = Y_kkm1 + mat_I
-		# y_kk = y_kkm1 + vec_I
-		# p_k = 1 / Y_kk
-		# q_k = p_k * y_kk
-	
-		# for agent in self.env.agents:
-		# 	agent.q = q_k
-		# 	agent.p = p_k
-
 
 	def dkif_ms(self):
 		# distributed kalman information filter (measurement sharing variant)
@@ -346,6 +310,11 @@ class Controller():
 		for agent,measurement in measurements:
 			if np.count_nonzero(measurement) > 0:
 				H[agent.i] = 1
+
+		# get Pqs
+		Pqs = np.zeros((self.param.nq,self.param.nq,self.param.ni))
+		for agent,_ in measurements:
+			Pqs[:,:,agent.i] = self.env.get_MDP_Pq(agent.q)
 
 		# get learning rates and covariance 
 		alpha = np.zeros((self.param.ni))
@@ -378,20 +347,28 @@ class Controller():
 
 		# reward update 
 		reward_term = np.zeros((self.param.nq, self.param.ni))
+		# normalize_sum = 0.
 		for agent, measurement in measurements:
 			if H[agent.i] > 0:
-				Pq = self.env.get_MDP_Pq(agent.q)
-				reward_term[:,agent.i] = alpha[agent.i] * (measurement+np.dot(self.param.mdp_gamma*Pq-np.eye(self.param.nq), agent.q))
+				reward_term[:,agent.i] = alpha[agent.i] * (measurement+np.dot(self.param.mdp_gamma*Pqs[:,:,agent.i]-np.eye(self.param.nq), agent.q))
+		# 		normalize_sum += alpha[agent.i]
+		# if normalize_sum > 0:
+		# 	consensus_term /= normalize_sum
+
 
 		# consensus update 
 		consensus_term = np.zeros((self.param.nq, self.param.ni))
+		normalize_sum = 0.
 		for agent_i,_ in measurements:
 			for agent_j, measurement_j in measurements:
 				if adjacency_matrix[agent_i.i,agent_j.i] > 0: 
-					Pq = self.env.get_MDP_Pq(agent_j.q)
-					# consensus_term[:,agent_i.i] += alpha[agent_j.i]*np.dot(self.param.mdp_gamma*Pq-np.eye(self.param.nq), agent_j.q-agent_i.q)
-					consensus_term[:,agent_i.i] += alpha[agent_j.i]*(measurement_j+np.dot(self.param.mdp_gamma*Pq-np.eye(self.param.nq), agent_i.q))
+					# consensus_term[:,agent_i.i] += alpha[agent_j.i]*np.dot(np.eye(self.param.nq)-self.param.mdp_gamma*Pqs[:,:,agent_j.i], agent_j.q-agent_i.q)
+					consensus_term[:,agent_i.i] += alpha[agent_j.i]*(measurement_j+np.dot(self.param.mdp_gamma*Pqs[:,:,agent_j.i]-np.eye(self.param.nq), agent_i.q))
+					normalize_sum += alpha[agent_j.i]
 		
+		if normalize_sum > 0:
+			consensus_term /= normalize_sum
+
 		# explicit update 
 		for agent in self.env.agents:
 			q_kp1[:,agent.i] = agent.q + reward_term[:,agent.i] + consensus_term[:,agent.i]
