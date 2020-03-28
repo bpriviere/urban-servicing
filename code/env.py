@@ -25,7 +25,7 @@ class Env():
 		self.agents = []
 		p0 = self.param.initial_covariance #*np.ones((self.q0.shape))
 		for i in range(self.param.ni):
-			self.agents.append(Agent(i,s0[0,i],s0[1,i],self.v0,self.q0,p0))
+			self.agents.append(Agent(i,s0[0,i],s0[1,i],self.v0,self.q0,self.r0,p0))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,s0[0,i],s0[1,i]))
 		return s0
 
@@ -39,7 +39,7 @@ class Env():
 	def reset(self,s0):
 		self.timestep = 0
 		self.observation = []
-		self.v0,self.q0 = self.solve_MDP(self.train_dataset,self.param.sim_times[self.timestep])
+		self.v0,self.q0,self.r0 = self.solve_MDP(self.train_dataset,self.param.sim_times[self.timestep])
 		s0 = self.init_agents(s0)
 		return s0
 
@@ -323,7 +323,7 @@ class Env():
 		mdp.run()
 		V = np.array(mdp.V)
 		Q = self.get_MDP_Q(R,V,self.param.mdp_gamma)
-		return V,Q  
+		return V,Q,R.flatten()
 
 
 	def get_MDP_Q(self,R,V,gamma):
@@ -391,6 +391,7 @@ class Env():
 
 		# if count > 0:
 		# 	R /= count
+		
 		if count > 0:
 			R /= time_discount_sum 
 

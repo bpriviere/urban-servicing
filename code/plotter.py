@@ -672,8 +672,9 @@ def plot_q_error(sim_results):
 			ntrials = controller_values_np.shape[0]
 
 			# [ntrials,nt,ni,nq] -> [ntrials,nt,ni]
-			# error = np.linalg.norm((controller_values_np - q_bellman)/q_bellman, axis=3)
-			error = np.linalg.norm((controller_values_np - q_bellman), axis=3)
+			nq = sim_result["param"]["nq"]
+			error = np.linalg.norm((controller_values_np - q_bellman)/q_bellman/nq, axis=3)
+			# error = np.linalg.norm((controller_values_np - q_bellman), axis=3)
 			# [ntrials,nt,ni] -> [ntrials,nt]
 			error = np.mean(error,axis=2)
 			# [ntrials,nt] -> [nt]
@@ -690,7 +691,8 @@ def plot_q_error(sim_results):
 			ax.fill_between(times,error_mean-error_std,error_mean+error_std,
 				facecolor=color_dict[controller_name],
 				linewidth=1e-3,alpha=0.2)
-	ax.set_title('Average Q Error')
+
+	ax.set_title('Q MSE')
 	ax.legend()
 
 def plot_runtime_vs_state_space(sim_results):

@@ -106,12 +106,13 @@ class CustomerModel:
 		return cm 
 
 class Agent:
-	def __init__(self,i,x,y,v,q,p):
+	def __init__(self,i,x,y,v,q,r,p):
 		self.i = i
 		self.x = x
 		self.y = y
 		self.v = v 
 		self.q = q 
+		self.r = r 
 		self.mode = 0 # [dispatch, servicing]
 		self.update = False
 		self.p = p 

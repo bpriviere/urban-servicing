@@ -1,11 +1,9 @@
 
 
-# clean apartment
 # taxes
-# check flight reimbursement 
-# gamestop reimbursement 
+# workout sheet 
 
-todo list (deadline in 1 weeks):
+todo list:
 
 	normalization 
 	local reward implementation 

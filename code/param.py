@@ -6,8 +6,9 @@ from datetime import datetime
 class Param:
 	def __init__(self):
 
-		self.env_name = 'gridworld'
 		self.verbose = True
+
+		self.env_name = 'gridworld'
 		# self.env_name = 'citymap' 
 
 		self.global_reward_on = True
@@ -17,7 +18,7 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 5
+		self.n_trials = 10
 
 		self.controller_names = [
 			['dtd','blll'],
@@ -64,15 +65,15 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 100
+				self.ni = 50
 				# customer model
-				self.cm_taxi_speed_ratio = 0.1 
-				self.n_customers_per_time_ratio = 0.1 
+				self.cm_taxi_speed_ratio = 0.1
+				self.n_customers_per_time_ratio = 0.2
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
 				self.desired_env_ncell = 3 * self.ni 
-				self.desired_aspect_ratio = 3.0 # numx/numy
+				self.desired_aspect_ratio = 5.0 # numx/numy
 				self.desired_swarm_param = 1.0
 
 			elif self.swarm_parameters_ver == 3:
@@ -118,7 +119,7 @@ class Param:
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
 			else:
-				self.cm_ng = 3
+				self.cm_ng = 1
 				self.cm_sigma = 0.25 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.05 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
@@ -159,7 +160,7 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni = 2
+			self.ni = 2000
 			
 			self.desired_env_ncell = 100 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
