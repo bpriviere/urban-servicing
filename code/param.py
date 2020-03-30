@@ -115,7 +115,7 @@ class Param:
 				self.n_customers_per_time = 3
 
 			# customer model
-			self.cm_linear_move = True
+			self.cm_linear_move = False
 			if self.cm_linear_move:
 				self.cm_ng = 1
 				self.cm_sigma = 0.05
