@@ -131,22 +131,32 @@ class Controller():
 		# get adjacency matrix 
 		A_k = self.make_adjacency_matrix()
 
-		# kalman gain 
-		p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
-
-		# reward estimation 
-		for agent_i in self.env.agents:
-			update_i = np.zeros((self.param.nq))
-			for agent_j in self.env.agents:
-				if A_k[agent_i.i,agent_j.i] > 0:
-					update_i += (K_kp1[:,:,agent_j.i] * H_kp1[:,agent_j.i] * (z_kp1[:,agent_j.i] - r_k[:,agent_i.i])).squeeze()
-			r_kp1[:,agent_i.i] = r_k[:,agent_i.i] + update_i 
+		# dtd 
+		r_kp1,p_kp1,K_kp1 = self.dkif(r_k,p_k,z_kp1,H_kp1)
 
 		# temporal difference
 		alpha = self.param.td_alpha
 		for agent in self.env.agents:
 			td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
 			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
+
+		# temporal difference
+		alpha = self.param.td_alpha
+		for agent in self.env.agents:
+			td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
+			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
+
+		# old / buggy 
+		# # kalman gain 
+		# p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
+
+		# # reward estimation 
+		# for agent_i in self.env.agents:
+		# 	update_i = np.zeros((self.param.nq))
+		# 	for agent_j in self.env.agents:
+		# 		if A_k[agent_i.i,agent_j.i] > 0:
+		# 			update_i += (K_kp1[:,:,agent_j.i] * H_kp1[:,agent_j.i] * (z_kp1[:,agent_j.i] - r_k[:,agent_i.i])).squeeze()
+		# 	r_kp1[:,agent_i.i] = r_k[:,agent_i.i] + update_i 
 
 		# update agents
 		for agent in self.env.agents:
@@ -187,7 +197,16 @@ class Controller():
 		A_k = self.make_adjacency_matrix()
 
 		# kalman gain 
-		p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
+		# p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
+
+		# dtd 
+		r_kp1,p_kp1,K_kp1 = self.dkif(r_k,p_k,z_kp1,H_kp1)
+
+		# temporal difference
+		alpha = self.param.td_alpha
+		for agent in self.env.agents:
+			td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
+			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
 
 		# error
 		delta_e = self.env.calc_delta_e(K_kp1,A_k)
@@ -195,7 +214,7 @@ class Controller():
 
 		print('delta_e: ', delta_e)
 		print('delta_d: ', delta_d)
-		if delta_e > delta_d: 
+		if delta_e > delta_d and self.env.timestep > self.env.reset_timestep + self.param.htd_time_window: 
 			# bellman
 			print('htd using bellman')
 			self.env.reset_timestep = self.env.timestep
@@ -204,25 +223,7 @@ class Controller():
 			for agent in self.env.agents:
 				r_kp1[:,agent.i] = r 
 				q_kp1[:,agent.i] = q
-				p_kp1[:,agent.i] = self.param.initial_covariance 
-
-		else:
-			# dtd 
-
-			print('htd using dtd')
-			# reward estimation 
-			for agent_i in self.env.agents:
-				update_i = np.zeros((self.param.nq))
-				for agent_j in self.env.agents:
-					if A_k[agent_i.i,agent_j.i] > 0:
-						update_i += (K_kp1[:,:,agent_j.i] * H_kp1[:,agent_j.i] * (z_kp1[:,agent_j.i] - r_k[:,agent_i.i])).squeeze()
-				r_kp1[:,agent_i.i] = r_k[:,agent_i.i] + update_i 
-
-			# temporal difference
-			alpha = self.param.td_alpha
-			for agent in self.env.agents:
-				td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
-				q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
+				p_kp1[:,agent.i] = self.param.p0 
 
 		# update agents
 		for agent in self.env.agents:
@@ -258,29 +259,21 @@ class Controller():
 		# measurements 
 		z_kp1,H_kp1 = self.get_measurements()
 
-		# adjacency matrix 
-		A_k = np.ones((self.param.ni,self.param.ni))
-
-		# kalman gain 
-		p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
-
-		# reward estimation 
-		for agent_i in self.env.agents:
-			update_i = np.zeros((self.param.nq))
-			for agent_j in self.env.agents:
-				update_i += (K_kp1[:,:,agent_j.i] * H_kp1[:,agent_j.i] * (z_kp1[:,agent_j.i] - r_k[:,agent_i.i])).squeeze()
-			r_kp1[:,agent_i.i] = r_k[:,agent_i.i] + update_i 
+		# estimate reward
+		r_kp1,p_kp1,K_kp1 = self.ckif(r_k,p_k,z_kp1,H_kp1)
 
 		# temporal difference
 		alpha = self.param.td_alpha
 		for agent in self.env.agents:
-			td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
+			# td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
+			td_error = r_kp1+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
 			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
 
 		# update agents
 		for agent in self.env.agents:
-			agent.r = r_kp1[:,agent.i]
-			agent.p = p_kp1[:,agent.i]
+			# agent.r = r_kp1[:,agent.i]
+			agent.r = r_kp1
+			agent.p = p_kp1
 			agent.q = q_kp1[:,agent.i]
 
 		# task assignment 
@@ -371,172 +364,187 @@ class Controller():
 		return move_assignments		
 
 	# estimation methods 
-	# def ckif(self,r_k,p_k,z_kp1,H_kp1):
-	# 	# centralized kalman information filter to estimate reward, r
-	# 	# input
-	# 	# 	- r_k : reward at previous timestep, numpy in nq x 1
-	# 	# 	- p_k : covariance at previous timestep, numpy in nq x 1 
-	# 	# 	- z_kp1 : measurement, numpy in nq x ni 
-	# 	# 	- H_kp1 : measurement model, numpy in 1 x ni 
-	# 	# output
-	# 	# 	- r_kp1 : next estimate, numpy in nq x 1 
-	# 	# 	- p_kp1 : next covariance, numpy in nq x 1 
-
-	# 	# init 
-	# 	r_kp1 = np.zeros((self.param.nq))
-	# 	p_kp1 = np.zeros((self.param.nq))
-		
-	# 	# get matrices 
-	# 	F = 1.0
-	# 	Q = self.param.process_noise
-	# 	R = self.param.measurement_noise
-	# 	invF = 1.0 
-	# 	invQ = 1.0/self.param.process_noise
-	# 	invR = 1.0/self.param.measurement_noise
-
-	# 	# ckif 
-
-	# 	# information transformation
-	# 	Y_kk = 1/p_k
-	# 	y_kk = Y_kk*r_k
-
-	# 	# predict 
-	# 	M = invF * Y_kk * invF
-	# 	C = M / (M + invQ)
-	# 	L = 1 - C
-	# 	Y_kp1k = L * M * L + C * invQ * C 
-	# 	y_kp1k = L * invF * y_kk 
-
-	# 	# innovate 
-	# 	mat_I = 0.0 # np.shape(H_kp1[0]) 
-	# 	vec_I = np.zeros((self.param.nq))
-	# 	for agent in self.env.agents: 
-	# 		measurement = z_kp1[:,agent.i] 
-	# 		measurement_model = H_kp1[:,agent.i] 
-	# 		mat_I += measurement_model * invR * measurement_model 
-	# 		vec_I += measurement_model * invR * measurement
-
-	# 	# invert information transformation
-	# 	Y_kp1kp1 = Y_kp1k + mat_I
-	# 	y_kp1kp1 = y_kp1k + vec_I
-	# 	p_kp1 = 1 / Y_kp1kp1
-	# 	r_kp1 = p_kp1 * y_kp1kp1 
-
-	# 	return r_kp1,p_kp1
-
-
-	def kalman(self,p_k,H_kp1,A_k):
-		# kalman gain for distributed 
+	def ckif(self,r_k,p_k,z_kp1,H_kp1):
+		# centralized kalman information filter to estimate reward, r
 		# input
-		# 	- p_k : covariance at previous timestep, numpy in 1 x ni
+		# 	- r_k : reward at previous timestep, numpy in nq x ni
+		# 	- p_k : covariance at previous timestep, numpy in nq x ni
+		# 	- z_kp1 : measurement, numpy in nq x ni 
 		# 	- H_kp1 : measurement model, numpy in 1 x ni 
 		# output
-		# 	- p_kp1 : next covariance, numpy in nq x ni 
-		# 	- K_kp1 : kalman gain, numpy in 1 x 1 x ni
-
-		measurements = self.get_measurements()
+		# 	- r_kp1 : next estimate, numpy in nq x 1 
+		# 	- p_kp1 : next covariance, numpy in nq x 1 
 
 		# init 
-		K_kp1 = np.zeros((1,1,self.param.ni))
-		p_kp1 = np.zeros((1,self.param.ni))
+		r_kp1 = np.zeros((self.param.nq))
+		p_kp1 = np.zeros((1,self.param.nq))
+		K_kp1 = np.zeros((self.param.ni))
 		
 		# get matrices 
 		F = 1.0
 		Q = self.param.process_noise
 		R = self.param.measurement_noise
 		invF = 1.0 
-		invQ = 1.0/Q
-		invR = 1.0/R
+		invQ = 1.0/self.param.process_noise
+		invR = 1.0/self.param.measurement_noise
 
-		# kalman gain information filter method  
-		for agent_i in self.env.agents:
+		# ckif 
 
-			# information transformation
-			Y_kk = 1/p_k[:,agent_i.i]
+		# all agents have same info 
+		p_k = p_k[:,0]
+		r_k = r_k[:,0]
 
-			# predict 
-			M = invF * Y_kk * invF
-			C = M / (M + invQ)
-			L = 1 - C
-			Y_kp1k = L*M*L + C*invQ*C 
+		# information transformation
+		Y_kk = 1/p_k
+		y_kk = Y_kk*r_k
 
-			# innovate 
-			mat_I = 0.0 # np.shape(H_kp1[0]) 
-			for agent_j in self.env.agents: 
-				if A_k[agent_i.i,agent_j.i] > 0:
-					measurement_model = H_kp1[:,agent_j.i] 
-					mat_I += measurement_model * invR * measurement_model 
-	
-			# kalman gain  
-			S = H_kp1[:,agent_i.i] * Y_kp1k * H_kp1[:,agent_i.i] + R
+		# predict 
+		M = invF * Y_kk * invF
+		C = M / (M + invQ)
+		L = 1 - C
+		Y_kp1k = L * M * L + C * invQ * C 
+		y_kp1k = L * invF * y_kk 
+
+		# innovate 
+		mat_I = 0.0 # np.shape(H_kp1[0]) 
+		vec_I = np.zeros((self.param.nq))
+		for agent in self.env.agents: 
+			measurement = z_kp1[:,agent.i] 
+			measurement_model = H_kp1[:,agent.i] 
+			mat_I += measurement_model * invR * measurement_model 
+			vec_I += measurement_model * invR * measurement		
+
+			# get learning rate
+			S = measurement_model * Y_kp1k * measurement_model + R
 			invS = 1/S
-			K_kp1[:,:,agent_i.i] = Y_kp1k * H_kp1[:,agent_i.i] * invS 		
+			K_kp1[agent.i] = Y_kp1k * measurement_model * invS 
 
-			# invert information transformation
-			Y_kp1kp1 = Y_kp1k + mat_I
-			p_kp1[:,agent_i.i] = 1 / Y_kp1kp1
+		# invert information transformation
+		Y_kp1kp1 = Y_kp1k + mat_I
+		y_kp1kp1 = y_kp1k + vec_I
+		p_kp1 = 1 / Y_kp1kp1
+		r_kp1 = p_kp1 * y_kp1kp1 
 
-		return p_kp1,K_kp1
+		return r_kp1,p_kp1,K_kp1
 
 
-	# def dkif(self,r_k,p_k,z_kp1,H_kp1):
-	# 	# distributed kalman information filter to estimate reward, r
+	# def kalman(self,p_k,H_kp1,A_k):
+	# 	# kalman gain for distributed 
 	# 	# input
-	# 	# 	- r_k : reward at previous timestep, numpy in nq x ni
-	# 	# 	- p_k : covariance at previous timestep, numpy in nq x ni
-	# 	# 	- z_kp1 : measurement, numpy in nq x ni 
+	# 	# 	- p_k : covariance at previous timestep, numpy in 1 x ni
 	# 	# 	- H_kp1 : measurement model, numpy in 1 x ni 
 	# 	# output
-	# 	# 	- r_kp1 : next estimate, numpy in nq x ni
 	# 	# 	- p_kp1 : next covariance, numpy in nq x ni 
+	# 	# 	- K_kp1 : kalman gain, numpy in 1 x 1 x ni
 
 	# 	measurements = self.get_measurements()
-	# 	adjacency_matrix = self.make_adjacency_matrix()
 
 	# 	# init 
-	# 	r_kp1 = np.zeros((self.param.nq,self.param.ni))
-	# 	p_kp1 = np.zeros((self.param.nq,self.param.ni))
-	# 	# p_kp1 = np.zeros((1,self.param.ni))
+	# 	K_kp1 = np.zeros((self.param.ni))
+	# 	p_kp1 = np.zeros((1,self.param.ni))
 		
 	# 	# get matrices 
 	# 	F = 1.0
 	# 	Q = self.param.process_noise
 	# 	R = self.param.measurement_noise
 	# 	invF = 1.0 
-	# 	invQ = 1.0/self.param.process_noise
-	# 	invR = 1.0/self.param.measurement_noise
+	# 	invQ = 1.0/Q
+	# 	invR = 1.0/R
 
-	# 	# dkif 
+	# 	# kalman gain information filter method  
 	# 	for agent_i in self.env.agents:
 
 	# 		# information transformation
 	# 		Y_kk = 1/p_k[:,agent_i.i]
-	# 		y_kk = Y_kk*r_k[:,agent_i.i]
 
 	# 		# predict 
 	# 		M = invF * Y_kk * invF
 	# 		C = M / (M + invQ)
 	# 		L = 1 - C
-	# 		Y_kp1k = L * M * L + C * invQ * C 
-	# 		y_kp1k = L * invF * y_kk 
+	# 		Y_kp1k = L*M*L + C*invQ*C 
 
 	# 		# innovate 
 	# 		mat_I = 0.0 # np.shape(H_kp1[0]) 
-	# 		vec_I = np.zeros((self.param.nq))
 	# 		for agent_j in self.env.agents: 
-	# 			if adjacency_matrix[agent_i.i,agent_j.i] > 0:
-	# 				measurement = z_kp1[:,agent_j.i] 
+	# 			if A_k[agent_i.i,agent_j.i] > 0:
 	# 				measurement_model = H_kp1[:,agent_j.i] 
 	# 				mat_I += measurement_model * invR * measurement_model 
-	# 				vec_I += measurement_model * invR * measurement
+	
+	# 		# kalman gain  
+	# 		S = H_kp1[:,agent_i.i] * Y_kp1k * H_kp1[:,agent_i.i] + R
+	# 		invS = 1/S
+	# 		K_kp1[agent_i.i] = Y_kp1k * H_kp1[:,agent_i.i] * invS 		
 
 	# 		# invert information transformation
 	# 		Y_kp1kp1 = Y_kp1k + mat_I
-	# 		y_kp1kp1 = y_kp1k + vec_I
 	# 		p_kp1[:,agent_i.i] = 1 / Y_kp1kp1
-	# 		r_kp1[:,agent_i.i] = p_kp1[:,agent_i.i] * y_kp1kp1 
 
-	# 	return r_kp1,p_kp1
+	# 	return p_kp1,K_kp1
+
+
+	def dkif(self,r_k,p_k,z_kp1,H_kp1):
+		# distributed kalman information filter to estimate reward, r
+		# input
+		# 	- r_k : reward at previous timestep, numpy in nq x ni
+		# 	- p_k : covariance at previous timestep, numpy in 1 x ni
+		# 	- z_kp1 : measurement, numpy in nq x ni 
+		# 	- H_kp1 : measurement model, numpy in 1 x ni 
+		# output
+		# 	- r_kp1 : next estimate, numpy in nq x ni
+		# 	- p_kp1 : next covariance, numpy in nq x ni 
+
+		measurements = self.get_measurements()
+		adjacency_matrix = self.make_adjacency_matrix()
+
+		# init 
+		r_kp1 = np.zeros((self.param.nq,self.param.ni))
+		p_kp1 = np.zeros((1,self.param.ni))
+		K_kp1 = np.zeros((self.param.ni))
+		
+		# get matrices 
+		F = 1.0
+		Q = self.param.process_noise
+		R = self.param.measurement_noise
+		invF = 1.0 
+		invQ = 1.0/self.param.process_noise
+		invR = 1.0/self.param.measurement_noise
+
+		# dkif 
+		for agent_i in self.env.agents:
+
+			# information transformation
+			Y_kk = 1/p_k[:,agent_i.i]
+			y_kk = Y_kk*r_k[:,agent_i.i]
+
+			# predict 
+			M = invF * Y_kk * invF
+			C = M / (M + invQ)
+			L = 1 - C
+			Y_kp1k = L * M * L + C * invQ * C 
+			y_kp1k = L * invF * y_kk 
+
+			# innovate 
+			mat_I = 0.0 # np.shape(H_kp1[0]) 
+			vec_I = np.zeros((self.param.nq))
+			for agent_j in self.env.agents: 
+				if adjacency_matrix[agent_i.i,agent_j.i] > 0:
+					measurement = z_kp1[:,agent_j.i] 
+					measurement_model = H_kp1[:,agent_j.i] 
+					mat_I += measurement_model * invR * measurement_model 
+					vec_I += measurement_model * invR * measurement
+
+			# get learning rate
+			S = H_kp1[:,agent_i.i]*Y_kp1k*H_kp1[:,agent_i.i]+R
+			invS = 1/S
+			K_kp1[agent_i.i] = Y_kp1k*H_kp1[:,agent_i.i]*invS 
+
+			# invert information transformation
+			Y_kp1kp1 = Y_kp1k + mat_I
+			y_kp1kp1 = y_kp1k + vec_I
+			p_kp1[:,agent_i.i] = 1 / Y_kp1kp1
+			r_kp1[:,agent_i.i] = p_kp1[:,agent_i.i] * y_kp1kp1 
+
+		return r_kp1,p_kp1,K_kp1
 
 	
 	def make_adjacency_matrix(self):

@@ -23,7 +23,7 @@ class Env():
 		
 		# initialize list of agents  
 		self.agents = []
-		p0 = self.param.initial_covariance 
+		p0 = self.param.p0 
 		for i in range(self.param.ni):
 			self.agents.append(Agent(i,s0[0,i],s0[1,i],self.v,self.q,self.r,p0))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,s0[0,i],s0[1,i]))
@@ -295,9 +295,11 @@ class Env():
 
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
+
 		# reward = -1*(time_s_to_sp + time_sp_to_c)
-		# reward = -1 * time_sp_to_c
 		reward = 1/(time_s_to_sp + time_sp_to_c)
+		
+		# reward = -1 * time_sp_to_c
 		# reward = 1 / time_sp_to_c
 
 		# discount 
@@ -327,7 +329,7 @@ class Env():
 		self.v = V 
 		self.q = Q 
 		self.r = R.flatten()
-		return V,Q,R.flatten()
+		return self.v,self.q,self.r
 
 
 	def get_MDP_Q(self,R,V,gamma):
@@ -560,33 +562,30 @@ class Env():
 
 		if not hasattr(self, 'lambda_min'):
 			self.lambda_min = np.zeros((self.param.ni,self.param.sim_nt))
+			self.lambda_min[:,0] = np.ones((self.param.ni))
 			self.reset_timestep = 0 
 
 		for agent_i in self.agents:
 			update_lst = []
 			for agent_j in self.agents:
-				if A_k[agent_i.i,agent_j.i] > 0 and K_kp1[:,:,agent_j.i] > 0:
+				if A_k[agent_i.i,agent_j.i] > 0 and K_kp1[agent_j.i] > 0:
 					self.lambda_min[agent_i.i,self.timestep] = 1.0 
 	
-		if self.timestep < self.reset_timestep + self.param.htd_minimum_reset:
-			contraction = 0.0
-		else:
-
-			# moving average
-			if True:
-				if self.timestep < self.reset_timestep + self.param.htd_time_window:
-					idx = np.arange(self.timestep+1)
-				else:
-					idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window+1)
-
-				ave_lambda_min = np.mean(self.lambda_min[:,idx],axis=1)
-				contraction = np.sqrt(1 - np.min(ave_lambda_min))
-		
-			# no moving average
+		# moving average
+		if True:
+			if self.timestep < self.reset_timestep + self.param.htd_time_window:
+				idx = np.arange(self.timestep+1)
 			else:
-				print('self.lambda_min[:,self.timestep]',self.lambda_min[:,self.timestep])
-				print('np.min(self.lambda_min[:,self.timestep])',np.min(self.lambda_min[:,self.timestep]))
-				contraction = np.sqrt(1 - np.min(self.lambda_min[:,self.timestep]))
+				idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window+1)
+
+			ave_lambda_min = np.mean(self.lambda_min[:,idx],axis=1)
+			contraction = np.sqrt(1 - np.min(ave_lambda_min))
+	
+		# no moving average
+		else:
+			print('self.lambda_min[:,self.timestep]',self.lambda_min[:,self.timestep])
+			print('np.min(self.lambda_min[:,self.timestep])',np.min(self.lambda_min[:,self.timestep]))
+			contraction = np.sqrt(1 - np.min(self.lambda_min[:,self.timestep]))
 
 		delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/((1-self.param.mdp_gamma)*(1-contraction))
 
@@ -597,6 +596,6 @@ class Env():
 		return delta_e
 
 	def calc_delta_d(self):
-		# delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
-		delta_d = 2.5 
+		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
+		# delta_d = 2.5 
 		return delta_d

@@ -18,7 +18,7 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 4
+		self.n_trials = 2
 		self.htd_time_window = 10
 		self.htd_minimum_reset = 5
 		self.delta_d_ratio = 0.1
@@ -69,7 +69,7 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 40
+				self.ni = 20
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
 				self.n_customers_per_time_ratio = 0.2
@@ -115,22 +115,22 @@ class Param:
 				self.n_customers_per_time = 3
 
 			# customer model
-			self.cm_linear_move = False
+			self.cm_linear_move = True
 			if self.cm_linear_move:
 				self.cm_ng = 1
-				self.cm_sigma = 0.1
+				self.cm_sigma = 0.05
 				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 1
-				self.cm_sigma = 0.1 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
+				self.cm_sigma = 0.05 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
 
 			# estimation
-			self.initial_covariance = 0.0001 
+			self.p0 = 0.0001 
 
 			# learning rate
 			self.td_alpha = 0.5
@@ -175,7 +175,7 @@ class Param:
 			self.desired_agents_per_cell = 1.0 
 
 			# estimation
-			self.initial_covariance = 0.01 
+			self.p0 = 0.01 
 
 			# mdp 
 			self.lambda_r = 0.1 #0.8
