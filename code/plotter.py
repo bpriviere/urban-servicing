@@ -6,6 +6,7 @@ import os, subprocess
 import matplotlib.patches as patches
 import numpy as np 
 from matplotlib.backends.backend_pdf import PdfPages 
+import matplotlib
 
 # defaults
 plt.rcParams.update({'font.size': 10})
@@ -168,7 +169,7 @@ def plot_sim_rewards(sim_results):
 	ax1.set_title('Reward at each timestep')
 	ax2.set_title('Cumulative Reward')
 
-def sim_plot(controller_name,results,timestep,fig,city_boundary=None):
+def sim_plot(controller_name,results,timestep,fig,city_boundary=None,agent_colors=None):
 	# input: 
 	# 	- results is a dictionary of results for some controller
 	# 	- timestep is when to plot
@@ -203,14 +204,51 @@ def sim_plot(controller_name,results,timestep,fig,city_boundary=None):
 			# im = curr_ax.imshow(sim_to_im_coordinate(im_to_plot),vmin=0,vmax=1,cmap='gray_r')
 
 		elif 'location' in key:
+
+			# service_color = 'orange'
+			# dispatch_color = 'blue'
+			# locs = results[key][timestep] # sim coordinates ... 
+			# if np.size(locs) > 0:
+			# 	if 'agent' in key:
+			# 		service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+			# 		curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=service_color)
+			# 		curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=dispatch_color)
+
+			# 	elif 'customer' in key:
+			# 		curr_ax.scatter(locs[:,0],locs[:,1],c=service_color)
+
+			# agent_colors is a lst of lst: first index tells service/dispatch and second index tells which agent
 			service_color = 'orange'
 			dispatch_color = 'blue'
 			locs = results[key][timestep] # sim coordinates ... 
 			if np.size(locs) > 0:
 				if 'agent' in key:
-					service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
-					curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=service_color)
-					curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=dispatch_color)
+					if agent_colors is None:
+						service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+						curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=service_color)
+						curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=dispatch_color)
+					else:
+
+						# alphas = np.linspace(0.5, 1, param["ni"])
+						# rgba_red = np.zeros((10,4))
+						# rgba_red[:,0] = 1.0
+						# rgba_red[:, 3] = alphas
+						# rgba_blue = np.zeros((10,4))
+						# rgba_blue[:, 3] = alphas
+						# curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],color=rgba_red[service_agent_idx])
+						# curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],color=rgba_red[service_agent_idx])
+						
+						# curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],color=agent_colors[1][~service_agent_idx])
+						# curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],color=agent_colors[0][service_agent_idx])
+
+						service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+						x = np.linspace(0,1,param["ni"])
+						curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=x[service_agent_idx],cmap=agent_colors[1])
+						curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=x[~service_agent_idx],cmap=agent_colors[0])
+
+						# service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+						# curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=x[service_agent_idx],cmap=plt.get_cmap('Oranges'))
+						# curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=x[~service_agent_idx],cmap=plt.get_cmap('Blues'))
 
 				elif 'customer' in key:
 					curr_ax.scatter(locs[:,0],locs[:,1],c=service_color)
@@ -299,8 +337,10 @@ def animate_plot(controller_name,sim_result,timestep,fig):
 			free_idx = np.asarray(free_idx,dtype=bool)
 			
 			if np.size(locs) > 0:
+				# curr_ax.scatter(locs[~free_idx,0],locs[~free_idx,1],cmap=plt.get_cmap('Blues'))
+				# curr_ax.scatter(locs[free_idx,0],locs[free_idx,1],cmap=plt.get_cmap('Oranges'))
 				curr_ax.scatter(locs[~free_idx,0],locs[~free_idx,1])
-				curr_ax.scatter(locs[free_idx,0],locs[free_idx,1])
+				curr_ax.scatter(locs[free_idx,0],locs[free_idx,1])				
 
 			curr_ax.set_title('Taxi Locations',fontsize=myfontsize)
 
@@ -339,6 +379,7 @@ def plot_distribution_over_time(results,env):
 def sim_plot_over_time(controller_name,sim_result):
 	
 	param = sim_result["param"]
+	agent_colors = get_agent_colors(param["ni"])
 	if param["env_name"] in 'citymap':
 		city_boundary = make_city_boundary(param)
 		for timestep,time in enumerate(sim_result["times"]):
@@ -347,7 +388,52 @@ def sim_plot_over_time(controller_name,sim_result):
 	else:
 		for timestep,time in enumerate(sim_result["times"]):
 			fig = plt.figure()
-			sim_plot(controller_name, sim_result, timestep, fig=fig)
+			sim_plot(controller_name, sim_result, timestep, fig=fig, agent_colors=agent_colors)
+
+def get_agent_colors(ni):
+
+	import matplotlib.pyplot as plt
+	import matplotlib.colors as colors
+	import numpy as np
+
+	def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+		new_cmap = colors.LinearSegmentedColormap.from_list(
+			'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+			cmap(np.linspace(minval, maxval, n)))
+		return new_cmap
+
+	min_v_blue = 0.2
+	max_v_blue = 0.6
+	min_v_orange = 0.5
+	max_v_orange = 0.6
+
+	blue_cmap = plt.get_cmap('Blues')
+	new_blue_cmap = truncate_colormap(blue_cmap, min_v_blue, max_v_blue)
+	orange_cmap = plt.get_cmap('Oranges')
+	new_orange_cmap = truncate_colormap(orange_cmap, min_v_orange, max_v_orange)
+	
+
+	# cvals  = [0,1] #[-2., -1, 2]
+	# blue_colors = ['#666FF','#666CC'] # ["red","violet","blue"]
+	# orange_colors = ['#FF9966','#FF6633']
+
+	# norm=plt.Normalize(min(cvals),max(cvals))
+	# blue_tuples=list(zip(map(norm,cvals), blue_colors))
+	# hex doesnt work here 
+	# blue_cmap=matplotlib.colors.LinearSegmentedColormap.from_list("", blue_tuples)
+
+	# norm=plt.Normalize(min(cvals),max(cvals))
+	# orange_tuples=list(zip(map(norm,cvals), orange_colors))
+	# orange_cmap=matplotlib.colors.LinearSegmentedColormap.from_list("", orange_tuples)
+
+	return [new_blue_cmap,new_orange_cmap]
+
+	# blue_colors = []
+	# orange_colors = []
+	# # indices to step through colormap 
+	# x = np.linspace(0.0, 1.0, ni)
+	# agent_colors.append()
+
 
 def sim_to_im_coordinate(im):
 	# im coordinates
@@ -641,7 +727,7 @@ def plot_q_error(sim_results):
 	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
 	times = sim_result["times"]
 
-	print('nt:',sim_result["param"]["nt"])
+	# print('nt:',sim_result["param"]["sim_nt"])
 	print('ni:',sim_result["param"]["ni"])
 	print('nq:',sim_result["param"]["nq"])
 	print('n_trials:',sim_result["param"]["n_trials"])

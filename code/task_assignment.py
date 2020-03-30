@@ -86,7 +86,7 @@ def binary_log_learning(env,agents):
 			tau = tau*env.param.ta_tau_decay
 			k_count += 1 
 
-		if count >= np.max((500,env.param.blll_iter_lim_per_agent*env.param.ni)):
+		if count >= np.max((500,env.param.ta_iter_lim_per_agent*env.param.ni)):
 			print('   blll not converging: {}'.format(count))
 			break
 

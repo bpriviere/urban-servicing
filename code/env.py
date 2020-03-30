@@ -218,7 +218,7 @@ class Env():
 
 	# utility stuff 
 	def softmax(self,x):
-		softmax = np.exp(self.param.beta*x)/sum(np.exp(self.param.beta*x))
+		softmax = np.exp(self.param.ta_beta*x)/sum(np.exp(self.param.ta_beta*x))
 		return softmax
 
 	def value_to_probability(self,x):
@@ -295,9 +295,9 @@ class Env():
 
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
-		reward = -1*(time_s_to_sp + time_sp_to_c)
+		# reward = -1*(time_s_to_sp + time_sp_to_c)
 		# reward = -1 * time_sp_to_c
-		# reward = 1/(time_s_to_sp + time_sp_to_c)
+		reward = 1/(time_s_to_sp + time_sp_to_c)
 		# reward = 1 / time_sp_to_c
 
 		# discount 
@@ -546,3 +546,34 @@ class Env():
 		im_agent = im_agent / self.param.ni
 
 		return im_agent
+
+	def calc_delta_e(self,K_kp1,A_k):
+		# input
+		# 	- K_kp1 in [1 x 1 x ni]
+		# 	- A_k in [ni x ni]
+		# output: 
+		# 	- delta_e, scalar 
+
+		if not hasattr(self, 'contraction_rates'):
+			self.contraction_rates = np.zeros((self.param.ni,self.param.sim_nt))
+
+		for agent_i in self.agents:
+			update = 0.0
+			for agent_j in self.agents:
+				if A_k[agent_i.i,agent_j.i] > 0:
+					update += K_kp1[:,:,agent_i.i]
+			self.contraction_rates[agent_i.i,self.timestep] = update
+	
+		# take average
+		if self.timestep < self.param.htd_time_window:
+			idx = np.arange(self.timestep)
+		else:
+			idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window)
+		contraction_ave = np.mean(np.mean(self.contraction_rates[:,idx],axis=1))
+		
+		delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/((1-self.param.mdp_gamma)*contraction_ave)
+		return delta_e
+
+	def calc_delta_d(self):
+		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q0)
+		return delta_d
