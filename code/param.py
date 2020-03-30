@@ -19,7 +19,7 @@ class Param:
 		self.plot_arrows_on = False
 
 		self.n_trials = 2
-		self.htd_time_window = 2
+		self.htd_time_window = 5
 		self.delta_d_ratio = 0.05
 
 		self.controller_names = [
@@ -39,7 +39,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 100
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
