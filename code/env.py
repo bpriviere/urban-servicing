@@ -23,9 +23,9 @@ class Env():
 		
 		# initialize list of agents  
 		self.agents = []
-		p0 = self.param.initial_covariance #*np.ones((self.q0.shape))
+		p0 = self.param.initial_covariance 
 		for i in range(self.param.ni):
-			self.agents.append(Agent(i,s0[0,i],s0[1,i],self.v0,self.q0,self.r0,p0))
+			self.agents.append(Agent(i,s0[0,i],s0[1,i],self.v,self.q,self.r,p0))
 			print('agent {} initialized at (x,y) = ({},{})'.format(i,s0[0,i],s0[1,i]))
 		return s0
 
@@ -39,7 +39,7 @@ class Env():
 	def reset(self,s0):
 		self.timestep = 0
 		self.observation = []
-		self.v0,self.q0,self.r0 = self.solve_MDP(self.train_dataset,self.param.sim_times[self.timestep])
+		v,q,r = self.solve_MDP(self.train_dataset,self.param.sim_times[self.timestep])
 		s0 = self.init_agents(s0)
 		return s0
 
@@ -323,6 +323,10 @@ class Env():
 		mdp.run()
 		V = np.array(mdp.V)
 		Q = self.get_MDP_Q(R,V,self.param.mdp_gamma)
+
+		self.v = V 
+		self.q = Q 
+		self.r = R.flatten()
 		return V,Q,R.flatten()
 
 
@@ -554,26 +558,45 @@ class Env():
 		# output: 
 		# 	- delta_e, scalar 
 
-		if not hasattr(self, 'contraction_rates'):
-			self.contraction_rates = np.zeros((self.param.ni,self.param.sim_nt))
+		if not hasattr(self, 'lambda_min'):
+			self.lambda_min = np.zeros((self.param.ni,self.param.sim_nt))
+			self.reset_timestep = 0 
 
 		for agent_i in self.agents:
-			update = 0.0
+			update_lst = []
 			for agent_j in self.agents:
-				if A_k[agent_i.i,agent_j.i] > 0:
-					update += K_kp1[:,:,agent_i.i]
-			self.contraction_rates[agent_i.i,self.timestep] = update
+				if A_k[agent_i.i,agent_j.i] > 0 and K_kp1[:,:,agent_j.i] > 0:
+					self.lambda_min[agent_i.i,self.timestep] = 1.0 
 	
-		# take average
-		if self.timestep < self.param.htd_time_window:
-			idx = np.arange(self.timestep)
+		if self.timestep < self.reset_timestep + self.param.htd_minimum_reset:
+			contraction = 0.0
 		else:
-			idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window)
-		contraction_ave = np.mean(np.mean(self.contraction_rates[:,idx],axis=1))
+
+			# moving average
+			if True:
+				if self.timestep < self.reset_timestep + self.param.htd_time_window:
+					idx = np.arange(self.timestep+1)
+				else:
+					idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window+1)
+
+				ave_lambda_min = np.mean(self.lambda_min[:,idx],axis=1)
+				contraction = np.sqrt(1 - np.min(ave_lambda_min))
 		
-		delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/((1-self.param.mdp_gamma)*contraction_ave)
+			# no moving average
+			else:
+				print('self.lambda_min[:,self.timestep]',self.lambda_min[:,self.timestep])
+				print('np.min(self.lambda_min[:,self.timestep])',np.min(self.lambda_min[:,self.timestep]))
+				contraction = np.sqrt(1 - np.min(self.lambda_min[:,self.timestep]))
+
+		delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/((1-self.param.mdp_gamma)*(1-contraction))
+
+		if np.isnan(delta_e):
+			print(1 - np.min(self.lambda_min[:,self.timestep]))			
+			exit()
+		
 		return delta_e
 
 	def calc_delta_d(self):
-		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q0)
+		# delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
+		delta_d = 2.5 
 		return delta_d

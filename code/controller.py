@@ -198,6 +198,7 @@ class Controller():
 		if delta_e > delta_d: 
 			# bellman
 			print('htd using bellman')
+			self.env.reset_timestep = self.env.timestep
 			v,q,r = self.env.solve_MDP(self.env.dataset,self.param.sim_times[self.env.timestep])
 
 			for agent in self.env.agents:

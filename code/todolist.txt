@@ -1,9 +1,14 @@
 
 
-# taxes
-# workout sheet 
 
 todo list:
+
+	htd
+		- debug to match dtd output
+		- add condition
+		- check with bellman
+
+	rhc baseline with LP 
 
 	normalization 
 	local reward implementation 
