@@ -15,19 +15,19 @@ class Param:
 
 		# flags 
 		self.env_render_on = False
-		self.plot_sim_over_time = False
+		self.plot_sim_over_time = True
 		self.plot_arrows_on = False
 
-		self.n_trials = 2
+		self.n_trials = 1
 		self.htd_time_window = 10
 		self.htd_minimum_reset = 5
 		self.delta_d_ratio = 0.1
 
 		self.controller_names = [
 			['dtd','blll'],
-			['htd','blll'],
-			['ctd','blll'],
-			['bellman','blll'],
+			# ['htd','blll'],
+			# ['ctd','blll'],
+			# ['bellman','blll'],
 			['rhc','blll'],
 			# ['rhc','clp'],
 			]
@@ -40,7 +40,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 20
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -69,14 +69,14 @@ class Param:
 
 			elif self.swarm_parameters_ver == 2:
 				# other 
-				self.ni = 20
+				self.ni = 1000
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
 				self.n_customers_per_time_ratio = 0.2
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 4 * self.ni 
+				self.desired_env_ncell = 5 * self.ni 
 				self.desired_aspect_ratio = 2.0 # numx/numy
 				self.desired_swarm_param = 1.0
 
@@ -115,16 +115,16 @@ class Param:
 				self.n_customers_per_time = 3
 
 			# customer model
-			self.cm_linear_move = False
+			self.cm_linear_move = True
 			if self.cm_linear_move:
 				self.cm_ng = 1
-				self.cm_sigma = 0.05
+				self.cm_sigma = 0.0005
 				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
 			else:
 				self.cm_ng = 1
-				self.cm_sigma = 0.05 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
+				self.cm_sigma = 0.0005 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
 				self.n_training_data = 100
@@ -323,7 +323,7 @@ class Param:
 				self.taxi_speed = self.desired_swarm_param * self.n_customers_per_time * self.env_lengthscale / self.ni 
 				self.cm_speed = self.cm_taxi_speed_ratio*self.taxi_speed
 
-				# estimation
+			# estimation
 			self.process_noise = self.cm_speed
 			self.measurement_noise = self.cm_sigma 
 

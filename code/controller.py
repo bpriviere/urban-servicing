@@ -216,7 +216,7 @@ class Controller():
 		print('delta_d: ', delta_d)
 		if delta_e > delta_d and self.env.timestep > self.env.reset_timestep + self.param.htd_time_window: 
 			# bellman
-			print('htd using bellman')
+			print('bellman...')
 			self.env.reset_timestep = self.env.timestep
 			v,q,r = self.env.solve_MDP(self.env.dataset,self.param.sim_times[self.env.timestep])
 
@@ -260,6 +260,7 @@ class Controller():
 		z_kp1,H_kp1 = self.get_measurements()
 
 		# estimate reward
+		print('ckif...')
 		r_kp1,p_kp1,K_kp1 = self.ckif(r_k,p_k,z_kp1,H_kp1)
 
 		# temporal difference
@@ -289,6 +290,7 @@ class Controller():
 		# receding horizon control 
 		
 		# no update
+		print('rhc...')
 
 		# task assignment 
 		print('ta...')
