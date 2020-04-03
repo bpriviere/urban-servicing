@@ -132,6 +132,7 @@ class Controller():
 		A_k = self.make_adjacency_matrix()
 
 		# dtd 
+		print('dkif...')
 		r_kp1,p_kp1,K_kp1 = self.dkif(r_k,p_k,z_kp1,H_kp1)
 
 		# temporal difference
@@ -200,6 +201,7 @@ class Controller():
 		# p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
 
 		# dtd 
+		print('dkif...')
 		r_kp1,p_kp1,K_kp1 = self.dkif(r_k,p_k,z_kp1,H_kp1)
 
 		# temporal difference

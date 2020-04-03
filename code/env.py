@@ -66,7 +66,15 @@ class Env():
 			wait_time += service.time_before_assignment
 
 		reward = -wait_time 
+
+		state = self.extract_state()
 		
+		# increment timestep
+		self.timestep += 1
+		return reward, state
+
+	def extract_state(self):
+
 		# extract state with numpy arrays
 		# - agent states
 		agents_operation = np.empty(self.param.ni)
@@ -77,6 +85,7 @@ class Env():
 			agents_operation[agent.i] = agent.mode # mode = 0 -> on dispatch 
 			agents_location[agent.i,:] = [agent.x,agent.y]
 			agents_value_fnc_vector[agent.i,:] = self.q_value_to_value_fnc(agent.q)
+			# agents_value_fnc_vector[agent.i,:] = self.boltzmann_policy(agent.q)
 			agents_q_value[agent.i,:] = agent.q
 
 		# - agent actions
@@ -98,9 +107,8 @@ class Env():
 		for state_key in self.param.state_keys:
 			state[state_key] = eval(state_key)
 
-		# increment timestep
-		self.timestep += 1
-		return reward, state
+		return state
+
 
 	def agent_step(self,agent,action):
 
@@ -130,7 +138,7 @@ class Env():
 			# initialize service
 			agent.pickup_vector = np.array([agent.service.x_p - agent.x, agent.service.y_p-agent.y])
 			agent.pickup_dist = np.linalg.norm(agent.pickup_vector)
-			agent.pickup_vector = agent.pickup_vector / agent.pickup_dist
+			agent.pickup_vector = agent.pickup_vector/agent.pickup_dist
 			agent.pickup_speed = agent.pickup_dist/time_to_customer
 			agent.pickup_finish_time = curr_time + time_to_customer
 
@@ -226,6 +234,20 @@ class Env():
 		x = self.softmax(x)
 		return x
 
+	def local_boltzmann_policy(self,q,state_action_pairs):
+		# which action should agent take 
+
+		# get q(s,a) indices of where taxi could go		
+		idxs = self.sa_to_q_idxs(state_action_pairs)
+
+		# normalize q first for numerical stability 
+		q = (q[idxs] - min(q[idxs]))/(max(q[idxs])-min(q[idxs]))
+
+		# boltzman eq 
+		pi = np.exp(self.param.ta_beta*q) / sum(np.exp(self.param.ta_beta*(q)))
+		
+		return pi
+
 	# MDP
 	def get_next_state(self,s,a):
 		P = self.P
@@ -241,6 +263,12 @@ class Env():
 	def sa_to_q_idx(self,s,a):
 		q_idx = s*self.param.env_naction + a
 		return q_idx 
+
+	def sa_to_q_idxs(self,state_action_pairs):
+		q_idxs = []
+		for s,a in state_action_pairs:
+			q_idxs.append(self.sa_to_q_idx(s,a))
+		return q_idxs
 
 	def get_prev_sa_lst(self,s):
 		prev_sa_lst = []
@@ -274,6 +302,16 @@ class Env():
 				local.append(next_state)
 		return local 
 
+	def get_local_transitions(self,s):
+		local_states = []
+		local_actions = []
+		for a in range(self.param.env_naction):
+			next_state = self.get_next_state(s,a) 
+			if not next_state in local_states:
+				local_states.append(next_state)
+				local_actions.append(a)
+		return local_states, local_actions
+
 
 	def reward_instance(self,s,a,px,py,time_diff):
 
@@ -296,15 +334,19 @@ class Env():
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
 
-		# reward = -1*(time_s_to_sp + time_sp_to_c)
-		reward = 1/(time_s_to_sp + time_sp_to_c)
+		reward = -1*(time_s_to_sp + time_sp_to_c)
+		# reward = 1/(time_s_to_sp + time_sp_to_c)
+
+		# temp
+		# reward = -1*(time_s_to_sp + time_sp_to_c) * 100
+
 		
 		# reward = -1 * time_sp_to_c
 		# reward = 1 / time_sp_to_c
 
 		# discount 
-		time_discount = self.param.lambda_r**time_diff
-		reward = reward * time_discount
+		# time_discount = self.param.lambda_r**time_diff
+		# reward = reward * time_discount
 		
 		# action_cost = param.lambda_a*(not a==0)
 		# cost = cwt + action_cost 
@@ -373,13 +415,13 @@ class Env():
 				for s in range(self.param.env_ncell):
 					for a in range(self.param.env_naction):
 						
-						# time_discount = self.param.lambda_r**time_diff
-						# R[s,a] += self.reward_instance(s,a,px,py,time_diff)*time_discount
-						# time_discount_sum[s,a] += time_discount
-
 						time_discount = self.param.lambda_r**time_diff
-						R[s,a] += self.reward_instance(s,a,px,py,time_diff)
+						R[s,a] += self.reward_instance(s,a,px,py,time_diff)*time_discount
 						time_discount_sum[s,a] += time_discount
+
+						# time_discount = self.param.lambda_r**time_diff
+						# R[s,a] += self.reward_instance(s,a,px,py,time_diff)
+						# time_discount_sum[s,a] += time_discount
 
 			# if local update 
 			else:
@@ -446,20 +488,24 @@ class Env():
 
 			# 'left' action
 			i_x_tp1, i_y_tp1 = (i_x-1,i_y)
-			try:
-				# this will fail if (i_x_tp1,i_y_tp1) -> cell index does not exist 
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[3,s,s_tp1] = 1.
-			except:
+			if i_x_tp1 >= 0:
+				try:
+					s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+					P[3,s,s_tp1] = 1.
+				except:
+					P[3,s,s] = 1.
+			else:
 				P[3,s,s] = 1.
 
 			# 'down' action
 			i_x_tp1, i_y_tp1 = (i_x,i_y-1)
-			try:
-				# this will fail if (i_x_tp1,i_y_tp1) -> cell index does not exist 
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[4,s,s_tp1] = 1.
-			except:
+			if i_y_tp1 >= 0:				
+				try:
+					s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+					P[4,s,s_tp1] = 1.
+				except:
+					P[4,s,s] = 1.
+			else:
 				P[4,s,s] = 1.
 
 		# print(P)
@@ -503,10 +549,16 @@ class Env():
 
 		value_fnc_ims = np.zeros((self.param.ni,self.param.env_nx,self.param.env_ny))
 		for agent in self.agents:
-			# get value
-			value_fnc_i = self.q_value_to_value_fnc(agent.q)
-			# normalize
-			value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
+			
+			# old 
+			# # get value
+			# value_fnc_i = self.q_value_to_value_fnc(agent.q)
+			# # normalize
+			# value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
+
+			# new 
+			value_fnc_i = self.boltzmann_policy(agent.q)
+
 			# convert to im
 			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
 			for i in range(self.param.env_ncell):

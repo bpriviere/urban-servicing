@@ -281,10 +281,10 @@ def sim_plot(controller_name,results,timestep,fig,city_boundary=None,agent_color
 		plt.setp(curr_ax.get_yticklabels(), visible=False)
 		axs.append(curr_ax)
 
-	# # colorbar
-	# fig.subplots_adjust(right=0.8)
-	# cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-	# fig.colorbar(im, cax=cbar_ax)
+	# colorbar
+	fig.subplots_adjust(right=0.8)
+	cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+	fig.colorbar(im, cax=cbar_ax)
 
 	# title
 	t = param["sim_times"][timestep]

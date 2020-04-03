@@ -28,7 +28,8 @@ def binary_log_learning(env,agents):
 	tau = env.param.ta_tau
 	
 	H = make_H(env,agents)
-	A = get_joint_action_v2(env,agents)
+	A = make_A(env,agents)
+	S = make_S(env,agents)
 	print('   blll...')
 	while not all(converged):
 		
@@ -50,15 +51,8 @@ def binary_log_learning(env,agents):
 		A_p = make_A_p(A,agent,action_p,env,a_idx)
 		
 		# calculate marginal utility of local action sets
-		# NOTE: we calculate marginal cost instead, and flip sign convention
-
-		# old slow 
-		# J,H,A = calc_J(env,agent,agent.cell_action,agents)
-		# J_p,H_p,A_p = calc_J(env,agent,action_p,agents)
-
-		# new fast
-		J = calc_J_v2(env,agent,H,A)
-		J_p = calc_J_v2(env,agent,H_p,A_p)
+		J = calc_J(env,agent,H,A,S)
+		J_p = calc_J(env,agent,H_p,A_p,S)
 
 		# assign action probability with binary log-linear learning algorithm
 		# P_i = np.exp(J/tau)/(np.exp(J/tau) + np.exp(J_p/tau)) 
@@ -67,12 +61,11 @@ def binary_log_learning(env,agents):
 
 		# check convergence
 		rand = np.random.random()
+		# NOTE: we calculate marginal cost instead, and flip sign convention
 		if rand > P_i:
 			same_action_count[a_idx] += 1
 			if same_action_count[a_idx] > env.param.ta_converged:
 				converged[a_idx] = True
-			# H = H
-			# A = A
 
 		else:
 			agent.cell_action = action_p 
@@ -82,6 +75,8 @@ def binary_log_learning(env,agents):
 			A = A_p
 
 		count += 1 
+
+		# to help convergence
 		if count >= k_count*env.param.ta_tau_decay_threshold:
 			tau = tau*env.param.ta_tau_decay
 			k_count += 1 
@@ -98,38 +93,43 @@ def binary_log_learning(env,agents):
 		cell_assignments.append((agent,agent.cell_action))
 	return cell_assignments
 
+def calc_J(env,agent_i,H,A,S):
+	# input: 
+	# 	H, swarm distribution transition matrix : numpy in [ncell x naction*n_agents]
+	# 	A, joint action matrix : numpy in [env_naction*ni x 1]
 
-def calc_J(env,agent_i,action_i,agents):
 
-	# get local q values
-	local_q = env.get_local_q_values(agent_i)
-	local_q_dist = env.value_to_probability(local_q)
+	# get state and local state 	
+	state = env.coordinate_to_cell_index(agent_i.x,agent_i.y)
+	local_states, local_actions = env.get_local_transitions(state)
+
+	state_action_pairs = []
+	for action in local_actions:
+		state_action_pairs.append((state,action))
+
+	# get policy 
+	pi_local = env.local_boltzmann_policy(agent_i.q, state_action_pairs)
+
+	# temp 
+	# q_idx_local = env.sa_to_q_idxs(state_action_pairs)
+	# q_local = agent_i.q[q_idx_local]
+	# r_local = agent_i.r[q_idx_local]
+	# print('env_nx: ', env.param.env_nx)
+	# print('env_ny: ', env.param.env_ny)
+	# print('state: ', state)
+	# print('local_states: ', local_states)
+	# print('local_actions: ', local_actions)
+	# print('pi_local: ', pi_local)
+	# print('r_local: ', r_local)
+	# print('q_local: ', q_local)
+	# exit()
 
 	# get local agent distribution
-	state = env.coordinate_to_cell_index(agent_i.x,agent_i.y)
-	local_s_idx = env.get_local_states(state)
-	H = make_H(env,agents)
-	A = get_joint_action(env,agent_i,action_i,agents)	
-	local_agent_dist = np.matmul(H,A)[local_s_idx]
+	S_tp1_local = S[local_states] + np.matmul(H[local_states,:],A)
+	S_tp1_local /= sum(S_tp1_local)
 
 	# marginal cost 
-	J = np.linalg.norm(local_agent_dist - local_q_dist)
-
-	return J,H,A
-
-def calc_J_v2(env,agent_i,H,A):
-
-	# get local q values
-	local_q = env.get_local_q_values(agent_i)
-	local_q_dist = env.value_to_probability(local_q)
-
-	# get local agent distribution
-	state = env.coordinate_to_cell_index(agent_i.x,agent_i.y)
-	local_s_idx = env.get_local_states(state)
-	local_agent_dist = np.matmul(H,A)[local_s_idx]
-
-	# marginal cost 
-	J = np.linalg.norm(local_agent_dist - local_q_dist)
+	J = np.linalg.norm(S_tp1_local - pi_local)
 
 	return J 
 
@@ -177,23 +177,17 @@ def centralized_linear_program(env,agents):
 
 
 def make_S(env,agents):
+	# current swarm distribution, unnormalized 
+
 	S = np.zeros((env.param.env_ncell))
 	for agent in agents:
 		state = env.coordinate_to_cell_index(agent.x,agent.y)
 		S[state] += 1 
-	return S/len(agents)
+	return S
 
-def get_joint_action(env,agent_i,action_i,agents):
-	A = np.zeros((env.param.env_naction*len(agents)))
-	for j,agent_j in enumerate(agents):
-		if agent_i is agent_j:
-			idx = j*env.param.env_naction + action_i
-		else:
-			idx = j*env.param.env_naction + agent_j.cell_action 
-		A[idx] = 1
-	return A 
+def make_A(env,agents):
+	# joint action distribution  
 
-def get_joint_action_v2(env,agents):
 	A = np.zeros((env.param.env_naction*len(agents)))
 	for step,agent in enumerate(agents):
 		idx = step*env.param.env_naction + agent.cell_action
@@ -201,55 +195,45 @@ def get_joint_action_v2(env,agents):
 	return A 
 
 def make_H(env,agents):
-	# output is a matrix in ncell, naction*n_agents
-	# H[i,j] describes S[i] under A[j]
-	# print('making H...')
+	# swarm distribution transition matrix 
 	
 	n_agents = len(agents)
 	H = np.zeros((env.param.env_ncell,env.param.env_naction*n_agents))
 	
-	# P = env.get_MDP_P(env)
-	P = env.P
-	
 	for step,agent in enumerate(agents):
 		idx = step*env.param.env_naction
 		state = env.coordinate_to_cell_index(agent.x,agent.y)
-		# print('agent.x: ', agent.x)
-		# print('agent.y: ', agent.y)
 		for action in range(env.param.env_naction):
-			# print('P: ',P)
-			# print('a: ',a)
-			# print('state: ', state)
 			next_state = env.get_next_state(state,action)
 			H[state,idx+action] = -1
 			H[next_state,idx+action] = 1
-	# normalize
-	# H = H/env.param.ni
-	H /= n_agents
+
 	return H 
 
 def make_H_p(H,agent,action,env,a_idx,n_agents):
+	# alternative swarm distribution transition matrix  
 
-	# unnormalize
-	Hp = n_agents*np.copy(H)
-	P = env.P
-	
+	Hp = np.copy(H)
+
+	# change cell 	
 	idx = a_idx*env.param.env_naction
 	state = env.coordinate_to_cell_index(agent.x,agent.y)
 	next_state = env.get_next_state(state,action)
 	Hp[state,idx+action] = -1
 	Hp[next_state,idx+action] = 1
 
-	# renormalize
-	Hp /= n_agents
 	return Hp
 
 def make_A_p(A,agent,action,env,a_idx):
+	# alternative joint action distribution 
+
 	Ap = np.copy(A) 
+
 	# remove prev action
 	idx = a_idx*env.param.env_naction + agent.cell_action
 	Ap[idx] = 0 
 	# add new action 
 	idx = a_idx*env.param.env_naction + action 
 	Ap[idx] = 1
+	
 	return Ap 

@@ -10,6 +10,8 @@ todo list:
 
 	rhc baseline with LP 
 
+	clean code (search for temp and todo )
+
 	normalization 
 	local reward implementation 
 

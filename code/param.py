@@ -15,19 +15,19 @@ class Param:
 
 		# flags 
 		self.env_render_on = False
-		self.plot_sim_over_time = True
+		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 1
+		self.n_trials = 2
 		self.htd_time_window = 10
 		self.htd_minimum_reset = 5
 		self.delta_d_ratio = 0.1
 
 		self.controller_names = [
 			['dtd','blll'],
-			# ['htd','blll'],
-			# ['ctd','blll'],
-			# ['bellman','blll'],
+			['htd','blll'],
+			['ctd','blll'],
+			['bellman','blll'],
 			['rhc','blll'],
 			# ['rhc','clp'],
 			]
@@ -40,7 +40,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 20
+			self.sim_tf = 50
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -68,17 +68,19 @@ class Param:
 				self.cm_taxi_speed_ratio = 0.1 
 
 			elif self.swarm_parameters_ver == 2:
+				# this one 
+
 				# other 
-				self.ni = 1000
+				self.ni = 20
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
 				self.n_customers_per_time_ratio = 0.2
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 5 * self.ni 
+				self.desired_env_ncell = 3 * self.ni 
 				self.desired_aspect_ratio = 2.0 # numx/numy
-				self.desired_swarm_param = 1.0
+				self.desired_swarm_param = 1.2
 
 			elif self.swarm_parameters_ver == 3:
 
@@ -99,7 +101,7 @@ class Param:
 				# recreate smallscale gridworld sim 
 
 				# fleet
-				self.ni = 50
+				self.ni = 20
 				self.taxi_speed = 0.25
 
 				# map
@@ -112,7 +114,7 @@ class Param:
 				# customer model
 				self.cm_sigma = 0.05
 				# self.cm_speed = 0.2
-				self.n_customers_per_time = 3
+				self.n_customers_per_time = 1
 
 			# customer model
 			self.cm_linear_move = True
@@ -120,29 +122,29 @@ class Param:
 				self.cm_ng = 1
 				self.cm_sigma = 0.0005
 				self.cm_speed = 0.1 # 1/10 taxi speed?
-				self.cm_nsample_cm = 100
-				self.n_training_data = 100
 			else:
 				self.cm_ng = 1
 				self.cm_sigma = 0.0005 #0.1 # ~1/4 env dx -> 2 sigma rule within a dx
 				self.cm_speed = 0.1 # 1/10 taxi speed?
 				self.cm_nsample_cm = 100
-				self.n_training_data = 100
-
+		
+			self.n_training_data = 100
+			self.cm_nsample_cm = 100
+			
 			# estimation
 			self.p0 = 0.0001 
 
 			# learning rate
-			self.td_alpha = 0.5
+			self.td_alpha = 0.75 #0.5
 
 			# mdp 
-			self.lambda_r = 0.1 #0.1
-			self.mdp_gamma = 0.8
+			self.lambda_r = 0.2 #0.1
+			self.mdp_gamma = 0.9 # 0.8 # 0.8 
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.ta_beta = 150 # 150.
+			self.ta_beta = 1 # 150 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
