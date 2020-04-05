@@ -397,11 +397,20 @@ def render(controller_name,sim_result, time):
 	param = sim_result["param"]	
 	agent_colors = get_agent_colors(param["ni"])
 
+	# subplot 1: agents/customers
+
 	# plot customers
 
-	# plot servicing agents
+	# plot servicing agents and free agents
+	service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+	x = np.linspace(0,1,param["ni"])
+	curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=x[service_agent_idx],cmap=agent_colors[1])
+	curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=x[~service_agent_idx],cmap=agent_colors[0])
 
 	# plot free agents
+
+	# subplot 2: value function 
+
 
 	pass 
 
@@ -587,8 +596,6 @@ def get_marker_color_dicts(param):
 	count = 0
 
 	for key in param["controller_names"]:
-		# dispatch = controller_name[0]
-		# ta = controller_name[1]
 		marker_dict[key] = param["plot_markers"][count]
 		color_dict[key] = param["plot_colors"][count]
 		count += 1 

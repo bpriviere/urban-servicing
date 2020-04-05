@@ -42,8 +42,8 @@ def run_instance(param):
 		# initial condition
 		s0 = env.get_s0()
 
-		for (dispatch,task_assignment) in param.controller_names:
-			controller = Controller(param,env,dispatch,task_assignment)
+		for controller_name in param.controller_names:
+			controller = Controller(param,env,controller_name)
 		
 			# sim 
 			sim_result = sim(param,env,controller,s0)

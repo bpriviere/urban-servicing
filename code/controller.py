@@ -9,7 +9,7 @@ from baseline import centralized_linear_program
 
 
 class Controller():
-	def __init__(self,param,env,dispatch,task_assignment):
+	def __init__(self,param,env,dispatch):
 		self.param = param
 		self.env = env
 
@@ -19,33 +19,24 @@ class Controller():
 		elif dispatch in ['random']:
 			self.dispatch_name = 'random'
 			self.dispatch = self.random
-		elif dispatch in ['htd']:
+		elif dispatch in ['H-TD^2']:
 			self.dispatch_name = 'htd'
 			self.dispatch = self.htd
-			self.name = 'H-TD^2'
-		elif dispatch in ['dtd']:
+		elif dispatch in ['D-TD']:
 			self.dispatch_name = 'dtd'
 			self.dispatch = self.dtd
-			self.name = 'D-TD'
-		elif dispatch in ['ctd']:
+		elif dispatch in ['C-TD']:
 			self.dispatch_name = 'ctd'
 			self.dispatch = self.ctd
-			self.name = 'C-TD'
-		elif dispatch in ['rhc']:
+		elif dispatch in ['RHC']:
 			self.dispatch_name = 'rhc'
 			self.dispatch = self.rhc
-			self.name = 'RHC'
-		elif dispatch in ['bellman']:
+		elif dispatch in ['Bellman']:
 			self.dispatch_name = 'bellman'
 			self.dispatch = self.bellman
-			self.name = 'Bellman'
 
-		if task_assignment in ['clp']:
-			self.ta_name = 'clp'
-			self.ta = centralized_linear_program
-		elif task_assignment in ['blll']:
-			self.ta_name = 'blll'
-			self.ta = binary_log_learning
+		self.ta = binary_log_learning
+		self.name = dispatch
 
 	# ------------ simulator -------------
 
