@@ -391,7 +391,12 @@ def sim_plot_over_time(controller_name,sim_result,times):
 			sim_plot(controller_name, sim_result, timestep, fig=fig, agent_colors=agent_colors)
 
 
-def render(controller_name,sim_result, time):
+def render(controller_name,sim_result,timestep):
+
+
+	fig = plt.figure()
+	ax1 = fig.add_subplot(1,2,1)
+	ax2 = fig.add_subplot(1,2,2)
 
 	# 
 	param = sim_result["param"]	
@@ -400,19 +405,46 @@ def render(controller_name,sim_result, time):
 	# subplot 1: agents/customers
 
 	# plot customers
+	customer_color = 'green'
+	customer_locations = sim_result["customers_location"][timestep]
+	print('customer_locations:',customer_locations)
+	if len(customer_locations) > 0:
+		ax1.scatter(customer_locations[:,0],customer_locations[:,1],color=customer_color)
 
 	# plot servicing agents and free agents
-	service_agent_idx = np.asarray(results["agents_operation"][timestep],dtype=bool)
+	service_agent_idx = np.asarray(sim_result["agents_operation"][timestep],dtype=bool)
 	x = np.linspace(0,1,param["ni"])
-	curr_ax.scatter(locs[service_agent_idx,0],locs[service_agent_idx,1],c=x[service_agent_idx],cmap=agent_colors[1])
-	curr_ax.scatter(locs[~service_agent_idx,0],locs[~service_agent_idx,1],c=x[~service_agent_idx],cmap=agent_colors[0])
-
-	# plot free agents
+	agent_locs = sim_result["agents_location"][timestep]
+	ax1.scatter(agent_locs[service_agent_idx,0],agent_locs[service_agent_idx,1],c=x[service_agent_idx],cmap=agent_colors[1])
+	ax1.scatter(agent_locs[~service_agent_idx,0],agent_locs[~service_agent_idx,1],c=x[~service_agent_idx],cmap=agent_colors[0])
 
 	# subplot 2: value function 
+	agent_idx = 0 
+	im_to_plot = sim_result["agents_value_fnc_distribution"][timestep][agent_idx]
+	im = ax2.imshow(sim_to_im_coordinate(im_to_plot),
+		vmin=0,vmax=1,cmap='gray_r',
+		extent=[param["env_xlim"][0],param["env_xlim"][1],param["env_ylim"][0],param["env_ylim"][1]])
+
+	# some axis stuff 
+	ax1.set_xticks(param["env_x"]) 
+	ax1.set_yticks(param["env_y"]) 
+	ax1.set_xlim(param["env_xlim"])
+	ax1.set_ylim(param["env_ylim"])
+	ax1.set_aspect('equal')
+	ax1.grid(True)
+	plt.setp(ax1.get_xticklabels(), visible=False)
+	plt.setp(ax1.get_yticklabels(), visible=False)
+
+	ax2.set_xticks(param["env_x"]) 
+	ax2.set_yticks(param["env_y"]) 
+	ax2.set_xlim(param["env_xlim"])
+	ax2.set_ylim(param["env_ylim"])
+	ax2.set_aspect('equal')
+	ax2.grid(True)	
+	plt.setp(ax2.get_xticklabels(), visible=False)
+	plt.setp(ax2.get_yticklabels(), visible=False)
 
 
-	pass 
 
 
 
@@ -601,66 +633,6 @@ def get_marker_color_dicts(param):
 		count += 1 
 	return marker_dict,color_dict
 
-
-# def plot_runtime_vs_state_space(sim_results):
-
-# 	# init dict 
-# 	sim_results_by_controller_and_param = dict()
-# 	for sim_result in sim_results:
-# 		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
-# 		if not key in sim_results_by_controller_and_param.keys():
-# 			sim_results_by_controller_and_param[key] = []
-
-# 	sim_results_by_controller = dict()
-# 	for sim_result in sim_results:
-# 		key = sim_result["controller_name"]
-# 		if not key in sim_results_by_controller.keys():
-# 			sim_results_by_controller[key] = []
-
-# 	# get ni array
-# 	sizeS_set = set()
-# 	for sim_result in sim_results:
-# 		sizeS_set.add(sim_result["param"]["env_ncell"])
-# 	np_sizeS = np.asarray(list(sizeS_set))
-
-# 	# get marker and color dict 
-# 	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
-
-# 	# load data
-# 	for sim_result in sim_results:
-# 		key = (sim_result["controller_name"],sim_result["param"]["env_dx"])
-# 		sim_results_by_controller_and_param[key].append(sim_result["sim_run_time"])
-# 	n_ntrials = len(sim_results_by_controller_and_param[key])
-	
-# 	# load data again 
-# 	for (controller_name, env_dx), sim_results in sim_results_by_controller_and_param.items():
-# 		sim_results_by_controller[controller_name].append(sim_results)
-
-# 	fig,ax = make_fig()
-# 	for controller_name,rt_values in sim_results_by_controller.items():
-
-# 		# after transpose: axis 1: across varied_parameter, axis 0: across trials 
-# 		np_rt = np.asarray(rt_values)
-# 		np_rt = np_rt.T
-
-# 		# 
-
-
-# 		np_rt_mean = np.mean(np_rt,axis=0)
-# 		ax.plot( np_sizeS, np_rt_mean, 
-# 			color = color_dict[controller_name], 
-# 			marker = marker_dict[controller_name], 
-# 			label = controller_name)
-		
-# 		if np_rt.shape[0] > 1:
-# 			np_rt_std = np.std(np_rt,axis=0)
-# 			print('controller {} std {}'.format(controller_name,np_rt_std))
-# 			ax.fill_between(np_sizeS,np_rt_mean-np_rt_std,np_rt_mean+np_rt_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
-
-# 	ax.legend()
-# 	ax.set_ylabel('Runtime')
-# 	ax.set_xlabel('Number of Cells')
-# 	ax.set_xticks(np_sizeS)
 
 
 def plot_runtime_vs_number_of_agents(sim_results):
@@ -876,52 +848,3 @@ def plot_runtime_vs_state_space(sim_results):
 		ax.errorbar(plot_ncell, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ncell,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	ax.legend()
-
-
-
-
-# def render(self,title=None):
-	
-# 	curr_time=self.param.sim_times[self.timestep]
-
-# 	fig,ax = plotter.make_fig()
-# 	ax.set_xticks(self.param.env_x)
-# 	ax.set_yticks(self.param.env_y)
-# 	ax.set_xlim(self.param.env_xlim)
-# 	ax.set_ylim(self.param.env_ylim)
-# 	ax.set_aspect('equal')
-# 	if title is None:
-# 		ax.set_title('t={}/{}'.format(curr_time,self.param.sim_times[-1]))
-# 	else:
-# 		ax.set_title(title)
-# 	ax.grid(True)
-
-# 	# state space
-# 	for agent in self.agents:
-		
-# 		color = self.param.plot_agent_mode_color[agent.mode]
-# 		plotter.plot_circle(agent.x,agent.y,self.param.plot_r_agent,fig=fig,ax=ax,color=color)
-		
-# 		if agent.i == 0:
-# 			plotter.plot_dashed(agent.x,agent.y,self.param.r_comm,fig=fig,ax=ax,color=color)
-	
-# 		if True:
-# 			# dispatch 
-# 			if agent.mode == 0 and self.param.plot_arrows_on and self.timestep > 0:
-# 				if hasattr(agent,'dispatch'):
-# 					dx = agent.dispatch.x - agent.x
-# 					dy = agent.dispatch.y - agent.y
-# 					plotter.plot_arrow(agent.x,agent.y,dx,dy,fig=fig,ax=ax,color=color)
-
-# 			# servicing 
-# 			elif False: #agent.mode == 1:
-# 				if curr_time < agent.pickup_finish_time:
-# 					square_pickup = plotter.plot_rectangle(agent.service.x_p, agent.service.y_p,\
-# 						self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
-# 					line_to_pickup = plotter.plot_line(agent.x,agent.y,agent.service.x_p,agent.service.y_p,\
-# 						fig=fig,ax=ax,color=self.param.plot_customer_color)
-# 				elif curr_time < agent.dropoff_finish_time:
-# 					square_dropoff = plotter.plot_rectangle(agent.service.x_d, agent.service.y_d,\
-# 						self.param.plot_r_customer,fig=fig,ax=ax,color=self.param.plot_customer_color)
-# 					line_to_dropoff = plotter.plot_line(agent.x,agent.y,agent.service.x_d,agent.service.y_d,\
-# 						fig=fig,ax=ax,color=self.param.plot_customer_color)
