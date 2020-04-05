@@ -151,16 +151,11 @@ if __name__ == '__main__':
 				plotter.sim_plot_over_time(controller_name,sim_result,times)
 		else:
 			for sim_result in sim_results:
-				import matplotlib.pyplot as plt 
-				timestep = 0 
-				fig = plt.figure()
-				if sim_result["param"]["env_name"] in 'citymap':
-					city_boundary = plotter.make_city_boundary(sim_result["param"])
-					plotter.sim_plot(sim_result["controller_name"],sim_result,timestep,fig=fig,city_boundary=city_boundary)
-				else:
-					plotter.sim_plot(sim_result["controller_name"],sim_result,timestep,fig=fig)
+				timestep = 15
+				controller_name = sim_result["controller_name"]
+				plotter.render(controller_name,sim_result,timestep)
 				break
-
+				
 		# 	- plot reward
 		plotter.plot_cumulative_reward(sim_results)
 
