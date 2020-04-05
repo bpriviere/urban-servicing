@@ -22,18 +22,23 @@ class Controller():
 		elif dispatch in ['htd']:
 			self.dispatch_name = 'htd'
 			self.dispatch = self.htd
+			self.name = 'H-TD^2'
 		elif dispatch in ['dtd']:
 			self.dispatch_name = 'dtd'
 			self.dispatch = self.dtd
+			self.name = 'D-TD'
 		elif dispatch in ['ctd']:
 			self.dispatch_name = 'ctd'
 			self.dispatch = self.ctd
+			self.name = 'C-TD'
 		elif dispatch in ['rhc']:
 			self.dispatch_name = 'rhc'
 			self.dispatch = self.rhc
+			self.name = 'RHC'
 		elif dispatch in ['bellman']:
 			self.dispatch_name = 'bellman'
 			self.dispatch = self.bellman
+			self.name = 'Bellman'
 
 		if task_assignment in ['clp']:
 			self.ta_name = 'clp'
@@ -41,9 +46,6 @@ class Controller():
 		elif task_assignment in ['blll']:
 			self.ta_name = 'blll'
 			self.ta = binary_log_learning
-
-		self.name = self.dispatch_name
-		
 
 	# ------------ simulator -------------
 
@@ -142,24 +144,6 @@ class Controller():
 			td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
 			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
 
-		# temporal difference
-		alpha = self.param.td_alpha
-		for agent in self.env.agents:
-			td_error = r_kp1[:,agent.i]+self.param.mdp_gamma*np.dot(Pq_k[:,:,agent.i],q_k[:,agent.i])-q_k[:,agent.i]
-			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
-
-		# old / buggy 
-		# # kalman gain 
-		# p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
-
-		# # reward estimation 
-		# for agent_i in self.env.agents:
-		# 	update_i = np.zeros((self.param.nq))
-		# 	for agent_j in self.env.agents:
-		# 		if A_k[agent_i.i,agent_j.i] > 0:
-		# 			update_i += (K_kp1[:,:,agent_j.i] * H_kp1[:,agent_j.i] * (z_kp1[:,agent_j.i] - r_k[:,agent_i.i])).squeeze()
-		# 	r_kp1[:,agent_i.i] = r_k[:,agent_i.i] + update_i 
-
 		# update agents
 		for agent in self.env.agents:
 			agent.r = r_kp1[:,agent.i]
@@ -197,9 +181,6 @@ class Controller():
 
 		# get adjacency matrix 
 		A_k = self.make_adjacency_matrix()
-
-		# kalman gain 
-		# p_kp1,K_kp1 = self.kalman(p_k,H_kp1,A_k)
 
 		# dtd 
 		print('dkif...')

@@ -19,9 +19,9 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 2
+		self.n_trials = 5
 		self.htd_time_window = 10
-		self.htd_minimum_reset = 5
+		self.htd_minimum_reset = 10
 		self.rhc_horizon = 10
 		self.delta_d_ratio = 0.05
 
@@ -42,7 +42,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 30
+			self.sim_tf = 50
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -52,12 +52,12 @@ class Param:
 				# this one 
 
 				# fleet 
-				self.ni = 20
+				self.ni = 20 # 20 
 
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
 				self.cm_sigma_ratio = 0.5 # std = sigma_ratio * env_dx 
-				self.cm_ng = 1
+				self.cm_ng = 2 # 1
 				self.cm_speed_ratio = 0.1 # speed = speed_ratio * taxi speed 
 				self.n_customers_per_time_ratio = 0.1 # 0.2 
 				self.cm_linear_move = False 
@@ -65,8 +65,8 @@ class Param:
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
 				self.desired_env_ncell = 100 #5*self.ni # 2
-				self.desired_aspect_ratio = 2.0 # numx/numy
-				self.desired_swarm_param = 1.2
+				self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
+				self.desired_swarm_param = 2.0 # 1.2 
 
 
 			elif self.swarm_parameters_ver == 4:

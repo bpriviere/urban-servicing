@@ -636,25 +636,32 @@ class Env():
 					self.lambda_min[agent_i.i,self.timestep] = 1.0 
 	
 		# moving average
-		if True:
+		moving_average = True
+		if moving_average:
+
+			# if within reset horizon 
 			if self.timestep < self.reset_timestep + self.param.htd_time_window:
 				idx = np.arange(self.timestep+1)
 			else:
-				idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window+1)
+				idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window)
 
 			ave_lambda_min = np.mean(self.lambda_min[:,idx],axis=1)
 			contraction = np.sqrt(1 - np.min(ave_lambda_min))
+
+			# if contraction == 1:
+			# 	print('self.timestep:',self.timestep)
+			# 	print('idx:',idx)
+			# 	print('self.lambda_min[:,idx]:',self.lambda_min[:,idx])
+				# exit()
 	
 		# no moving average
 		else:
-			print('self.lambda_min[:,self.timestep]',self.lambda_min[:,self.timestep])
-			print('np.min(self.lambda_min[:,self.timestep])',np.min(self.lambda_min[:,self.timestep]))
-			contraction = np.sqrt(1 - np.min(self.lambda_min[:,self.timestep]))
+			contraction = np.sqrt(1.0 - np.min(self.lambda_min[:,self.timestep]))
 
 		delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/((1-self.param.mdp_gamma)*(1-contraction))
 
 		if np.isnan(delta_e):
-			print(1 - np.min(self.lambda_min[:,self.timestep]))			
+			print('delta_e: ', delta_e)
 			exit()
 		
 		return delta_e

@@ -147,7 +147,8 @@ if __name__ == '__main__':
 		if default_param.plot_sim_over_time:
 			for sim_result in sim_results:
 				controller_name = sim_result["controller_name"]
-				plotter.sim_plot_over_time(controller_name,sim_result)
+				times = sim_result["times"]
+				plotter.sim_plot_over_time(controller_name,sim_result,times)
 		else:
 			for sim_result in sim_results:
 				import matplotlib.pyplot as plt 

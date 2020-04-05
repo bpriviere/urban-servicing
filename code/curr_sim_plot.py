@@ -22,17 +22,18 @@ for sim_result_dir in glob.glob('../current_results/*'):
 	# 	break 
 	sim_results.append(sim_result)
 
-# print('plotting sim results...')
-# for sim_result in sim_results:
-# 	controller_name = sim_result["controller_name"]
-# 	if False:
-# 		plotter.sim_plot_over_time(controller_name,sim_result)
-# 	else:
-# 		for timestep,time in enumerate(sim_result["times"]):
-# 			if np.mod(timestep,1) == 0:
-# 				fig = plt.figure()
-# 				plotter.sim_plot(controller_name, sim_result, timestep, fig=fig)
-# 				break 
+print('plotting sim results...')
+for sim_result in sim_results:
+	controller_name = sim_result["controller_name"]
+
+	full_time = False
+	if full_time:
+		times = sim_result["times"] 
+	else:
+		times = [0]
+
+	plotter.sim_plot_over_time(controller_name,sim_result,times)
+	
 	
 plotter.plot_cumulative_reward(sim_results)
 plotter.plot_q_error(sim_results)

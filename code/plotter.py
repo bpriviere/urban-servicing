@@ -376,19 +376,36 @@ def plot_distribution_over_time(results,env):
 	for timestep,time in enumerate(results.times):
 		plot_distribution(results, timestep, env)
 
-def sim_plot_over_time(controller_name,sim_result):
+def sim_plot_over_time(controller_name,sim_result,times):
 	
 	param = sim_result["param"]
 	agent_colors = get_agent_colors(param["ni"])
 	if param["env_name"] in 'citymap':
 		city_boundary = make_city_boundary(param)
-		for timestep,time in enumerate(sim_result["times"]):
+		for timestep,time in times:
 			fig = plt.figure()
 			sim_plot(controller_name, sim_result, timestep, fig=fig, city_boundary=city_boundary)
 	else:
-		for timestep,time in enumerate(sim_result["times"]):
+		for timestep,time in times:
 			fig = plt.figure()
 			sim_plot(controller_name, sim_result, timestep, fig=fig, agent_colors=agent_colors)
+
+
+def render(controller_name,sim_result, time):
+
+	# 
+	param = sim_result["param"]	
+	agent_colors = get_agent_colors(param["ni"])
+
+	# plot customers
+
+	# plot servicing agents
+
+	# plot free agents
+
+	pass 
+
+
 
 def get_agent_colors(ni):
 
@@ -569,10 +586,9 @@ def get_marker_color_dicts(param):
 	color_dict = dict()
 	count = 0
 
-	for controller_name in param["controller_names"]:
-		dispatch = controller_name[0]
-		ta = controller_name[1]
-		key = dispatch # + ' with ' + ta
+	for key in param["controller_names"]:
+		# dispatch = controller_name[0]
+		# ta = controller_name[1]
 		marker_dict[key] = param["plot_markers"][count]
 		color_dict[key] = param["plot_colors"][count]
 		count += 1 
