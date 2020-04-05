@@ -395,8 +395,8 @@ def render(controller_name,sim_result,timestep):
 
 
 	fig = plt.figure()
-	ax1 = fig.add_subplot(1,2,1)
-	ax2 = fig.add_subplot(1,2,2)
+	ax1 = fig.add_subplot(2,1,1)
+	ax2 = fig.add_subplot(2,1,2)
 
 	# 
 	param = sim_result["param"]	
@@ -407,7 +407,7 @@ def render(controller_name,sim_result,timestep):
 	# plot customers
 	customer_color = 'green'
 	customer_locations = sim_result["customers_location"][timestep]
-	print('customer_locations:',customer_locations)
+	# print('customer_locations:',customer_locations)
 	if len(customer_locations) > 0:
 		ax1.scatter(customer_locations[:,0],customer_locations[:,1],color=customer_color)
 

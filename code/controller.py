@@ -354,7 +354,7 @@ class Controller():
 		for agent,cell in cell_assignments:
 			i = np.where(transition[cell,self.env.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
 			
-			if False:
+			if True:
 				x,y = self.env.random_position_in_cell(i)
 			else:
 				x,y = self.env.cell_index_to_cell_coordinate(i)

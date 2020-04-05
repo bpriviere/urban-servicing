@@ -11,6 +11,7 @@ from param import Param
 default_param = Param()
 desired_controller = 'ctd'
 desired_control_on = False
+full_time = True
 
 # load sim results 
 sim_results = [] # lst of dicts
@@ -22,31 +23,29 @@ for sim_result_dir in glob.glob('../current_results/*'):
 		if desired_controller in sim_result["controller_name"]:
 			sim_results.append(sim_result)
 			break 
-
 	else:
 		sim_results.append(sim_result)
 
-controller_name = sim_result["controller_name"]
-sim_result = sim_results[0]
-timestep = 20
-plotter.render(controller_name,sim_result,timestep)
 
-# exit()
+print('plotting sim results...')
+for sim_result in sim_results:
+	controller_name = sim_result["controller_name"]
 
-# print('plotting sim results...')
-# for sim_result in sim_results:
-# 	controller_name = sim_result["controller_name"]
+	if full_time:
+		times = sim_result["times"] 
+	else:
+		times = [0]
 
-# 	full_time = False
-# 	if full_time:
-# 		times = sim_result["times"] 
-# 	else:
-# 		times = [0]
+	for timestep,time in enumerate(times):
 
-# 	plotter.sim_plot_over_time(controller_name,sim_result,times)
+		if np.mod(timestep,5) == 0: 
+			print('timestep: ',timestep)
+			plotter.render(controller_name,sim_result,timestep)
 	
+	break
 
-# plotter.plot_cumulative_reward(sim_results)
+	
+plotter.plot_cumulative_reward(sim_results)
 # plotter.plot_q_error(sim_results)
 
 print('saving and opening results...')
