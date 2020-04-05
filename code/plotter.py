@@ -527,7 +527,8 @@ def plot_cumulative_reward(sim_results):
 		plot_cumulative_reward_w_trials(sim_results,ax=ax,label=controller_name)
 
 	ax.legend()
-	ax.set_ylabel('Cumulative Reward')
+	# ax.set_ylabel('Cumulative Reward')
+	ax.set_ylabel('Cumulative Customer Waiting Time')
 	ax.set_xlabel('Time')
 
 
@@ -539,7 +540,14 @@ def plot_cumulative_reward_w_trials(sim_results,ax=None,label=None):
 	rewards = []
 	for sim_result in sim_results:
 		rewards.append(sim_result["rewards"]) 
-	rewards = np.asarray(rewards)
+
+	if False:
+		# old 
+		rewards = np.asarray(rewards)
+	else:
+		# new
+		rewards = -1*np.asarray(rewards)
+	
 	rewards = np.cumsum(rewards,axis=1)
 
 	# get some general parameters
@@ -553,6 +561,7 @@ def plot_cumulative_reward_w_trials(sim_results,ax=None,label=None):
 	# plot
 	ax.plot(times,mean,label=label,color=color_dict[label]) 
 	ax.fill_between(times,mean-std,mean+std,facecolor=color_dict[label],linewidth=1e-3,alpha=0.2)
+	ax.grid(True)
 
 def get_marker_color_dicts(param):
 	# assign markers by controller
@@ -563,7 +572,7 @@ def get_marker_color_dicts(param):
 	for controller_name in param["controller_names"]:
 		dispatch = controller_name[0]
 		ta = controller_name[1]
-		key = dispatch + ' with ' + ta
+		key = dispatch # + ' with ' + ta
 		marker_dict[key] = param["plot_markers"][count]
 		color_dict[key] = param["plot_colors"][count]
 		count += 1 
@@ -757,26 +766,39 @@ def plot_q_error(sim_results):
 			controller_values_np = np.asarray(controller_values)
 			ntrials = controller_values_np.shape[0]
 
+			# take average q error per (s,a) pair 
 			# [ntrials,nt,ni,nq] -> [ntrials,nt,ni]
 			nq = sim_result["param"]["nq"]
 			error = np.linalg.norm((controller_values_np - q_bellman)/q_bellman/nq, axis=3)
 			# error = np.linalg.norm((controller_values_np - q_bellman), axis=3)
+
+			# average across agents 
 			# [ntrials,nt,ni] -> [ntrials,nt]
 			error = np.mean(error,axis=2)
-			# [ntrials,nt] -> [nt]
-			error_mean = np.mean(error,axis=0)
-			error_std = np.std(error,axis=0)
+			
+			plot_trial_statistics_on = False
+			if plot_trial_statistics_on:
+				# take statistics across trials 
+				# [ntrials,nt] -> [nt]
+				error_mean = np.mean(error,axis=0)
+				error_std = np.std(error,axis=0)
 
-			ax.plot(times,error_mean,
-				color=color_dict[controller_name], 
-				label=controller_name)
-			ax.errorbar(times, error_mean, 
-				yerr=error_std, 
-				color=color_dict[controller_name], 
-				linewidth=1e-3)
-			ax.fill_between(times,error_mean-error_std,error_mean+error_std,
-				facecolor=color_dict[controller_name],
-				linewidth=1e-3,alpha=0.2)
+				ax.plot(times,error_mean,
+					color=color_dict[controller_name], 
+					label=controller_name)
+				ax.errorbar(times, error_mean, 
+					yerr=error_std, 
+					color=color_dict[controller_name], 
+					linewidth=1e-3)
+				ax.fill_between(times,error_mean-error_std,error_mean+error_std,
+					facecolor=color_dict[controller_name],
+					linewidth=1e-3,alpha=0.2)
+			else:
+				trial_num = 1
+				error = error[trial_num,:]
+				ax.plot(times,error,
+					color=color_dict[controller_name], 
+					label=controller_name)
 
 	ax.set_title('Q MSE')
 	ax.legend()

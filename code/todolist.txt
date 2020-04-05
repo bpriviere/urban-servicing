@@ -3,77 +3,53 @@
 
 todo list:
 
-	htd
-		- debug to match dtd output
-		- add condition
-		- check with bellman
+	4/5:
+		- make a good render plot, include in paper
+		- make a good micro sim plot, include in paper
+		- make a good q error plot, include in paper
+		- make a good macro sim plot, ni vs average customer wait time, include in paper 
+		- make a citymap simulation, include in paper
+		- make a citymap heatmap, include in paper 
+		- results discussion 
+		- send to wg 
 
-	rhc baseline with LP 
-
-	clean code (search for temp and todo )
-
-	normalization 
-	local reward implementation 
-
-	sjc comments: 
-		- proof in step 1 step 2
-		- variation in color 
-
-	create gridworld sim smallworld 
-		- check if reward is best choice.... 
-			- bellman error should make sense
-			- bellman > ctd > dtd in sim 
-		- local reward 
-		- debug max
-		
-	faster plot 
-	develop uniform baseline
-	make htd algorithm 
-
-	nice to have
-		- how to encorporate traffic ?? 
-		- distributed auction task assignment ??
-		- app token? 
-		- profile code 
-		- refactoring
-			- put render in plotter 
-			- clean 
-	
-	experiments
-		- micro: 
-			- exp1. cumulative reward for different algorithms with standard deviation plots  
-			- exp2. gif of evolving simulation - > data generating 
-			- largescale sim -> one trial one algorithm, 1000 agents
-			- learning rate experiment? 
-		- macro: 
-			- exp3. plot reward across number of agents (is this important??) 
-			- exp3. plot reward for increasing r-comm 
-			- exp4. change |S| and compare runtime of sims 
-			- exp5. change ni and compare runtimes 
-			- plot amount of data being broadcast?? 
+	4/6 
+		- fix baseline 
+		- make figure 2 
+		- cover letter 
 
 
-	prepare revision report for sjc (due wednesday):
-		- comments: 
-			- simulation
-				- (1) more agents 
-				- (2) customer waiting time reward
-				- (5) baseline 
-			- writing 
-				- (3) not clear
-				- (4) lit review
-		- need his help: proof 
-			- remove dependency on number of agents in consensus error 
-		- show him: 
-			- figs addressing (1),(2),(5)
-			- gif 
-			- a figure 1 for (3)
-			- psuedocode for algorithms for (3)
-
-	writeup
-		- edit proof ?? oh god i hope not... ah ah ah
-		- review the game theory part 
-		- make fig 1 
+	old 
+		rhc baseline with LP 
+		clean code (search for temp and todo )
+		normalization 
+		local reward implementation 
+		sjc comments: 
+			- proof in step 1 step 2
+			- variation in color 
+		create gridworld sim smallworld 
+			- check if reward is best choice.... 
+				- bellman error should make sense
+				- bellman > ctd > dtd in sim 
+			- local reward 
+			- debug max
+		faster plot 
+		develop uniform baseline
+		experiments
+			- micro: 
+				- exp1. cumulative reward for different algorithms with standard deviation plots  
+				- exp2. gif of evolving simulation - > data generating 
+				- largescale sim -> one trial one algorithm, 1000 agents
+				- learning rate experiment? 
+			- macro: 
+				- exp3. plot reward across number of agents (is this important??) 
+				- exp3. plot reward for increasing r-comm 
+				- exp4. change |S| and compare runtime of sims 
+				- exp5. change ni and compare runtimes 
+				- plot amount of data being broadcast?? 
+		writeup
+			- review the game theory part 
+			- make fig 2
 
 	
 done: 

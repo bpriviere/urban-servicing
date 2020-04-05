@@ -243,10 +243,22 @@ class Env():
 		# normalize q first for numerical stability 
 		q = (q[idxs] - min(q[idxs]))/(max(q[idxs])-min(q[idxs]))
 
+		# boltzman eq # check dimensionality of this thing 
+		pi = np.exp(self.param.ta_beta*q) / sum(np.exp(self.param.ta_beta*(q)))
+		
+		return pi
+
+	def global_boltzmann_policy(self,q):
+		# which action should agent take 
+
+		# normalize q first for numerical stability 
+		q = (q - min(q))/(max(q)-min(q))
+
 		# boltzman eq 
 		pi = np.exp(self.param.ta_beta*q) / sum(np.exp(self.param.ta_beta*(q)))
 		
 		return pi
+
 
 	# MDP
 	def get_next_state(self,s,a):
@@ -334,8 +346,8 @@ class Env():
 		time_s_to_sp = self.eta(sx,sy,spx,spy)
 		time_sp_to_c = self.eta(spx,spy,px,py)
 
-		reward = -1*(time_s_to_sp + time_sp_to_c)
-		# reward = 1/(time_s_to_sp + time_sp_to_c)
+		# reward = -1*(time_s_to_sp + time_sp_to_c)
+		reward = 1/(time_s_to_sp + time_sp_to_c)
 
 		# temp
 		# reward = -1*(time_s_to_sp + time_sp_to_c) * 100
@@ -464,10 +476,10 @@ class Env():
 
 			i_x,i_y = self.cell_index_to_grid_index_map[s]
 			
-			# 'empty' action  
+			# 'empty' action 0
 			P[0,s,s] = 1.
 
-			# 'right' action
+			# 'right' action 1 
 			i_x_tp1, i_y_tp1 = (i_x+1,i_y)
 			try:
 				# this will fail if 
@@ -478,7 +490,7 @@ class Env():
 			except:
 				P[1,s,s] = 1.
 
-			# 'up' action
+			# 'up' action 2
 			i_x_tp1, i_y_tp1 = (i_x,i_y+1)
 			try:
 				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
@@ -486,7 +498,7 @@ class Env():
 			except:
 				P[2,s,s] = 1.
 
-			# 'left' action
+			# 'left' action 3
 			i_x_tp1, i_y_tp1 = (i_x-1,i_y)
 			if i_x_tp1 >= 0:
 				try:
@@ -497,7 +509,7 @@ class Env():
 			else:
 				P[3,s,s] = 1.
 
-			# 'down' action
+			# 'down' action 4
 			i_x_tp1, i_y_tp1 = (i_x,i_y-1)
 			if i_y_tp1 >= 0:				
 				try:

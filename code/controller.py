@@ -5,6 +5,7 @@ import numpy as np
 # my packages
 from helper_classes import Dispatch, Service, Empty
 from task_assignment import centralized_linear_program, binary_log_learning
+from baseline import centralized_linear_program
 
 
 class Controller():
@@ -41,7 +42,7 @@ class Controller():
 			self.ta_name = 'blll'
 			self.ta = binary_log_learning
 
-		self.name = self.dispatch_name + ' with ' + self.ta_name 
+		self.name = self.dispatch_name
 		
 
 	# ------------ simulator -------------
@@ -52,12 +53,12 @@ class Controller():
 		# - observation is a list of customer requests, passed by reference (so you can remove customers when serviced)
 		# - customer request: [time_of_request,time_to_complete,x_p,y_p,x_d,y_d], np array
 		# output: 
-		# - action list
+		# - action list of dispatch position vectors 
 
 		# action:
 		# - if currently servicing customer: continue
 		# - elif: closest agent to some 
-		# - else: dispatch action chosen using some algorithm (d-td, c-td, RHC)
+		# - else: dispatch action chosen using some algorithm (d-td, c-td, RHC, etc)
 
 
 		# agent modes:
@@ -291,13 +292,40 @@ class Controller():
 	def rhc(self,agents):
 		# receding horizon control 
 		
-		# no update
-		print('rhc...')
+		if True: 
+			# old 
+			# no update
+			print('rhc...')
 
-		# task assignment 
-		print('ta...')
-		cell_assignments = self.ta(self.env,agents)
-		
+			# task assignment 
+			print('ta...')
+			cell_assignments = self.ta(self.env,agents)
+
+		else:
+
+			# get stuff 
+			r_k = np.zeros((self.param.nq,self.param.ni))
+			p_k = np.zeros((1,self.param.ni))
+			r_kp1 = np.zeros((self.param.nq,self.param.ni))
+			for agent in self.env.agents:
+				r_k[:,agent.i] = agent.r 
+				p_k[:,agent.i] = agent.p 
+
+			# measurements 
+			z_kp1,H_kp1 = self.get_measurements()
+
+			# estimate reward
+			print('ckif...')
+			r_kp1,p_kp1,K_kp1 = self.ckif(r_k,p_k,z_kp1,H_kp1)	
+
+			# update agents
+			for agent in self.env.agents:
+				agent.r = r_kp1
+				agent.p = p_kp1
+
+			# new
+			cell_assignments = centralized_linear_program(self.env,agents)
+
 		# assignment 
 		move_assignments = self.cell_to_move_assignments(cell_assignments)
 		
