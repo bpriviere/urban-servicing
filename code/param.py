@@ -19,19 +19,18 @@ class Param:
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
-		self.n_trials = 5
+		self.n_trials = 1
 		self.htd_time_window = 10
 		self.htd_minimum_reset = 10
 		self.rhc_horizon = 10
 		self.delta_d_ratio = 0.05
 
 		self.controller_names = [
-			['dtd','blll'],
-			['htd','blll'],
-			['ctd','blll'],
-			['bellman','blll'],
-			['rhc','blll'],
-			# ['rhc','clp'],
+			'D-TD',
+			# 'H-TD',
+			# 'C-TD',
+			# 'Bellman',
+			# 'RHC'
 			]
 
 		# environment parameters
@@ -42,7 +41,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 1
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
