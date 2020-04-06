@@ -585,7 +585,7 @@ class Controller():
 		# 	- H_kp1 : measurement model for each agent, numpy in 1 x ni 
 
 		z_kp1 = np.zeros((self.param.nq, self.param.ni))
-		H_kp1 = np.zeros((1,self.param.nq))
+		H_kp1 = np.zeros((1,self.param.ni))
 
 		for agent in self.env.agents:
 			
