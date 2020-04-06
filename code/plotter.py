@@ -694,9 +694,11 @@ def plot_runtime_vs_number_of_agents(sim_results):
 		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
+	ax.set_xticks(plot_ni, True) # set minor ticks
 	ax.set_xlabel('Number of Taxis')
 	ax.set_ylabel('Simulation Runtime [s]')
-	ax.set_yscale('log')
+	ax.set_xscale('log')
+	ax.grid(True)
 	ax.legend()
 
 
@@ -752,9 +754,11 @@ def plot_totalreward_vs_number_of_agents(sim_results):
 		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
+	ax.set_xticks(plot_ni, True) # set minor ticks
 	ax.set_xlabel('Number of Taxis')
 	ax.set_ylabel('Average Customer Waiting Time')
-	ax.set_yscale('log')
+	ax.set_xscale('log')
+	ax.grid(True)
 	ax.legend()
 
 
