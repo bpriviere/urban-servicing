@@ -4,23 +4,17 @@
 todo list:
 
 	4/5:
-		- arcl - make a good render plot, include in paper
-		- arcl - make a good results plot, include in paper
-		- arcl - make a good q error plot, include in paper
-		- arcl - make a citymap simulation, include in paper
-		- arcl - make a good macro sim plot, ni vs average customer wait time, include in paper 
-		- arcl - make a citymap simulation, include in paper
-		- laptop - prototype a good macro sim plot, ni vs average customer wait time
-		- laptop - prototype a citymap simulation.. try to include a weird traffic day 
-		- laptop - make a citymap heatmap
-		- laptop - results discussion 
+		- make a good macro sim plot, ni vs average customer wait time, include in paper
+		- make a citymap simulation, include in paper
+		- make a citymap heatmap, include in paper 
+		- results discussion 
 		- send to wg 
 
 	4/6 
 		- fix baseline 
 		- make figure 2 
 		- cover letter 
-		- add discussion on kalman filter -> adaptive learning rate 
+		- add discussion on optimal kalman gains <-> adaptive learning rate 
 
 
 	old 
@@ -57,6 +51,12 @@ todo list:
 
 	
 done: 
+	4.5
+		- make a good render plot, include in paper
+		- make a good results plot, include in paper
+		- make a good q error plot, include in paper
+
+
 	3.23
 		broke proof 
 		clean env reset 

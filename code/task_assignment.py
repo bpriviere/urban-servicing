@@ -110,20 +110,6 @@ def calc_J(env,agent_i,H,A,S):
 	# get policy 
 	pi_local = env.local_boltzmann_policy(agent_i.q, state_action_pairs)
 
-	# temp 
-	# q_idx_local = env.sa_to_q_idxs(state_action_pairs)
-	# q_local = agent_i.q[q_idx_local]
-	# r_local = agent_i.r[q_idx_local]
-	# print('env_nx: ', env.param.env_nx)
-	# print('env_ny: ', env.param.env_ny)
-	# print('state: ', state)
-	# print('local_states: ', local_states)
-	# print('local_actions: ', local_actions)
-	# print('pi_local: ', pi_local)
-	# print('r_local: ', r_local)
-	# print('q_local: ', q_local)
-	# exit()
-
 	# get local agent distribution
 	S_tp1_local = S[local_states] + np.matmul(H[local_states,:],A)
 	S_tp1_local /= sum(S_tp1_local)

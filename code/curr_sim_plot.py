@@ -38,15 +38,21 @@ for sim_result in sim_results:
 
 	for timestep,time in enumerate(times):
 
+		count = 0 
 		if np.mod(timestep,5) == 0: 
+			count += 1 
 			print('timestep: ',timestep)
 			plotter.render(controller_name,sim_result,timestep)
+
+		if count > 100:
+			break 
 	
 	break
 
-	
+# plotter.plot_runtime_vs_number_of_agents(sim_results)
+# plotter.plot_totalreward_vs_number_of_agents(sim_results)
 plotter.plot_cumulative_reward(sim_results)
-# plotter.plot_q_error(sim_results)
+plotter.plot_q_error(sim_results)
 
 print('saving and opening results...')
 plotter.save_figs(default_param.plot_fn)

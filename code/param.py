@@ -12,6 +12,7 @@ class Param:
 		# self.env_name = 'citymap' 
 
 		self.global_reward_on = True
+		self.macro_sim_on = True
 
 
 		# flags 
@@ -23,14 +24,14 @@ class Param:
 		self.htd_time_window = 10
 		self.htd_minimum_reset = 10
 		self.rhc_horizon = 10
-		self.delta_d_ratio = 0.05
+		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
-			'D-TD',
-			# 'H-TD',
+			# 'D-TD',
+			'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
-			# 'RHC'
+			'RHC'
 			]
 
 		# environment parameters
@@ -41,7 +42,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 1
+			self.sim_tf = 50
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -51,21 +52,40 @@ class Param:
 				# this one 
 
 				# fleet 
-				self.ni = 20 # 20 
+				self.ni = 100 # 20 
 
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
-				self.cm_sigma_ratio = 0.5 # std = sigma_ratio * env_dx 
+				self.cm_sigma_ratio = 0.25 # std = sigma_ratio * env_dx 
 				self.cm_ng = 2 # 1
-				self.cm_speed_ratio = 0.1 # speed = speed_ratio * taxi speed 
+				self.cm_speed_ratio = 0.15 # speed = speed_ratio * taxi speed 
 				self.n_customers_per_time_ratio = 0.1 # 0.2 
 				self.cm_linear_move = False 
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 100 #5*self.ni # 2
+				self.desired_env_ncell = 150 #5*self.ni # 2
 				self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
-				self.desired_swarm_param = 2.0 # 1.2 
+				self.desired_swarm_param = 1.75 # 1.2 
+
+			# elif self.swarm_parameters_ver == 3:
+			# 	# this one is for the macro sim, 
+
+			# 	self.ni = 100 
+
+			# 	# customer model
+			# 	self.cm_taxi_speed_ratio = 0.1
+			# 	self.cm_sigma_ratio = 0.25 # std = sigma_ratio * env_dx 
+			# 	self.cm_ng = 2 # 1
+			# 	self.cm_speed_ratio = 0.15 # speed = speed_ratio * taxi speed 
+			# 	self.n_customers_per_time_ratio = 0.1 # 0.2 
+			# 	self.cm_linear_move = False 
+
+			# 	# swarm param 
+			# 	self.env_lengthscale = 1.0 # 
+			# 	self.desired_env_ncell = 150 #5*self.ni # 2
+			# 	self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
+			# 	self.desired_swarm_param = 1.75 # 1.2 
 
 
 			elif self.swarm_parameters_ver == 4:
@@ -197,7 +217,7 @@ class Param:
 			# 'gmm_distribution',
 			'customers_location',
 			'agents_value_fnc_distribution',
-			'agents_q_value',
+			# 'agents_q_value',
 			'agents_location',
 			'free_agents_distribution',
 			'agents_distribution',

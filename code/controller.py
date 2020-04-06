@@ -193,6 +193,7 @@ class Controller():
 			# bellman
 			print('bellman...')
 			self.env.reset_timestep = self.env.timestep
+			self.env.lambda_min[:,self.env.timestep] = np.ones((self.param.ni))
 			v,q,r = self.env.solve_MDP(self.env.dataset,self.param.sim_times[self.env.timestep])
 
 			for agent in self.env.agents:

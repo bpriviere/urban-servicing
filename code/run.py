@@ -96,8 +96,7 @@ if __name__ == '__main__':
 
 
 	default_param = Param()
-	macro_sim_on = False
-
+	
 	# clean results directory
 	current_results_dir = '../current_results/*'
 	if not os.path.exists('../current_results/*'):
@@ -106,11 +105,11 @@ if __name__ == '__main__':
 		shutil.rmtree(old_sim_result_dir)
 		
 	# macro sim 
-	if macro_sim_on: 
+	if default_param.macro_sim_on: 
 		
 		varied_parameter_dict = dict()
 		# varied_parameter_dict["env_dx"] = [0.1,0.3,0.5,1.0] 
-		varied_parameter_dict["ni"] = [5,10] #10,50,100,150]
+		varied_parameter_dict["ni"] = [10,1000] #10,50,100,150]
 		controller_names = default_param.controller_names
 
 		for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
@@ -135,14 +134,17 @@ if __name__ == '__main__':
 	# plotting 
 	print('plotting sim results...')
 
-	if macro_sim_on:
-	# 	- plot parameter variation 
+	if default_param.macro_sim_on:
+		# macro sim 
+		# 	- plot parameter variation 
 		if varied_parameter == "env_dx":
 			plotter.plot_runtime_vs_state_space(sim_results)
 		elif varied_parameter == "ni":
 			plotter.plot_runtime_vs_number_of_agents(sim_results)
+			plotter.plot_totalreward_vs_number_of_agents(sim_results)
 
 	else:
+		# micro sim 
 		# 	- plot sim 
 		if default_param.plot_sim_over_time:
 			for sim_result in sim_results:

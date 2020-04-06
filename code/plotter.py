@@ -684,7 +684,66 @@ def plot_runtime_vs_number_of_agents(sim_results):
 		
 		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+	
+	ax.set_xlabel('Number of Taxis')
+	ax.set_ylabel('Simulation Runtime [s]')
 	ax.legend()
+
+
+def plot_totalreward_vs_number_of_agents(sim_results):
+
+	ni_lst = []
+	controller_name_lst = []
+	for sim_result in sim_results:
+		if not sim_result["controller_name"] in controller_name_lst:
+			controller_name_lst.append(sim_result["controller_name"])
+		if not sim_result["param"]["ni"] in ni_lst:
+			ni_lst.append(sim_result["param"]["ni"])
+
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+
+	totalreward_by_controller_and_ni_dict = dict() # dict of dict of lsts
+	for controller_name in controller_name_lst:
+		totalreward_by_controller_and_ni_dict[controller_name] = dict()
+		for ni in ni_lst:
+			totalreward_by_controller_and_ni_dict[controller_name][ni] = []
+
+	for sim_result in sim_results:
+		totalreward_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(sim_result["total_reward"])
+
+	fig,ax = make_fig()
+	for controller_name,controller_dict in totalreward_by_controller_and_ni_dict.items():
+		plot_ni = []
+		plot_mean = []
+		plot_std = []
+		for ni,rt_values in controller_dict.items():
+			plot_ni.append(ni)
+			plot_mean.append(np.mean(rt_values))
+			plot_std.append(np.std(rt_values))
+		
+		# as numpy
+		plot_ni = np.asarray(plot_ni)
+		plot_mean = np.asarray(plot_mean)
+		plot_std = np.asarray(plot_std)
+
+		# sorted
+		idxs = plot_ni.argsort()
+		plot_ni = plot_ni[idxs]
+		plot_mean = plot_mean[idxs]
+		plot_std = plot_std[idxs]
+
+		ax.plot( plot_ni, plot_mean, 
+			color = color_dict[controller_name], 
+			marker = marker_dict[controller_name], 
+			label = controller_name)
+		
+		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+	
+	ax.set_xlabel('Number of Taxis')
+	ax.set_ylabel('Average Customer Waiting Time')
+	ax.legend()
+
 
 def make_city_boundary(param):
 	
@@ -744,7 +803,7 @@ def plot_q_error(sim_results):
 
 	# get bellman soln, should be in 
 	for controller_name, controller_values in q_values_by_controller_dict.items():
-		if 'bellman' in controller_name:
+		if 'Bellman' in controller_name:
 			q_bellman = controller_values
 			break 
 	
@@ -754,7 +813,7 @@ def plot_q_error(sim_results):
 	fig,ax = make_fig()
 	for controller_name,controller_values in q_values_by_controller_dict.items():
 
-		if not 'bellman' in controller_name and not 'rhc' in controller_name:
+		if not 'Bellman' in controller_name and not 'RHC' in controller_name:
 
 			# controller_values is a lst of np arrays of [nt, ni, nq]
 			# controller_values_np is an np arrays of [ntrials, nt, ni, nq]
@@ -795,7 +854,7 @@ def plot_q_error(sim_results):
 					color=color_dict[controller_name], 
 					label=controller_name)
 
-	ax.set_title('Q MSE')
+	ax.set_title('Q-Values Mean Squared Error')
 	ax.legend()
 
 def plot_runtime_vs_state_space(sim_results):
