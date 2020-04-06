@@ -445,7 +445,16 @@ def render(controller_name,sim_result,timestep):
 	plt.setp(ax2.get_yticklabels(), visible=False)
 
 
+def plot_heatmap(env,heatmap):
 
+	fig,ax = plt.subplots()
+
+	city_boundary = make_city_boundary(param)
+	ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1)
+	
+	ax.imshow(sim_to_im_coordinate(heatmap),
+		vmin=0,vmax=1,cmap='gray_r',
+		extent=[param["env_xlim"][0],param["env_xlim"][1],param["env_ylim"][0],param["env_ylim"][1]])
 
 
 def get_agent_colors(ni):
@@ -687,6 +696,7 @@ def plot_runtime_vs_number_of_agents(sim_results):
 	
 	ax.set_xlabel('Number of Taxis')
 	ax.set_ylabel('Simulation Runtime [s]')
+	ax.set_yscale('log')
 	ax.legend()
 
 
@@ -702,17 +712,19 @@ def plot_totalreward_vs_number_of_agents(sim_results):
 
 	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
 
-	totalreward_by_controller_and_ni_dict = dict() # dict of dict of lsts
+	ave_cwt_by_controller_and_ni_dict = dict() # dict of dict of lsts
 	for controller_name in controller_name_lst:
-		totalreward_by_controller_and_ni_dict[controller_name] = dict()
+		ave_cwt_by_controller_and_ni_dict[controller_name] = dict()
 		for ni in ni_lst:
-			totalreward_by_controller_and_ni_dict[controller_name][ni] = []
+			ave_cwt_by_controller_and_ni_dict[controller_name][ni] = []
 
 	for sim_result in sim_results:
-		totalreward_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(sim_result["total_reward"])
+		num_customers = sim_result["param"]["n_customers_per_time"]*sim_result["param"]["sim_times"][-1]
+		ave_cwt = -1*sim_result["total_reward"]/num_customers
+		ave_cwt_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(ave_cwt)
 
 	fig,ax = make_fig()
-	for controller_name,controller_dict in totalreward_by_controller_and_ni_dict.items():
+	for controller_name,controller_dict in ave_cwt_by_controller_and_ni_dict.items():
 		plot_ni = []
 		plot_mean = []
 		plot_std = []
@@ -742,6 +754,7 @@ def plot_totalreward_vs_number_of_agents(sim_results):
 	
 	ax.set_xlabel('Number of Taxis')
 	ax.set_ylabel('Average Customer Waiting Time')
+	ax.set_yscale('log')
 	ax.legend()
 
 
