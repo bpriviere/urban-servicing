@@ -115,6 +115,7 @@ class Param:
 			self.lambda_r = 0.2 #0.1
 			self.mdp_gamma = 0.9 # 0.8 # 0.8 
 			self.mdp_max_iter = 1000
+			self.mdp_max_data = 1000
 			self.mdp_eps = 1e-4
 
 			# task assignment 
@@ -154,10 +155,11 @@ class Param:
 			self.p0 = 0.01 
 
 			# mdp 
-			self.lambda_r = 0.1 #0.8
-			self.mdp_gamma = 0.99
+			self.lambda_r = 0.2 #0.8
+			self.mdp_gamma = 0.8
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
+			self.mdp_max_data = 1000			
 
 			# task assignment 
 			self.ta_beta = 150 # 150.

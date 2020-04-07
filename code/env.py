@@ -368,6 +368,9 @@ class Env():
 	# mdp stuff 
 	def solve_MDP(self,dataset,curr_time):
 
+		if dataset.shape[0] > self.param.mdp_max_data:
+			dataset = dataset[-self.param.mdp_max_data:,:]
+
 		self.P = self.get_MDP_P() # in AxSxS
 		# self.Pq = self.get_MDP_Pq()
 
