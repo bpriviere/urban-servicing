@@ -33,6 +33,9 @@ class Param:
 			'RHC'
 			]
 
+		# learning rate
+		self.td_alpha = 0.6 #0.5			
+
 		# environment parameters
 		if self.env_name is 'gridworld':
 			
@@ -107,9 +110,6 @@ class Param:
 			# estimation
 			self.p0 = 0.0001 
 
-			# learning rate
-			self.td_alpha = 0.6 #0.5
-
 			# mdp 
 			self.n_training_data = 100
 			self.lambda_r = 0.2 #0.1
@@ -143,7 +143,7 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni = 2000
+			self.ni = 1000
 			
 			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
@@ -160,12 +160,12 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.beta = 150 # 150.
+			self.ta_beta = 150 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
 			self.ta_tau_decay_threshold = 1000
-			self.blll_iter_lim_per_agent = 20
+			self.ta_iter_lim_per_agent = 20
 
 			# plot 
 			self.plot_r_agent = 0.05

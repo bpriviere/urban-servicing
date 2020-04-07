@@ -145,7 +145,7 @@ def make_citymap_dataset(env):
 		param.test_end_second, 
 		param.test_end_microsecond) 
 
-	train_dataset = make_citymap_dataset_instance(train_start,train_end,delta_minute,stepsize)
+	train_dataset = make_citymap_dataset_instance(train_start,train_end,delta_minute,10)
 	test_dataset = make_citymap_dataset_instance(test_start,test_end,delta_minute,stepsize)
 
 	return train_dataset,test_dataset 

@@ -670,3 +670,150 @@ class Env():
 		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
 		# delta_d = 2.5 
 		return delta_d
+
+		# ----- plotting -----
+	def get_curr_im_value(self):
+
+		value_fnc_ims = np.zeros((self.param.ni,self.param.env_nx,self.param.env_ny))
+		for agent in self.agents:
+			# get value
+			value_fnc_i = self.q_value_to_value_fnc(agent.q)
+			# normalize
+			value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
+			# convert to im
+			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
+			for i in range(self.param.env_ncell):
+				i_x,i_y = self.cell_index_to_grid_index_map[i]
+				im_v[i_x,i_y] = value_fnc_i[i]
+			# add
+			value_fnc_ims[agent.i,:,:] = im_v
+		return value_fnc_ims
+
+	def get_curr_im_gmm(self):
+		# im is [nx,ny] where im[0,0] is bottom left
+		im_gmm = self.cm.eval_cm(self.timestep)
+		return im_gmm
+
+	def get_curr_im_agents(self):
+
+		locs = np.zeros((self.param.ni,2))
+		for agent in self.agents:
+			locs[agent.i,0] = agent.x
+			locs[agent.i,1] = agent.y
+
+		# im is [nx,ny] where im[0,0] is bottom left
+		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
+		for agent in self.agents:
+			i = agent.i
+			idx_x,idx_y = self.coordinate_to_grid_index(
+				locs[agent.i,0],
+				locs[agent.i,1])
+			im_agent[idx_x][idx_y] += 1
+
+		# normalize
+		im_agent = im_agent / self.param.ni
+
+		return im_agent
+
+	def get_curr_im_free_agents(self):
+
+		locs = np.zeros((self.param.ni,2))
+		modes = np.zeros((self.param.ni))
+		for agent in self.agents:
+			locs[agent.i,0] = agent.x
+			locs[agent.i,1] = agent.y
+			modes[agent.i] = agent.mode
+
+		# im is [nx,ny] where im[0,0] is bottom left
+		im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
+		count_agent = 0
+		for agent in self.agents:
+			i = agent.i
+			if modes[i] in [0,3]:
+				idx_x,idx_y = self.coordinate_to_grid_index(
+					locs[agent.i,0],
+					locs[agent.i,1])
+				im_agent[idx_x][idx_y] += 1
+				count_agent += 1
+
+		# normalize
+		if count_agent > 0:
+			im_agent = im_agent / count_agent
+
+		return im_agent
+
+	def get_curr_customer_locations(self):		
+		customers_location = []
+		t0 = self.param.sim_times[self.timestep]
+		t1 = self.param.sim_times[self.timestep+1]
+		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
+		count = 0 
+		for data in self.test_dataset[idxs,:]:
+			count += 1
+
+			tor = data[0]
+			px = data[2]
+			py = data[3]
+
+			customers_location.append([px,py])
+
+		customers_location = np.asarray(customers_location)
+		return customers_location	
+
+	def get_agents_int_action(self,actions):
+		# pass in list of objects
+		# pass out list of integers 
+		int_actions_lst = []
+		# for i,agent in enumerate(self.agents):
+		# 	action = actions[i]
+		for agent,action in actions:
+			if isinstance(action,Dispatch): 
+				s = self.coordinate_to_cell_index(agent.x,agent.y)
+				sp = self.coordinate_to_cell_index(action.x,action.y)
+				int_a = self.s_sp_to_a(s,sp)
+				int_actions_lst.append(int_a)
+			elif isinstance(action,Service) or isinstance(action,Empty):
+				int_actions_lst.append(-1)
+			else:
+				exit('get_agents_int_action type error')
+		return np.asarray(int_actions_lst)
+
+	def get_agents_vec_action(self,actions):
+		# pass in list of action objects
+		# pass out np array of move vectors
+
+		agents_vec_action = np.zeros((self.param.ni,2))
+		# for i,agent in enumerate(agents):
+		# action = action
+		for agent,action in actions:
+			if isinstance(action,Dispatch):
+				# agents_vec_action[i,0] = action.x - agent.x
+				# agents_vec_action[i,1] = action.y - agent.y
+				sx,sy = self.cell_index_to_cell_coordinate(
+					self.coordinate_to_cell_index(agent.x,agent.y))
+				agents_vec_action[agent.i,0] = action.x - (sx + self.param.env_dx/2)
+				agents_vec_action[agent.i,1] = action.y - (sy + self.param.env_dy/2)
+
+			elif isinstance(action,Service) or isinstance(action,Empty):
+				agents_vec_action[agent.i,0] = 0
+				agents_vec_action[agent.i,1] = 0
+			else:
+				print(action)
+				exit('get_agents_vec_action type error')
+		return agents_vec_action
+
+	def get_curr_ave_vec_action(self,locs,vec_action):
+		# locs is (ni,2)
+		# vec_actions is (ni,2)
+		ni = locs.shape[0]
+		im_a = np.zeros((self.param.env_nx,self.param.env_ny,2))
+		count = np.zeros((self.param.env_nx,self.param.env_ny,1))
+		for i in range(ni):
+			idx_x,idx_y = self.coordinate_to_grid_index(locs[i][0],locs[i][1])
+			im_a[idx_x,idx_y,:] += vec_action[i][:]
+			count[idx_x,idx_y] += 1
+
+		idx = np.nonzero(count)
+		# im_a[idx] = (im_a[idx].T/count[idx]).T
+		im_a[idx] = im_a[idx]/count[idx]
+		return im_a

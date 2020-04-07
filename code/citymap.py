@@ -18,6 +18,7 @@ import plotter
 class CityMap(Env):
 	def __init__(self,param):
 		super().__init__(param)
+		self.init_map()
 		
 		
 	def init_map(self):
@@ -64,10 +65,10 @@ class CityMap(Env):
 		# 	- contain an element of the boundary 
 		print('   making geometry mask...')
 		valid_geometery_cell_mask = self.get_geometry_mask()
-		occupancy_cell_mask = self.get_occupancy_mask()
 
 		occupancy_grid_mask_on = False
 		if occupancy_grid_mask_on:
+			occupancy_cell_mask = self.get_occupancy_mask()
 			full_mask = np.logical_and(valid_geometery_cell_mask, occupancy_cell_mask)
 		else:
 			full_mask = valid_geometery_cell_mask
@@ -83,35 +84,6 @@ class CityMap(Env):
 		# kind of awkward 
 		self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
 		self.param.nq = self.param.env_ncell*self.param.env_naction
-
-		print('self.param.env_ncell: ',self.param.env_ncell)
-
-
-	# def get_negative_city_polygon(self):
-		
-	# 	# multipol1 and multipol2 are my shapely MultiPolygons
-	# 	from shapely.ops import cascaded_union
-	# 	from itertools import combinations
-	# 	from shapely.geometry import Polygon,MultiPolygon
-
-	# 	nonoverlap = (pol.symmetric_difference(pol2)).difference(pol2)
-
-
-	# 	outmulti = []
-	# 	for pol in multipoly1:
-	# 		for pol2 in multipoly2:
-	# 			if pol.intersects(pol2)==True:
-	# 				# If they intersect, create a new polygon that is
-	# 				# essentially pol minus the intersection
-	# 				nonoverlap = (pol.symmetric_difference(pol2)).difference(pol2)
-	# 				outmulti.append(nonoverlap)
-
-	# 			else:
-	# 				# Otherwise, just keep the initial polygon as it is.
-	# 				outmulti.append(pol)
-
-	# 	finalpol = MultiPolygon(outmulti)
-
 
 
 	def get_geometry_mask(self):
@@ -183,55 +155,6 @@ class CityMap(Env):
 			ax.scatter(x,y)
 
 		ax.grid(True)
-		
-	# ----- plotting -----	
-	def get_curr_im_gmm(self):
-		# im is [nx,ny] where im[0,0] is bottom left
-		# return im 
-		pass
-		
-	def get_curr_im_free_agents(self):
-		# im_agent = np.zeros((self.param.env_nx,self.param.env_ny))
-		# return im_agent
-		pass
-			
-	def get_agents_int_action(self,actions):
-		# pass in list of objects
-		# pass out list of integers 
-		int_actions_lst = []
-		# for i,agent in enumerate(self.agents):
-		# 	action = actions[i]
-		for agent,action in actions:
-			if isinstance(action,Dispatch): 
-				s = self.coordinate_to_cell_index(agent.x,agent.y)
-				sp = self.coordinate_to_cell_index(action.x,action.y)
-				int_a = self.s_sp_to_a(s,sp)
-				int_actions_lst.append(int_a)
-			elif isinstance(action,Service) or isinstance(action,Empty):
-				int_actions_lst.append(-1)
-			else:
-				exit('get_agents_int_action type error')
-		return np.asarray(int_actions_lst)
-
-	def get_agents_vec_action(self,actions):
-		
-		agents_vec_action = np.zeros((self.param.ni,2))
-		for agent,action in actions:
-			if isinstance(action,Dispatch):
-				# agents_vec_action[i,0] = action.x - agent.x
-				# agents_vec_action[i,1] = action.y - agent.y
-				sx,sy = self.cell_index_to_cell_coordinate(
-					self.coordinate_to_cell_index(agent.x,agent.y))
-				agents_vec_action[agent.i,0] = action.x - (sx + self.param.env_dx/2)
-				agents_vec_action[agent.i,1] = action.y - (sy + self.param.env_dy/2)
-
-			elif isinstance(action,Service) or isinstance(action,Empty):
-				agents_vec_action[agent.i,0] = 0
-				agents_vec_action[agent.i,1] = 0
-			else:
-				print(action)
-				exit('get_agents_vec_action type error')
-		return agents_vec_action
 
 	# Utility Stuff
 		# 'cell_index' : element of [0,...,env_ncell]
