@@ -445,17 +445,84 @@ def render(controller_name,sim_result,timestep):
 	plt.setp(ax2.get_yticklabels(), visible=False)
 
 
-def plot_heatmap(env,heatmap):
+def plot_heatmap(env,heatmap,ax):
 
-	fig,ax = plt.subplots()
+	wrigley_field = [-87.6553,41.9484] 
+	city_boundary = env.city_boundary
 
-	city_boundary = make_city_boundary(param)
-	ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1)
+	shift_on = False
+	if shift_on:
+		heatmap_2 = np.zeros((heatmap.shape))
+		heatmap_2[1:,1:] = heatmap[0:-1,0:-1]
+	else:
+		heatmap_2 = heatmap
+
+	cmap = plt.get_cmap('Greys')
+	cmap.set_bad(color='white')
+
+	ax.imshow(sim_to_im_coordinate(heatmap_2), 
+		extent=[env.param.env_xlim[0],env.param.env_xlim[1],env.param.env_ylim[0],env.param.env_ylim[1]], 
+		# extent=[env.param.env_x[0],env.param.env_x[-1],env.param.env_y[0],env.param.env_y[-1]], 
+		cmap=cmap)
+	ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1,color='black')
+	ax.plot(wrigley_field[0],wrigley_field[1],color='green',marker="*")
+	plt.axis('off')
+
+def plot_cell_demand_over_time(env,ax):
+
+	wrigley_field = [-87.6553,41.9484] 
+
+	wrigley_field_cell = env.coordinate_to_cell_index(wrigley_field[0],wrigley_field[1])
+
 	
-	ax.imshow(sim_to_im_coordinate(heatmap),
-		vmin=0,vmax=1,cmap='gray_r',
-		extent=[param["env_xlim"][0],param["env_xlim"][1],param["env_ylim"][0],param["env_ylim"][1]])
+	test_wrigley_field_demand = np.nan*np.ones((env.param.sim_times[0:-1].shape))
+	train_wrigley_field_demand = np.nan*np.ones((env.param.sim_times[0:-1].shape))
+	times_of_day = env.param.sim_times - env.param.sim_times[0]
+	dt = times_of_day[1] - times_of_day[0]
 
+	for timestep, time in enumerate(times_of_day[0:-1]):
+		
+		# test 
+		t0_test = times_of_day[timestep] + env.test_dataset[0,0]
+		t1_test = t0_test + dt
+
+		test_idxs = np.multiply(
+			env.test_dataset[:,0] >= t0_test, 
+			env.test_dataset[:,0] < t1_test,
+			dtype=bool)
+
+		test_customer_requests = env.test_dataset[test_idxs,:]
+
+		for test_customer in test_customer_requests:
+			if env.coordinate_to_cell_index(test_customer[2],test_customer[3]) == wrigley_field_cell:
+				test_wrigley_field_demand[timestep] += 1
+
+		print('t0_test: ', t0_test)
+		print('t1_test: ', t1_test)
+		print('test_idxs: ', test_idxs)
+		print('test_customer_requests: ', test_customer_requests)
+		print('env.test_dataset[0:10,:]: ', env.test_dataset[0:10,:])
+		exit()
+
+		# train 
+		t0_train = times_of_day[timestep] + env.train_dataset[0,0]
+		t1_train = t0_train + dt
+
+		train_idxs = np.multiply(
+			env.train_dataset[:,0] >= t0_train, 
+			env.train_dataset[:,0] < t1_train, 
+			dtype=bool)
+
+		train_customer_requests = env.train_dataset[train_idxs,:]
+
+		for train_customer in train_customer_requests:
+			if env.coordinate_to_cell_index(train_customer[2],train_customer[3]) == wrigley_field_cell:
+				train_wrigley_field_demand[timestep] += 1				
+
+
+	ax.plot(times_of_day[0:-1], test_wrigley_field_demand, label='October 30, 2016')
+	ax.plot(times_of_day[0:-1], train_wrigley_field_demand, label='October 29, 2016')
+	ax.legend()
 
 def get_agent_colors(ni):
 
@@ -694,13 +761,128 @@ def plot_runtime_vs_number_of_agents(sim_results):
 		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
-	ax.set_xticks(plot_ni, True) # set minor ticks
+	# ax.set_xticks(plot_ni, True) # set minor ticks
 	ax.set_xlabel('Number of Taxis')
 	ax.set_ylabel('Simulation Runtime [s]')
-	ax.set_xscale('log')
+	# ax.set_xscale('log')
 	ax.grid(True)
 	ax.legend()
 
+def macro_plot_number_of_agents(sim_results):
+
+	fig = plt.figure()
+	ax1 = fig.add_subplot(1,2,1)
+	ax2 = fig.add_subplot(1,2,2)
+
+	# copy paste code from 'plot_runtime_vs_number_of_agents'
+	ni_lst = []
+	controller_name_lst = []
+	for sim_result in sim_results:
+		if not sim_result["controller_name"] in controller_name_lst:
+			controller_name_lst.append(sim_result["controller_name"])
+		if not sim_result["param"]["ni"] in ni_lst:
+			ni_lst.append(sim_result["param"]["ni"])
+
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+
+	runtimes_by_controller_and_ni_dict = dict() # dict of dict of lsts
+	for controller_name in controller_name_lst:
+		runtimes_by_controller_and_ni_dict[controller_name] = dict()
+		for ni in ni_lst:
+			runtimes_by_controller_and_ni_dict[controller_name][ni] = []
+
+	for sim_result in sim_results:
+		runtimes_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(sim_result["sim_run_time"])
+
+	for controller_name,controller_dict in runtimes_by_controller_and_ni_dict.items():
+		plot_ni = []
+		plot_mean = []
+		plot_std = []
+		for ni,rt_values in controller_dict.items():
+			plot_ni.append(ni)
+			plot_mean.append(np.mean(rt_values))
+			plot_std.append(np.std(rt_values))
+		
+		# as numpy
+		plot_ni = np.asarray(plot_ni)
+		plot_mean = np.asarray(plot_mean)
+		plot_std = np.asarray(plot_std)
+
+		# sorted
+		idxs = plot_ni.argsort()
+		plot_ni = plot_ni[idxs]
+		plot_mean = plot_mean[idxs]
+		plot_std = plot_std[idxs]
+
+		ax1.plot( plot_ni, plot_mean, 
+			color = color_dict[controller_name], 
+			marker = marker_dict[controller_name], 
+			label = controller_name)
+		
+		ax1.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+		ax1.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+	
+	# ax.set_xticks(plot_ni, True) # set minor ticks
+	ax1.set_xlabel('Number of Taxis')
+	ax1.set_ylabel('Simulation Runtime [s]')
+	# ax.set_xscale('log')
+	ax1.grid(True)
+	ax1.legend()	
+
+	# copy past code from 'plot_totalreward_vs_number_of_agents'
+	ni_lst = []
+	controller_name_lst = []
+	for sim_result in sim_results:
+		if not sim_result["controller_name"] in controller_name_lst:
+			controller_name_lst.append(sim_result["controller_name"])
+		if not sim_result["param"]["ni"] in ni_lst:
+			ni_lst.append(sim_result["param"]["ni"])
+
+	marker_dict,color_dict = get_marker_color_dicts(sim_result["param"])
+
+	ave_cwt_by_controller_and_ni_dict = dict() # dict of dict of lsts
+	for controller_name in controller_name_lst:
+		ave_cwt_by_controller_and_ni_dict[controller_name] = dict()
+		for ni in ni_lst:
+			ave_cwt_by_controller_and_ni_dict[controller_name][ni] = []
+
+	for sim_result in sim_results:
+		num_customers = sim_result["param"]["n_customers_per_time"]*sim_result["param"]["sim_times"][-1]
+		ave_cwt = -1*sim_result["total_reward"]/num_customers
+		ave_cwt_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(ave_cwt)
+
+	for controller_name,controller_dict in ave_cwt_by_controller_and_ni_dict.items():
+		plot_ni = []
+		plot_mean = []
+		plot_std = []
+		for ni,rt_values in controller_dict.items():
+			plot_ni.append(ni)
+			plot_mean.append(np.mean(rt_values))
+			plot_std.append(np.std(rt_values))
+		
+		# as numpy
+		plot_ni = np.asarray(plot_ni)
+		plot_mean = np.asarray(plot_mean)
+		plot_std = np.asarray(plot_std)
+
+		# sorted
+		idxs = plot_ni.argsort()
+		plot_ni = plot_ni[idxs]
+		plot_mean = plot_mean[idxs]
+		plot_std = plot_std[idxs]
+
+		ax2.plot( plot_ni, plot_mean, 
+			color = color_dict[controller_name], 
+			marker = marker_dict[controller_name], 
+			label = controller_name)
+		
+		ax2.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+		ax2.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+	
+	ax2.set_xlabel('Number of Taxis')
+	ax2.set_ylabel('Average Customer Waiting Time')
+	ax2.grid(True)
+	ax2.legend()
 
 def plot_totalreward_vs_number_of_agents(sim_results):
 
@@ -754,10 +936,10 @@ def plot_totalreward_vs_number_of_agents(sim_results):
 		ax.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
-	ax.set_xticks(plot_ni, True) # set minor ticks
+	# ax.set_xticks(plot_ni, True) # set minor ticks
 	ax.set_xlabel('Number of Taxis')
 	ax.set_ylabel('Average Customer Waiting Time')
-	ax.set_xscale('log')
+	# ax.set_xscale('log')
 	ax.grid(True)
 	ax.legend()
 
