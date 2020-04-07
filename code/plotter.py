@@ -466,7 +466,6 @@ def plot_heatmap(env,heatmap,ax):
 		cmap=cmap)
 	ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1,color='black')
 	ax.plot(wrigley_field[0],wrigley_field[1],color='green',marker="*")
-	plt.axis('off')
 
 def plot_cell_demand_over_time(env,ax):
 
@@ -474,9 +473,12 @@ def plot_cell_demand_over_time(env,ax):
 
 	wrigley_field_cell = env.coordinate_to_cell_index(wrigley_field[0],wrigley_field[1])
 
-	
-	test_wrigley_field_demand = np.nan*np.ones((env.param.sim_times[0:-1].shape))
-	train_wrigley_field_demand = np.nan*np.ones((env.param.sim_times[0:-1].shape))
+	print('wrigley_field_cell: ', wrigley_field_cell)
+
+	test_wrigley_field_demand = np.zeros((env.param.sim_times[0:-1].shape))
+	train_wrigley_field_demand = np.zeros((env.param.sim_times[0:-1].shape))
+	test_demand = np.zeros((env.param.sim_times[0:-1].shape))
+	train_demand = np.zeros((env.param.sim_times[0:-1].shape))	
 	times_of_day = env.param.sim_times - env.param.sim_times[0]
 	dt = times_of_day[1] - times_of_day[0]
 
@@ -493,16 +495,17 @@ def plot_cell_demand_over_time(env,ax):
 
 		test_customer_requests = env.test_dataset[test_idxs,:]
 
+		test_demand[timestep] = np.max((len(test_customer_requests),1))
 		for test_customer in test_customer_requests:
 			if env.coordinate_to_cell_index(test_customer[2],test_customer[3]) == wrigley_field_cell:
 				test_wrigley_field_demand[timestep] += 1
 
-		print('t0_test: ', t0_test)
-		print('t1_test: ', t1_test)
-		print('test_idxs: ', test_idxs)
-		print('test_customer_requests: ', test_customer_requests)
-		print('env.test_dataset[0:10,:]: ', env.test_dataset[0:10,:])
-		exit()
+		# print('t0_test: ', t0_test)
+		# print('t1_test: ', t1_test)
+		# print('test_idxs: ', test_idxs)
+		# print('test_customer_requests: ', test_customer_requests)
+		# print('env.test_dataset[0:10,:]: ', env.test_dataset[0:10,:])
+		# exit()
 
 		# train 
 		t0_train = times_of_day[timestep] + env.train_dataset[0,0]
@@ -515,14 +518,24 @@ def plot_cell_demand_over_time(env,ax):
 
 		train_customer_requests = env.train_dataset[train_idxs,:]
 
+		train_demand[timestep] = np.max((len(train_customer_requests),1))
 		for train_customer in train_customer_requests:
 			if env.coordinate_to_cell_index(train_customer[2],train_customer[3]) == wrigley_field_cell:
 				train_wrigley_field_demand[timestep] += 1				
 
+	print('sum(test_wrigley_field_demand):',sum(test_wrigley_field_demand))
+	print('sum(train_wrigley_field_demand):',sum(train_wrigley_field_demand))
 
-	ax.plot(times_of_day[0:-1], test_wrigley_field_demand, label='October 30, 2016')
-	ax.plot(times_of_day[0:-1], train_wrigley_field_demand, label='October 29, 2016')
+	test_plot_idx = test_wrigley_field_demand > 0
+	train_plot_idx = train_wrigley_field_demand > 0
+
+	ax.plot(times_of_day[0:-1][test_plot_idx], test_wrigley_field_demand[test_plot_idx]/test_demand[test_plot_idx], label='October 30, 2016')
+	ax.plot(times_of_day[0:-1][train_plot_idx], train_wrigley_field_demand[train_plot_idx]/train_demand[train_plot_idx], label='October 29, 2016')
 	ax.legend()
+	ax.set_ylabel('Normalized Customer Demand')
+	ax.set_xlabel('Time of Day')
+	ax.set_xticklabels([])
+	ax.grid(True)
 
 def get_agent_colors(ni):
 
@@ -703,10 +716,19 @@ def get_marker_color_dicts(param):
 	color_dict = dict()
 	count = 0
 
-	for key in param["controller_names"]:
+	controller_names = [
+		'D-TD',
+		'H-TD^2',
+		'C-TD',
+		'Bellman',
+		'RHC'
+		]	
+
+	for key in controller_names:
 		marker_dict[key] = param["plot_markers"][count]
 		color_dict[key] = param["plot_colors"][count]
 		count += 1 
+
 	return marker_dict,color_dict
 
 
@@ -771,8 +793,8 @@ def plot_runtime_vs_number_of_agents(sim_results):
 def macro_plot_number_of_agents(sim_results):
 
 	fig = plt.figure()
-	ax1 = fig.add_subplot(1,2,1)
-	ax2 = fig.add_subplot(1,2,2)
+	ax2 = fig.add_subplot(1,2,1)
+	ax1 = fig.add_subplot(1,2,2)
 
 	# copy paste code from 'plot_runtime_vs_number_of_agents'
 	ni_lst = []
@@ -824,8 +846,10 @@ def macro_plot_number_of_agents(sim_results):
 	
 	# ax.set_xticks(plot_ni, True) # set minor ticks
 	ax1.set_xlabel('Number of Taxis')
-	ax1.set_ylabel('Simulation Runtime [s]')
-	# ax.set_xscale('log')
+	ax1.set_title('Simulation Runtime [s]')
+	ax1.set_xscale('log')
+	ax1.set_yscale('log')
+	# ax1.set_aspect('equal')
 	ax1.grid(True)
 	ax1.legend()	
 
@@ -880,9 +904,15 @@ def macro_plot_number_of_agents(sim_results):
 		ax2.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
 	ax2.set_xlabel('Number of Taxis')
-	ax2.set_ylabel('Average Customer Waiting Time')
+	ax2.set_title('Average Customer Waiting Time')
+	ax2.set_xscale('log')
+	# ax2.set_yscale('log')	
 	ax2.grid(True)
+	# ax2.get_yaxis().set_ticks([])
+	# ax2.set_aspect('equal')	
 	ax2.legend()
+
+	plt.tight_layout()
 
 def plot_totalreward_vs_number_of_agents(sim_results):
 
@@ -1022,7 +1052,8 @@ def plot_q_error(sim_results):
 			# take average q error per (s,a) pair 
 			# [ntrials,nt,ni,nq] -> [ntrials,nt,ni]
 			nq = sim_result["param"]["nq"]
-			error = np.linalg.norm((controller_values_np - q_bellman)/q_bellman/nq, axis=3)
+			print('controller_name: ', controller_name)
+			error = np.linalg.norm((controller_values_np[0:5,:,:,:] - q_bellman)/q_bellman/nq, axis=3)
 			# error = np.linalg.norm((controller_values_np - q_bellman), axis=3)
 
 			# average across agents 
@@ -1053,7 +1084,12 @@ def plot_q_error(sim_results):
 					color=color_dict[controller_name], 
 					label=controller_name)
 
+	ax.axhline(sim_result["param"]["delta_d_ratio"],
+		linestyle='--',color='black',linewidth=1.0)
+	ax.set_xlabel('Time')
+	ax.set_ylabel('Error Trace')
 	ax.set_title('Q-Values Mean Squared Error')
+	ax.grid(True)
 	ax.legend()
 
 def plot_runtime_vs_state_space(sim_results):

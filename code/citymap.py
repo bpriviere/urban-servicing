@@ -18,8 +18,7 @@ import plotter
 class CityMap(Env):
 	def __init__(self,param):
 		super().__init__(param)
-		self.init_map()
-
+		
 		
 	def init_map(self):
 		# this fnc 
@@ -33,7 +32,7 @@ class CityMap(Env):
 		shp = shapefile.Reader(self.param.shp_path)
 		shapes = [shape(polygon) for polygon in shp.shapes()]
 
-		# union shape
+		# make polygon with union shape
 		print('   merge polygons in mapfile...')
 		union = unary_union(shapes)
 		if union.geom_type == 'MultiPolygon':
@@ -44,6 +43,9 @@ class CityMap(Env):
 		else:
 			self.city_polygon = union
 
+		# make negative polygon image 
+
+
 		# make boundary
 		x,y = self.city_polygon.exterior.coords.xy
 		self.city_boundary = np.asarray([x,y]).T # [npoints x 2]
@@ -51,8 +53,6 @@ class CityMap(Env):
 		# make grid 
 		city_bounds = self.city_polygon.bounds # [xmin,ymin,xmax,ymax]
 		eps = 0.001
-		# self.param.env_xlim = [self.city_polygon.bounds[0]+eps,self.city_polygon.bounds[2]-eps]
-		# self.param.env_ylim = [self.city_polygon.bounds[1]+eps,self.city_polygon.bounds[3]-eps]
 		self.param.env_xlim = [self.city_polygon.bounds[0]-eps,self.city_polygon.bounds[2]+eps]
 		self.param.env_ylim = [self.city_polygon.bounds[1]-eps,self.city_polygon.bounds[3]+eps]
 
@@ -62,33 +62,109 @@ class CityMap(Env):
 		# label valid cells where valid cells are either (inclusive OR)
 		# 	- center is in the self.city_polygon  
 		# 	- contain an element of the boundary 
-		self.valid_cells_mask = np.zeros((len(self.param.env_x[:-1]),len(self.param.env_y[:-1])),dtype=bool)
-		
-		# x,y are bottom left hand corner of cell 
-		for i_x,x in enumerate(self.param.env_x[:-1]):
-			for i_y,y in enumerate(self.param.env_y[:-1]):
+		print('   making geometry mask...')
+		valid_geometery_cell_mask = self.get_geometry_mask()
+		occupancy_cell_mask = self.get_occupancy_mask()
 
-				cell_center = Point((x + self.param.env_dx/2, y + self.param.env_dy/2))
-				if cell_center.within(self.city_polygon): 
-					self.valid_cells_mask[i_x,i_y] = True
-
-				else:
-					for point in self.city_boundary:
-						if self.point_in_cell(point,x,y):
-							self.valid_cells_mask[i_x,i_y] = True
-							break # out of points-in-city-boundary loop
-
-		# kind of awkward 
-		self.param.env_ncell = int(sum(sum(self.valid_cells_mask)))
-		self.param.nq = self.param.env_ncell*self.param.env_naction
+		occupancy_grid_mask_on = False
+		if occupancy_grid_mask_on:
+			full_mask = np.logical_and(valid_geometery_cell_mask, occupancy_cell_mask)
+		else:
+			full_mask = valid_geometery_cell_mask
 
 		# make utility maps 
-		self.grid_index_to_cell_index_map = np.zeros((self.valid_cells_mask.shape),dtype=int)
-		self.cell_index_to_grid_index_map = np.zeros((self.param.env_ncell,2),dtype=int)
+		print('   reducing map...')
+		self.reduce_map(full_mask)
+
+		# 
+		print('   refining map...')
+		# todo 
+
+		# kind of awkward 
+		self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
+		self.param.nq = self.param.env_ncell*self.param.env_naction
+
+		print('self.param.env_ncell: ',self.param.env_ncell)
+
+
+	# def get_negative_city_polygon(self):
+		
+	# 	# multipol1 and multipol2 are my shapely MultiPolygons
+	# 	from shapely.ops import cascaded_union
+	# 	from itertools import combinations
+	# 	from shapely.geometry import Polygon,MultiPolygon
+
+	# 	nonoverlap = (pol.symmetric_difference(pol2)).difference(pol2)
+
+
+	# 	outmulti = []
+	# 	for pol in multipoly1:
+	# 		for pol2 in multipoly2:
+	# 			if pol.intersects(pol2)==True:
+	# 				# If they intersect, create a new polygon that is
+	# 				# essentially pol minus the intersection
+	# 				nonoverlap = (pol.symmetric_difference(pol2)).difference(pol2)
+	# 				outmulti.append(nonoverlap)
+
+	# 			else:
+	# 				# Otherwise, just keep the initial polygon as it is.
+	# 				outmulti.append(pol)
+
+	# 	finalpol = MultiPolygon(outmulti)
+
+
+
+	def get_geometry_mask(self):
+		# label valid cells where valid cells are either (inclusive OR)
+		# 	- center is in the self.city_polygon  
+		# 	- contain an element of the boundary 
+
+		valid_cells_mask = np.zeros((len(self.param.env_x),len(self.param.env_y)),dtype=bool)
+		y_thresh = 41.85 
+		
+		# x,y are bottom left hand corner of cell 
+		for i_x,x in enumerate(self.param.env_x):
+			for i_y,y in enumerate(self.param.env_y):
+				if y > y_thresh:
+					cell_center = Point((x + self.param.env_dx/2, y + self.param.env_dy/2))
+					if cell_center.within(self.city_polygon): 
+						valid_cells_mask[i_x,i_y] = True
+
+					else:
+						for point in self.city_boundary:
+							if self.point_in_cell(point,x,y):
+								valid_cells_mask[i_x,i_y] = True
+								break # out of points-in-city-boundary loop
+		return valid_cells_mask
+
+	def get_occupancy_mask(self):
+		
+		occupancy_cells_mask = np.zeros((len(self.param.env_x),len(self.param.env_y)),dtype=bool)
+
+		for customer in np.vstack((self.train_dataset,self.test_dataset)):
+			# [time_of_request,time_to_complete,x_p,y_p,x_d,y_d]
+			i_x,i_y = self.coordinate_to_grid_index(customer[2],customer[3])
+			occupancy_cells_mask[i_x,i_y] = True 
+			try:
+				i_x,i_y = self.coordinate_to_grid_index(customer[3],customer[4])
+				occupancy_cells_mask[i_x,i_y] = True 
+			except:
+				pass 
+
+		return occupancy_cells_mask
+
+	def refine_map(self):
+		# this splits the remaining cells into the desired number of cells 
+		pass 		
+
+	def reduce_map(self,mask):
+		ncells = sum(sum(mask))
+		self.grid_index_to_cell_index_map = np.zeros((mask.shape),dtype=int)
+		self.cell_index_to_grid_index_map = np.zeros((ncells,2),dtype=int)
 		count = 0
-		for i_x,x in enumerate(self.param.env_x[:-1]):
-			for i_y,y in enumerate(self.param.env_y[:-1]):
-				if self.valid_cells_mask[i_x,i_y]:
+		for i_x,x in enumerate(self.param.env_x):
+			for i_y,y in enumerate(self.param.env_y):		
+				if mask[i_x,i_y]:
 					self.grid_index_to_cell_index_map[i_x,i_y] = count
 					self.cell_index_to_grid_index_map[count,:] = [i_x,i_y]
 					count += 1
@@ -99,6 +175,13 @@ class CityMap(Env):
 		ax.set_yticks(self.param.env_y)
 		ax.set_xlim([self.param.env_xlim[0],self.param.env_xlim[1]])
 		ax.set_ylim([self.param.env_ylim[0],self.param.env_ylim[1]])
+
+		for i in range(self.param.env_ncell):
+			x,y = self.cell_index_to_cell_coordinate(i)
+			x += self.param.env_dx/2
+			y += self.param.env_dx/2
+			ax.scatter(x,y)
+
 		ax.grid(True)
 		
 	# ----- plotting -----	
@@ -205,6 +288,43 @@ class CityMap(Env):
 		# 	- bool: true if point in cell 
 		return (point[0] > x and point[0] < x + self.param.env_dx) and \
 			(point[1] > y and point[1] < y + self.param.env_dy)
+
+	def heatmap(self, dataset):
+
+		customer_demand_per_state = np.zeros((self.param.env_ncell))
+		n_customers = dataset.shape[0]
+
+		# print('self.city_polygon.bounds:',self.city_polygon.bounds)
+		# print('self.param.env_x: ',self.param.env_x)
+		# print('self.param.env_y: ',self.param.env_y)
+
+		for customer in dataset:
+			# [time_of_request,time_to_complete,x_p,y_p,x_d,y_d]
+			# print('customer[2]: ', customer[2])
+			# print('customer[3]: ', customer[3])
+
+			intense_on = False
+			if intense_on:
+				customer_pickup = Point((customer[2], customer[3]))
+				if customer_pickup.within(self.city_polygon):
+					s = self.coordinate_to_cell_index(customer[2],customer[3])
+					customer_demand_per_state[s] += 1
+			else:
+				s = self.coordinate_to_cell_index(customer[2],customer[3])
+				customer_demand_per_state[s] += 1
+
+		customer_demand_per_state /= n_customers
+
+		# convert to im
+		im_customer_demand = np.zeros((self.param.env_nx,self.param.env_ny))
+		for i in range(self.param.env_ncell):
+			# print('self.cell_index_to_grid_index_map[i]:',self.cell_index_to_grid_index_map[i])
+			i_x,i_y = self.cell_index_to_grid_index_map[i]
+			im_customer_demand[i_x,i_y] = customer_demand_per_state[i]
+
+		return im_customer_demand 
+
+
 
 	def environment_barrier(self,p):
 

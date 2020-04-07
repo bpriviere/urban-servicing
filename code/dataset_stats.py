@@ -20,7 +20,6 @@ def ave_customer_per_time(dataset):
 	total_time = dataset[-1,0]-dataset[0,0]
 	return total_customers/total_time
 
-
 def main():
 
 	param = Param()

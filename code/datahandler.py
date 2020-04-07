@@ -114,7 +114,7 @@ def make_citymap_dataset(env):
 	# time increment 
 	delta_minute = 15
 	# dilute data by factor
-	stepsize = 10
+	stepsize = 1
 
 	train_start = datetime(param.train_start_year, 
 		param.train_start_month, 
@@ -166,6 +166,8 @@ def make_citymap_dataset_instance(datetime_start,datetime_end,delta_minute,steps
 		timestamp_next = datetime_next.strftime(input_timestamp_key) 
 
 		filter_condition = "trip_start_timestamp between "+timestamp_curr+" and "+timestamp_next
+
+		print(filter_condition)
 
 		print('   contacting client...')
 		client = Socrata("data.cityofchicago.org", None)

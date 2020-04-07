@@ -8,12 +8,11 @@ class Param:
 
 		self.verbose = True
 
-		self.env_name = 'gridworld'
-		# self.env_name = 'citymap' 
+		# self.env_name = 'gridworld'
+		self.env_name = 'citymap' 
 
 		self.global_reward_on = True
-		self.macro_sim_on = True
-
+		self.macro_sim_on = False
 
 		# flags 
 		self.env_render_on = False
@@ -132,11 +131,11 @@ class Param:
 
 		elif self.env_name is 'citymap':
 
-			self.make_dataset_on = True
+			self.make_dataset_on = False
 
 			# determine from data 
 			self.taxi_speed = 0.007 # temp 
-			self.process_noise = 0.1
+			self.process_noise = 0.1 
 			self.measurement_noise = 0.1 
 
 			# 
@@ -146,7 +145,7 @@ class Param:
 			# fleet 
 			self.ni = 2000
 			
-			self.desired_env_ncell = 100 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 
@@ -170,38 +169,38 @@ class Param:
 
 			# plot 
 			self.plot_r_agent = 0.05
-			self.plot_r_customer = 0.05			
+			self.plot_r_customer = 0.05
 
 			# timestamp for data gen
-			self.train_start_year = 2015
-			self.train_start_month = 1
-			self.train_start_day = 9
-			self.train_start_hour = 23
-			self.train_start_minute = 45
+			self.train_start_year = 2016
+			self.train_start_month = 10
+			self.train_start_day = 29
+			self.train_start_hour = 4
+			self.train_start_minute = 0
 			self.train_start_second = 0
 			self.train_start_microsecond = 0
 
-			self.train_end_year = 2015
-			self.train_end_month = 1
-			self.train_end_day = 10
-			self.train_end_hour = 0
+			self.train_end_year = self.train_start_year
+			self.train_end_month = self.train_start_month
+			self.train_end_day = self.train_start_day + 1
+			self.train_end_hour = 4
 			self.train_end_minute = 0
 			self.train_end_second = 0
 			self.train_end_microsecond = 0
 
-			self.test_start_year = 2015
-			self.test_start_month = 1
-			self.test_start_day = 10
-			self.test_start_hour = 0
+			self.test_start_year = self.train_start_year
+			self.test_start_month = self.train_start_month
+			self.test_start_day = self.train_start_day + 1
+			self.test_start_hour = 4
 			self.test_start_minute = 0
 			self.test_start_second = 0
 			self.test_start_microsecond = 0
 
-			self.test_end_year = 2015
-			self.test_end_month = 1
-			self.test_end_day = 10
-			self.test_end_hour = 0
-			self.test_end_minute = 15
+			self.test_end_year = self.train_start_year
+			self.test_end_month = self.train_start_month
+			self.test_end_day = self.train_start_day + 2
+			self.test_end_hour = 4
+			self.test_end_minute = 0
 			self.test_end_second = 0
 			self.test_end_microsecond = 0
 
@@ -367,18 +366,16 @@ class Param:
 		self.plot_arrow_head_length = self.plot_arrow_head_width
 
 
-		print('self.env_ncell: ', self.env_ncell)
-		if self.env_ncell > 150:
-			exit()
+		if self.env_name is 'gridworld':
+			print('self.env_ncell: ', self.env_ncell)
+			if self.env_ncell > 150:
+				exit()
 
 		# print('self.env_dx',self.env_dx)
 		# print('self.env_nx',self.env_nx)
 		# print('self.env_ny',self.env_ny)
 		# print('self.env_ncell',self.env_ncell)
 		# exit()
-
-
-
 
 		# old code 
 		# if self.swarm_parameters_ver == 0:

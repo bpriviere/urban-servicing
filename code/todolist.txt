@@ -4,17 +4,20 @@
 todo list:
 
 	4/5:
-		- make a good macro sim plot, ni vs average customer wait time, include in paper
+		- make a good macro sim plot, ni vs average customer wait time, include in paper 
 		- make a citymap simulation, include in paper
 		- make a citymap heatmap, include in paper 
 		- results discussion 
-		- send to wg 
+		- sauhaarda letter 
 
 	4/6 
 		- fix baseline 
 		- make figure 2 
 		- cover letter 
-		- add discussion on optimal kalman gains <-> adaptive learning rate 
+
+	after 
+		- fix related work section 
+		- video 
 
 
 	old 
@@ -51,10 +54,15 @@ todo list:
 
 	
 done: 
+	4.6 
+
+
 	4.5
+		- add discussion on optimal kalman gains <-> adaptive learning rate 
 		- make a good render plot, include in paper
 		- make a good results plot, include in paper
 		- make a good q error plot, include in paper
+		- send to wg 
 
 
 	3.23
