@@ -20,6 +20,11 @@ def ave_customer_per_time(dataset):
 	total_time = dataset[-1,0]-dataset[0,0]
 	return total_customers/total_time
 
+def ave_taxi_speed(dataset):
+	ave_dist = ave_length(dataset)
+	ave_time = ave_duration(dataset)
+	return ave_dist/ave_time
+
 def main():
 
 	param = Param()
@@ -49,6 +54,9 @@ def main():
 
 	print('train ave_customer_per_time: ', ave_customer_per_time(train_dataset))
 	print('test ave_customer_per_time: ', ave_customer_per_time(test_dataset))
+
+	print('train ave taxi speed: ', ave_taxi_speed(train_dataset))
+	print('test ave taxi speed: ', ave_taxi_speed(test_dataset))
 
 if __name__ == '__main__':
 	main()

@@ -114,7 +114,7 @@ def make_citymap_dataset(env):
 	# time increment 
 	delta_minute = 15
 	# dilute data by factor
-	stepsize = 1
+	stepsize = param.dilution
 
 	train_start = datetime(param.train_start_year, 
 		param.train_start_month, 
@@ -145,7 +145,7 @@ def make_citymap_dataset(env):
 		param.test_end_second, 
 		param.test_end_microsecond) 
 
-	train_dataset = make_citymap_dataset_instance(train_start,train_end,delta_minute,10)
+	train_dataset = make_citymap_dataset_instance(train_start,train_end,delta_minute,stepsize)
 	test_dataset = make_citymap_dataset_instance(test_start,test_end,delta_minute,stepsize)
 
 	return train_dataset,test_dataset 
@@ -215,6 +215,9 @@ def make_citymap_dataset_instance(datetime_start,datetime_end,delta_minute,steps
 
 	# clean data
 	dataset = dataset[~np.isnan(dataset).any(axis=1)]
+
+	# sort data 
+	dataset = dataset[dataset[:,0].argsort()]	
 
 	print('final dataset size: ', dataset.shape)
 

@@ -96,7 +96,7 @@ class Env():
 		customers_location = self.get_curr_customer_locations()
 
 		# - distributions 
-		gmm_distribution = self.get_curr_im_gmm()
+		# gmm_distribution = self.get_curr_im_gmm()
 		agents_distribution = self.get_curr_im_agents()
 		free_agents_distribution = self.get_curr_im_free_agents()
 		agents_value_fnc_distribution = self.get_curr_im_value()
@@ -368,14 +368,28 @@ class Env():
 	# mdp stuff 
 	def solve_MDP(self,dataset,curr_time):
 
+		# only consider until curr_time
+		dataset = dataset[dataset[:,0] < curr_time,:]
+
 		if dataset.shape[0] > self.param.mdp_max_data:
 			dataset = dataset[-self.param.mdp_max_data:,:]
+
+		print('dataset[:,0]:',dataset[:,0])
+		print('curr_time:',curr_time)
+		print('self.param.sim_times:',self.param.sim_times)
+
 
 		self.P = self.get_MDP_P() # in AxSxS
 		# self.Pq = self.get_MDP_Pq()
 
 		P = self.P
+		print('get_MDP_R...')
 		R = self.get_MDP_R(dataset,curr_time) # in SxA
+
+		print('P: ',P)
+		print('R: ',R)
+		print('dataset: ',dataset)
+
 		mdp = ValueIteration(P,R,self.param.mdp_gamma,self.param.mdp_eps,self.param.mdp_max_iter)
 		# mdp = ValueIterationGS(P, R, self.param.mdp_gamma, epsilon=self.param.mdp_eps, max_iter=self.param.mdp_max_iter)
 		# mdp.setVerbose()
@@ -412,7 +426,7 @@ class Env():
 		P = self.P
 
 		count = 0
-		time_discount_sum = np.zeros(R.shape)
+		time_discount_sum = 0.0 #.zeros(R.shape)
 		for data in dataset:
 			
 			tor = data[0]
@@ -425,14 +439,30 @@ class Env():
 			px = data[2]
 			py = data[3]
 
+			if 'gridworld' in self.param.env_name:
+				time_discount = self.param.lambda_r**time_diff
+			elif 'citymap' in self.param.env_name:
+				time_discount = self.param.lambda_r**(time_diff/self.param.sim_dt)
+			time_discount_sum += time_discount
+
 			# if global update 
 			if self.param.global_reward_on:
 				for s in range(self.param.env_ncell):
 					for a in range(self.param.env_naction):
 						
-						time_discount = self.param.lambda_r**time_diff
-						R[s,a] += self.reward_instance(s,a,px,py,time_diff)*time_discount
-						time_discount_sum[s,a] += time_discount
+						reward = self.reward_instance(s,a,px,py,time_diff)*time_discount
+
+						R[s,a] += reward
+
+						# print('reward: ', reward)
+						# print('time_discount_sum: ', time_discount_sum)
+						# print('self.reward_instance(s,a,px,py,time_diff): ', self.reward_instance(s,a,px,py,time_diff))
+
+
+						# else:
+						# 	print('not read')
+						# print('time_discount:', time_discount)
+						# print('reward:', reward)
 
 						# time_discount = self.param.lambda_r**time_diff
 						# R[s,a] += self.reward_instance(s,a,px,py,time_diff)

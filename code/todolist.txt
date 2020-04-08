@@ -4,19 +4,20 @@
 todo list:
 
 	4/5:
-		- make a good macro sim plot, ni vs average customer wait time, include in paper 
-		- make a citymap simulation, include in paper
-		- make a citymap heatmap, include in paper 
+		- check taxes 
+		- make a citymap simulation, include in paper 
+		- do a round of revisions 
+		- let soon jo know where ya at 
 		- results discussion 
 		- sauhaarda letter 
+		- cover letter 
 
 	4/6 
 		- fix baseline 
 		- make figure 2 
-		- cover letter 
+		- fix related work section 
 
 	after 
-		- fix related work section 
 		- video 
 
 
@@ -55,6 +56,8 @@ todo list:
 	
 done: 
 	4.6 
+		- make a good macro sim plot, ni vs average customer wait time, include in paper 
+		- make a citymap heatmap, include in paper 
 
 
 	4.5

@@ -20,8 +20,8 @@ class Param:
 		self.plot_arrows_on = False
 
 		self.n_trials = 1
-		self.htd_time_window = 10
-		self.htd_minimum_reset = 10
+		self.htd_time_window = 2
+		self.htd_minimum_reset = 2
 		self.rhc_horizon = 10
 		self.delta_d_ratio = 0.025
 
@@ -112,7 +112,7 @@ class Param:
 
 			# mdp 
 			self.n_training_data = 100
-			self.lambda_r = 0.2 #0.1
+			self.lambda_r = 1.0 #0.9999 #0.2 #0.1
 			self.mdp_gamma = 0.9 # 0.8 # 0.8 
 			self.mdp_max_iter = 1000
 			self.mdp_max_data = 1000
@@ -135,7 +135,7 @@ class Param:
 			self.make_dataset_on = False
 
 			# determine from data 
-			self.taxi_speed = 0.007 # temp 
+			self.taxi_speed = 0.04 # temp 
 			self.process_noise = 0.1 
 			self.measurement_noise = 0.1 
 
@@ -144,7 +144,8 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni = 1000
+			self.dilution = 10
+			self.ni = int(2000/self.dilution)
 			
 			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
@@ -343,7 +344,7 @@ class Param:
 			# sim 
 			self.sim_t0 = train_end.timestamp()
 			self.sim_tf = test_end.timestamp()
-			self.sim_dt = 60 # 1 minutes 
+			self.sim_dt = 5*60 # 1 minutes 
 
 
 		# common for all set of parameters
