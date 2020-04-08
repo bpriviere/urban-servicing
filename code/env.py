@@ -49,7 +49,11 @@ class Env():
 		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
 		customer_requests = self.test_dataset[idxs,:]
 		for i in range(customer_requests.shape[0]):
+			
+			pickup_state = self.coordinate_to_cell_index(customer_requests[i,2],customer_requests[i,3])
+			dropoff_state = self.coordinate_to_cell_index(customer_requests[i,4],customer_requests[i,5])
 			self.observation.append(Service(customer_requests[i,:]))
+
 		return self.observation
 
 	def step(self,actions):
@@ -374,21 +378,21 @@ class Env():
 		if dataset.shape[0] > self.param.mdp_max_data:
 			dataset = dataset[-self.param.mdp_max_data:,:]
 
-		print('dataset[:,0]:',dataset[:,0])
-		print('curr_time:',curr_time)
-		print('self.param.sim_times:',self.param.sim_times)
+		# print('dataset[:,0]:',dataset[:,0])
+		# print('curr_time:',curr_time)
+		# print('self.param.sim_times:',self.param.sim_times)
 
 
 		self.P = self.get_MDP_P() # in AxSxS
 		# self.Pq = self.get_MDP_Pq()
 
 		P = self.P
-		print('get_MDP_R...')
+		# print('get_MDP_R...')
 		R = self.get_MDP_R(dataset,curr_time) # in SxA
 
-		print('P: ',P)
-		print('R: ',R)
-		print('dataset: ',dataset)
+		# print('P: ',P)
+		# print('R: ',R)
+		# print('dataset: ',dataset)
 
 		mdp = ValueIteration(P,R,self.param.mdp_gamma,self.param.mdp_eps,self.param.mdp_max_iter)
 		# mdp = ValueIterationGS(P, R, self.param.mdp_gamma, epsilon=self.param.mdp_eps, max_iter=self.param.mdp_max_iter)
