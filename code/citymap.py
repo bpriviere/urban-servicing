@@ -74,6 +74,8 @@ class CityMap(Env):
 			full_mask = valid_geometery_cell_mask
 
 		# make utility maps 
+		# 	- grid_index_to_cell_index_map
+		# 	- cell_index_to_grid_index_map
 		print('   reducing map...')
 		self.reduce_map(full_mask)
 
@@ -156,34 +158,7 @@ class CityMap(Env):
 
 		ax.grid(True)
 
-	# Utility Stuff
-		# 'cell_index' : element of [0,...,env_ncell]
-		# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
-		# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
-		# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
 
-	def cell_index_to_cell_coordinate(self,i):
-		# takes in valid cell index and returns bottom left corner coordinate of cell
-		# dim(self.cell_index_to_cell_coordinate_map) = [nvalidcells, 2]
-		i_x,i_y = self.cell_index_to_grid_index_map[i,:]
-		x,y = self.grid_index_to_coordinate(i_x,i_y)
-		return x,y
-
-	def coordinate_to_grid_index(self,x,y):
-		# takes in coordinate and returns which i_x,i_y cell it is in
-		i_x = np.where(self.param.env_x <= x)[0][-1] # last index where input-x is larger than grid 
-		i_y = np.where(self.param.env_y <= y)[0][-1]
-		return i_x,i_y
-
-	def coordinate_to_cell_index(self,x,y):
-		i_x,i_y = self.coordinate_to_grid_index(x,y)
-		i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
-		return i
-
-	def grid_index_to_coordinate(self,i_x,i_y):
-		x = self.param.env_x[i_x]
-		y = self.param.env_y[i_y]
-		return x,y
 
 	def random_position_in_cell(self,i):
 		x,y = self.cell_index_to_cell_coordinate(i)

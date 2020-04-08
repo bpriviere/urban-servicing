@@ -854,3 +854,38 @@ class Env():
 		# im_a[idx] = (im_a[idx].T/count[idx]).T
 		im_a[idx] = im_a[idx]/count[idx]
 		return im_a
+
+	# Utility Stuff
+		# 'cell_index' : element of [0,...,env_ncell]
+		# 'cell_coordinate' : (x,y) coordinates of bottom left corner of cell 
+		# 'xy_cell_index' : (i_x,i_y) indices corresponding to elements of env_x, env_y
+		# 'coordinate' : free (x,y) coordinate, not constrained by being on gridlines
+
+	def cell_index_to_cell_coordinate(self,i):
+		# takes in valid cell index and returns bottom left corner coordinate of cell
+		# dim(self.cell_index_to_cell_coordinate_map) = [nvalidcells, 2]
+		i_x,i_y = self.cell_index_to_grid_index_map[i,:]
+		x,y = self.grid_index_to_coordinate(i_x,i_y)
+		return x,y
+
+	def coordinate_to_grid_index(self,x,y):
+		# takes in coordinate and returns which i_x,i_y cell it is in
+		try:
+			i_x = np.where(self.param.env_x <= x)[0][-1] # last index where input-x is larger than grid 
+			i_y = np.where(self.param.env_y <= y)[0][-1]
+		except:
+			print('invalid coordinate: ',x,y)
+			print('self.param.env_x: ', self.param.env_x)
+			print('self.param.env_y: ', self.param.env_y)
+			exit()
+		return i_x,i_y
+
+	def coordinate_to_cell_index(self,x,y):
+		i_x,i_y = self.coordinate_to_grid_index(x,y)
+		i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
+		return i
+
+	def grid_index_to_coordinate(self,i_x,i_y):
+		x = self.param.env_x[i_x]
+		y = self.param.env_y[i_y]
+		return x,y		
