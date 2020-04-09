@@ -4,18 +4,15 @@
 todo list:
 
 	4/5:
-		- check taxes 
-		- make a citymap simulation, include in paper 
-		- do a round of revisions 
+		- make figure 2 
 		- let soon jo know where ya at 
+		- make a citymap simulation, include in paper 
 		- results discussion 
-		- sauhaarda letter 
 		- cover letter 
+		- check taxes 
 
 	4/6 
 		- fix baseline 
-		- make figure 2 
-		- fix related work section 
 
 	after 
 		- video 
@@ -58,7 +55,9 @@ done:
 	4.6 
 		- make a good macro sim plot, ni vs average customer wait time, include in paper 
 		- make a citymap heatmap, include in paper 
-
+		- sauhaarda letter 
+		- do a round of revisions 
+		- fix related work section
 
 	4.5
 		- add discussion on optimal kalman gains <-> adaptive learning rate 

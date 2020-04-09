@@ -26,18 +26,19 @@ class Param:
 		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
-			# 'D-TD',
-			'H-TD^2',
+			'D-TD',
+			# 'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
 			'RHC'
 			]
 
-		# learning rate
-		self.td_alpha = 0.6 #0.5			
 
 		# environment parameters
 		if self.env_name is 'gridworld':
+	
+			# learning rate
+			self.td_alpha = 0.6 #0.5			
 			
 			# flags
 			self.make_dataset_on = True
@@ -132,11 +133,14 @@ class Param:
 
 		elif self.env_name is 'citymap':
 
-			self.make_dataset_on = False
+			self.make_dataset_on = True
+
+			# learning rate
+			self.td_alpha = 0.1 #0.5				
 
 			# determine from data 
 			self.taxi_speed = 0.04 # temp 
-			self.process_noise = 0.1 
+			self.process_noise = 0.00001 
 			self.measurement_noise = 0.1 
 
 			# 
@@ -144,8 +148,9 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.dilution = 10
-			self.ni = int(2000/self.dilution)
+			self.ni_dilution = 2
+			self.nc_dilution = 10
+			self.ni = int(2000/self.ni_dilution)
 			
 			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2

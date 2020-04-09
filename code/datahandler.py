@@ -114,7 +114,7 @@ def make_citymap_dataset(env):
 	# time increment 
 	delta_minute = 15
 	# dilute data by factor
-	stepsize = param.dilution
+	stepsize = param.nc_dilution
 
 	train_start = datetime(param.train_start_year, 
 		param.train_start_month, 
