@@ -19,7 +19,15 @@ def centralized_linear_program(env,agents):
 	# ouput: 
 	#    - cell_assignments: integer variables corresponding to tabular actions that move agent to cell 
 
-	cell_assignments = []
+	# decision variables 
+	# 	x_t is number of taxis in each cell 
+	# 	U_t[s,sp,t] is defined as cells in s going to cell sp at time t
+	# 	U_t[ij,t] is flattened array bc cvxpy doesnt accept > 2d
+	# ij = s*env_ncell + sp
+
+
+	dbg = False
+	dbg_test = 0 
 
 	if len(agents)>0:
 
@@ -34,11 +42,11 @@ def centralized_linear_program(env,agents):
 		w = np.zeros((env.param.env_ncell,env.param.rhc_horizon))
 		for s in range(env.param.env_ncell):
 
-			# q_idx = env.sa_to_q_idx(s,0)
-			# w[s,:] = r[q_idx]
+			q_idx = env.sa_to_q_idx(s,0)
+			w[s,:] = r[q_idx]
 
-			pi = env.global_boltzmann_policy(q)
-			w[s,:] = pi[s]
+			# pi = env.global_boltzmann_policy(q)
+			# w[s,:] = pi[q_idx]
 
 		for t in range(env.param.rhc_horizon):
 			w[:,t] = w[:,t] / sum(w[:,t])
@@ -54,144 +62,190 @@ def centralized_linear_program(env,agents):
 		idxs_from_s = np.zeros((env.param.env_ncell,env.param.env_ncell**2))
 		idxs_to_s = np.zeros((env.param.env_ncell,env.param.env_ncell**2))
 		
-		for i in range(env.param.env_ncell):
-			for j in range(env.param.env_ncell):
-				idxs_from_s[i,i_j_to_ij(env,i,j)] = 1 
-				idxs_to_s[i,i_j_to_ij(env,j,i)] = 1 
-				banned_idx[i,i_j_to_ij(env,i,j)] = 1
+		for s in range(env.param.env_ncell):
+			for sp in range(env.param.env_ncell):
+				idxs_from_s[s,i_j_to_ij(env,s,sp)] = 1 
+				idxs_to_s[s,i_j_to_ij(env,sp,s)] = 1 
+				banned_idx[s,i_j_to_ij(env,s,sp)] = 1
 
-			local_states,local_actions = env.get_local_transitions(i)
-			for j in local_states:
-				banned_idx[i, i_j_to_ij(env,i,j)] = 0
+			local_states,local_actions = env.get_local_transitions(s)
+			for sp in local_states:
+				banned_idx[s, i_j_to_ij(env,s,sp)] = 0
 
-		# decision variables 
-		# 	x_t is number of taxis in each cell 
-		# 	U_t[i,j] is defined as cells in i going to cell j at time t
-		# 	U_t is flattened into array U_t[i*env_ncell+j,:] bc cvxpy doesnt accept > 2d
 
-		# debug where each agent takes action 0 
-		dbg = False
 		if dbg: 
-			x_t = np.zeros((env.param.env_ncell,env.param.rhc_horizon+1))
 			U_t = np.zeros((env.param.env_ncell**2,env.param.rhc_horizon))
 
-			for agent in agents:
-				s = env.coordinate_to_cell_index(agent.x,agent.y)
 
-				U_t[i_j_to_ij(env,s,s),:] += 1
+			# U where each agent takes action 0 for all time 
+			if dbg_test == 0:
 
-			for t in range(env.param.rhc_horizon):
-				x_t[:,t] = x0
+				for agent in agents:
+					s = env.coordinate_to_cell_index(agent.x,agent.y)
+					U_t[i_j_to_ij(env,s,s),:] += 1
+
+			# U where each agent goes bottom left 
+			if dbg_test == 1:
+
+				for agent in agents:
+					s = env.coordinate_to_cell_index(agent.x,agent.y)
+
+					for t in range(env.param.rhc_horizon):
+
+						local_states,local_actions = env.get_local_transitions(s)
+
+						# left 
+						if 3 in local_actions:
+							sp = env.get_next_state(s,3)
+
+						# down 
+						elif 4 in local_actions:
+							sp = env.get_next_state(s,4)
+
+						# stay 
+						else:
+							sp = s 
+
+						U_t[i_j_to_ij(env,s,sp),:] += 1 
+
+			# print('env.param.env_nx: ',env.param.env_nx)
+			# print('env.param.env_ny: ',env.param.env_ny)
+			# print('env.param.env_ncell: ',env.param.env_ncell)
+			# print('env.param.rhc_horizon: ',env.param.rhc_horizon)
+			# for s in range(env.param.env_ncell):
+			# 	print('s: ',s)
+			# 	print('   banned_idx[s,:]: ',banned_idx[s,:])
+			# 	print('   idxs_from_s[s,:]: ',idxs_from_s[s,:])
+			# 	print('   idxs_to_s[s,:]: ',idxs_to_s[s,:])
+			# print('idxs_from_s: ',idxs_from_s)
+			# print('idxs_to_s: ',idxs_to_s)
+
+			print('nfree:',nfree)
+			print('U_t:',U_t)
+			print('w:',w)
+			print('r:',r)
+			print('x0:',x0)
+			print('np.dot(idxs_to_s, U_t[:,t]):', np.dot(idxs_to_s, U_t[:,t]))
+			print('np.dot(idxs_from_s, U_t[:,t]):', np.dot(idxs_from_s, U_t[:,t]))
+			exit()
+
+
+			cell_assignments = U_to_cell_assignments(U_t[:,0],env,agents,idxs_from_s)
+
+
 		else:
 			x_t = cp.Variable((env.param.env_ncell,env.param.rhc_horizon+1))
 			U_t = cp.Variable((env.param.env_ncell**2,env.param.rhc_horizon))
 
-		# init 
-		cost = 0
-		constr = []
+			# init 
+			cost = 0
+			constr = []
 
-		# initial condition 
-		constr.append(x_t[:,0] == x0)
+			# initial condition 
+			constr.append(x_t[:,0] == x0)
 
-		# always greater than zero
-		constr.append(U_t >= 0)
+			# always greater than zero
+			constr.append(U_t >= 0)
 
-		# sum to ni 
-		if dbg:
-			constr.append(np.sum(U_t,axis=0)==nfree)
-		else:
+			# sum to ni 
 			constr.append(cp.sum(U_t,axis=0)==nfree)
 
-		for t in range(env.param.rhc_horizon):
+			for t in range(env.param.rhc_horizon):
 
-			# conservation 1: taxis in 's' at next timestep = taxis curr in 's' + taxis going into cell 's'
-			constr.append(idxs_to_s @ U_t[:,t] == x_t[:,t+1])
+				# conservation 1: taxis in 's' at next timestep = taxis curr in 's' + taxis going into cell 's'
+				constr.append(idxs_to_s @ U_t[:,t] == x_t[:,t+1])
 
-			# conservation 2: taxis leaving 's' less than or equal to taxis curr in 's' 
-			constr.append(idxs_from_s @ U_t[:,t] == x_t[:,t])
-			# constr.append(idxs_to_s @ U_t[:,t] == x_t[:,t])
+				# conservation 2: taxis leaving 's' less than or equal to taxis curr in 's' 
+				constr.append(idxs_from_s @ U_t[:,t] == x_t[:,t])
 
-			# dynamics: travel between banned indices are not allowed 
-			constr += [banned_idx @ U_t[:,t] == 0] 
+				# dynamics: travel between banned indices are not allowed 
+				constr.append(banned_idx @ U_t[:,t] == 0)
 
-			# cost fnc:
-			if dbg:
-				cost += env.param.mdp_gamma**t * np.sum(np.abs(x_t[:,t]/nfree - w[:,t]))
+				# cost fnc:
+				cost += env.param.mdp_gamma**t * cp.sum_squares(x_t[:,t+1]/nfree - w[:,t])
+
+			# solve 
+			obj = cp.Minimize(cost)
+			prob = cp.Problem(obj, constr)
+			# prob.solve(verbose=True, solver=cp.GUROBI)
+			prob.solve(verbose=False, solver=cp.GUROBI)
+
+			print('nfree:',nfree)
+			print('U_t.value:',U_t.value)
+			print('x_t.value:',x_t.value)
+			print('x0:',x0)
+			print('w:',w)
+
+			for t in range(env.param.rhc_horizon):
+				print('t:',t)
+				print('np.dot(idxs_to_s, U_t.value[:,t]):', np.dot(idxs_to_s, U_t.value[:,t]))
+				print('np.dot(idxs_from_s, U_t.value[:,t]):', np.dot(idxs_from_s, U_t.value[:,t]))
+
+			cell_assignments = U_to_cell_assignments(U_t.value[:,0],env,agents,idxs_from_s)
+
+		actions = [a for (_,a) in cell_assignments]
+		print('actions:',actions)
+			
+	return cell_assignments	
+
+
+def U_to_cell_assignments(U,env,agents,idxs_from_s):
+
+	# convert to integers
+	cell_assignments = [] 
+
+	random_round = True
+	if random_round:
+		cell_movement = np.zeros((U.shape))
+
+		for ij in range(env.param.env_ncell**2):
+
+			floor_u_ij = np.floor(U[ij])
+			random = np.random.random()
+			if random < U[ij] - floor_u_ij:
+				cell_movement[ij] = floor_u_ij + 1 
 			else:
-				# cost += env.param.mdp_gamma**t * cp.sum(cp.abs(x_t[:,t]/nfree - w[:,t]))
-				cost += env.param.mdp_gamma**t * cp.sum_squares(x_t[:,t]/nfree - w[:,t])
+				cell_movement[ij] = floor_u_ij 
 
-
-		if dbg:
-
-			print('env.param.env_nx: ',env.param.env_nx)
-			print('env.param.env_ny: ',env.param.env_ny)
-			print('env.param.env_ncell: ',env.param.env_ncell)
-			for s in range(env.param.env_ncell):
-				print('s: ',s)
-				print('   banned_idx[s,:]: ',banned_idx[s,:])
-				print('   idxs_from_s[s,:]: ',idxs_from_s[s,:])
-				print('   idxs_to_s[s,:]: ',idxs_to_s[s,:])
-			print('x0: ',x0)
-			print('U_t:',U_t)
-			print(constr)
-
-			exit()
-
-		obj = cp.Minimize(cost)
-		prob = cp.Problem(obj, constr)
-		# prob.solve(verbose=True, solver=cp.GUROBI)
-		prob.solve(verbose=False, solver=cp.GUROBI)
-
-		# needs to be ncells**2 x 1 
-		cell_movement = U_t.value[:,0]
-
-		# print('x_t.value[:,0]:', x_t.value[:,0])
-		# print('w[:,0]:',w[:,0])
-		# print('x_t.value[:,1]:', x_t.value[:,1])
-		# print('w[:,1]:',w[:,1])
-
-		# for t in range(env.param.rhc_horizon):
-		# 	print('t:',t)
-		# 	print('np.linalg.norm( w[:,t] - x_t.value[:,t]): ',(np.linalg.norm( w[:,t] - x_t.value[:,t])))
+		# 	print('floor_u_ij:',floor_u_ij)
+		# 	print('U[ij]:',U[ij])
+		# 	print('random:',random)
+		# 	print('cell_movement[ij]:',cell_movement[ij])
 		# exit()
+	else:
+		cell_movement = np.round(U)	
+	
+	cell_movement = cell_movement.astype(int)
 
-		# convert to integers
-		cell_movement = np.round(cell_movement)	
-		cell_movement = cell_movement.astype(int)
+	round_errors = 0
+	for agent in agents:
 
-		round_errors = 0
-		for agent in agents:
+		# get current cell, s 
+		s = env.coordinate_to_cell_index(agent.x,agent.y)
+		local_states,local_actions = env.get_local_transitions(s)
 
-			# get current cell, s 
-			s = env.coordinate_to_cell_index(agent.x,agent.y)
-			local_states,local_actions = env.get_local_transitions(s)
+		# if there are still assignments leaving cell s 
+		if sum(cell_movement[idxs_from_s[s,:] == 1]) > 0:
 
-			# if there are still assignments leaving cell s 
-			if sum(cell_movement[idxs_from_s[s,:] == 1]) > 0:
+			# get first available cell 
+			sp = np.nonzero(cell_movement[idxs_from_s[s,:] == 1])[0][0]
 
-				# get first available cell 
-				sp = np.nonzero(cell_movement[idxs_from_s[s,:] == 1])[0][0]
+			# if transition state is valid 
+			if sp in local_states:
+				action = env.s_sp_to_a(s,sp)
+				cell_movement[i_j_to_ij(env,s,sp)] -= 1 
+				cell_assignments.append((agent,action))
 
-				# if transition state is valid 
-				if sp in local_states:
-					action = env.s_sp_to_a(s,sp)
-					cell_movement[i_j_to_ij(env,s,sp)] -= 1 
-					cell_assignments.append((agent,action))
-
-				# else assign stay still 
-				else:
-					action = 0 
-					cell_assignments.append((agent,action))
-					round_errors += 1
-
-			# else stay still  
+			# else assign stay still 
 			else:
 				action = 0 
 				cell_assignments.append((agent,action))
 				round_errors += 1
 
-		actions = [a for (_,a) in cell_assignments]
-		print('actions:',actions)
-			
+		# else stay still  
+		else:
+			action = 0 
+			cell_assignments.append((agent,action))
+			round_errors += 1
+
 	return cell_assignments

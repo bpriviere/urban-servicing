@@ -4,7 +4,7 @@ import numpy as np
 
 # my packages
 from helper_classes import Dispatch, Service, Empty
-from task_assignment import centralized_linear_program, binary_log_learning
+from task_assignment import binary_log_learning
 from baseline import centralized_linear_program
 
 
@@ -265,17 +265,10 @@ class Controller():
 	def rhc(self,agents):
 		# receding horizon control 
 		
-		if True: 
-			# old 
-			# no update
-			print('rhc...')
+		realtime_baseline = False
+		blll_baseline = False
 
-			# task assignment 
-			print('ta...')
-			cell_assignments = self.ta(self.env,agents)
-
-		else:
-
+		if realtime_baseline:
 			# get stuff 
 			r_k = np.zeros((self.param.nq,self.param.ni))
 			p_k = np.zeros((1,self.param.ni))
@@ -296,6 +289,12 @@ class Controller():
 				agent.r = r_kp1
 				agent.p = p_kp1
 
+		if blll_baseline: 
+			# task assignment 
+			print('ta...')
+			cell_assignments = self.ta(self.env,agents)
+
+		else:
 			# new
 			cell_assignments = centralized_linear_program(self.env,agents)
 
