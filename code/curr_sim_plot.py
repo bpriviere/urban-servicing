@@ -9,21 +9,18 @@ import matplotlib.pyplot as plt
 from param import Param 
 
 default_param = Param()
-desired_controller = 'ctd'
-desired_control_on = False
 full_time = True
+
+# lst of dirs containing folders: sim_result_1
+# results_dir = ['../current_results/*']
+result_dirs = ['../results/2020-04-05_100_agent_gridworld/*']
 
 # load sim results 
 sim_results = [] # lst of dicts
 print('loading sim results...')
-for sim_result_dir in glob.glob('../current_results/*'):
-	sim_result = datahandler.load_sim_result(sim_result_dir)
-
-	if desired_control_on:
-		if desired_controller in sim_result["controller_name"]:
-			sim_results.append(sim_result)
-			break 
-	else:
+for result_dir in result_dirs:
+	for sim_result_dir in glob.glob(result_dir):
+		sim_result = datahandler.load_sim_result(sim_result_dir)
 		sim_results.append(sim_result)
 
 
@@ -49,8 +46,7 @@ for sim_result in sim_results:
 	
 	break
 
-# plotter.plot_runtime_vs_number_of_agents(sim_results)
-# plotter.plot_totalreward_vs_number_of_agents(sim_results)
+# plotter.macro_plot_number_of_agents(sim_results)
 plotter.plot_cumulative_reward(sim_results)
 plotter.plot_q_error(sim_results)
 
