@@ -43,10 +43,10 @@ def centralized_linear_program(env,agents):
 		for s in range(env.param.env_ncell):
 
 			q_idx = env.sa_to_q_idx(s,0)
-			w[s,:] = r[q_idx]
+			# w[s,:] = r[q_idx]
 
-			# pi = env.global_boltzmann_policy(q)
-			# w[s,:] = pi[q_idx]
+			pi = env.global_boltzmann_policy(q)
+			w[s,:] = pi[q_idx]
 
 		for t in range(env.param.rhc_horizon):
 			w[:,t] = w[:,t] / sum(w[:,t])
@@ -170,21 +170,21 @@ def centralized_linear_program(env,agents):
 			# prob.solve(verbose=True, solver=cp.GUROBI)
 			prob.solve(verbose=False, solver=cp.GUROBI)
 
-			print('nfree:',nfree)
-			print('U_t.value:',U_t.value)
-			print('x_t.value:',x_t.value)
-			print('x0:',x0)
-			print('w:',w)
+			# print('nfree:',nfree)
+			# print('U_t.value:',U_t.value)
+			# print('x_t.value:',x_t.value)
+			# print('x0:',x0)
+			# print('w:',w)
 
-			for t in range(env.param.rhc_horizon):
-				print('t:',t)
-				print('np.dot(idxs_to_s, U_t.value[:,t]):', np.dot(idxs_to_s, U_t.value[:,t]))
-				print('np.dot(idxs_from_s, U_t.value[:,t]):', np.dot(idxs_from_s, U_t.value[:,t]))
+			# for t in range(env.param.rhc_horizon):
+			# 	print('t:',t)
+			# 	print('np.dot(idxs_to_s, U_t.value[:,t]):', np.dot(idxs_to_s, U_t.value[:,t]))
+			# 	print('np.dot(idxs_from_s, U_t.value[:,t]):', np.dot(idxs_from_s, U_t.value[:,t]))
 
 			cell_assignments = U_to_cell_assignments(U_t.value[:,0],env,agents,idxs_from_s)
 
-		actions = [a for (_,a) in cell_assignments]
-		print('actions:',actions)
+		# actions = [a for (_,a) in cell_assignments]
+		# print('actions:',actions)
 			
 	return cell_assignments	
 
@@ -194,7 +194,7 @@ def U_to_cell_assignments(U,env,agents,idxs_from_s):
 	# convert to integers
 	cell_assignments = [] 
 
-	random_round = True
+	random_round = False
 	if random_round:
 		cell_movement = np.zeros((U.shape))
 
