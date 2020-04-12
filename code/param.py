@@ -8,8 +8,11 @@ class Param:
 
 		self.verbose = True
 
-		# self.env_name = 'gridworld'
-		self.env_name = 'citymap' 
+		self.load_param = True
+		self.load_param_fn = '../results/2020-04-12_testing_param_loader_2/sim_result_1/param.json'
+
+		self.env_name = 'gridworld'
+		# self.env_name = 'citymap' 
 
 		self.global_reward_on = True
 		self.macro_sim_on = False
@@ -26,7 +29,7 @@ class Param:
 		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
-			'D-TD',
+			# 'D-TD',
 			# 'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
@@ -45,7 +48,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 50
+			self.sim_tf = 2
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -55,7 +58,7 @@ class Param:
 				# this one 
 
 				# fleet 
-				self.ni = 100 # 20 
+				self.ni = 10 # 20 
 
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
@@ -67,29 +70,9 @@ class Param:
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
-				self.desired_env_ncell = 150 #5*self.ni # 2
+				self.desired_env_ncell = 100 # 150 #5*self.ni # 2
 				self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
 				self.desired_swarm_param = 1.75 # 1.2 
-
-			# elif self.swarm_parameters_ver == 3:
-			# 	# this one is for the macro sim, 
-
-			# 	self.ni = 100 
-
-			# 	# customer model
-			# 	self.cm_taxi_speed_ratio = 0.1
-			# 	self.cm_sigma_ratio = 0.25 # std = sigma_ratio * env_dx 
-			# 	self.cm_ng = 2 # 1
-			# 	self.cm_speed_ratio = 0.15 # speed = speed_ratio * taxi speed 
-			# 	self.n_customers_per_time_ratio = 0.1 # 0.2 
-			# 	self.cm_linear_move = False 
-
-			# 	# swarm param 
-			# 	self.env_lengthscale = 1.0 # 
-			# 	self.desired_env_ncell = 150 #5*self.ni # 2
-			# 	self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
-			# 	self.desired_swarm_param = 1.75 # 1.2 
-
 
 			elif self.swarm_parameters_ver == 4:
 				# recreate smallscale gridworld sim 
@@ -101,12 +84,17 @@ class Param:
 				# map
 				self.env_dx = 0.25
 				self.env_dy = self.env_dx 
-				self.env_xlim = [0,0.75]
+				self.env_xlim = [0,0.5]
 				self.env_ylim = [0,0.25]
 				self.env_lengthscale = self.env_xlim[1] - self.env_xlim[0]
 
 				# customer model
-				self.n_customers_per_time = 1			
+				self.cm_ng = 1 # 1
+				self.n_customers_per_time = 1
+				self.cm_linear_move = True 
+				self.n_customers_per_time_ratio = 0.1 # 0.2 
+				self.cm_sigma_ratio = 0.25 # std = sigma_ratio * env_dx 
+				self.cm_speed_ratio = 0.15 # speed = speed_ratio * taxi speed 
 		
 			# estimation
 			self.p0 = 0.0001 
@@ -246,6 +234,17 @@ class Param:
 
 	def to_dict(self):
 		return self.__dict__
+
+	def load_dict(self):
+		
+		temp_dict = dict()
+		import json
+		with open(self.load_param_fn, 'r') as j:
+			temp_dict = json.loads(j.read())
+
+		for key,value in temp_dict.items():
+			setattr(self,key,value)
+
 
 	def update(self):
 		if self.env_name is 'gridworld':

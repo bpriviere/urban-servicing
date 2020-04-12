@@ -382,11 +382,11 @@ def sim_plot_over_time(controller_name,sim_result,times):
 	agent_colors = get_agent_colors(param["ni"])
 	if param["env_name"] in 'citymap':
 		city_boundary = make_city_boundary(param)
-		for timestep,time in times:
+		for timestep,time in enumerate(times):
 			fig = plt.figure()
 			sim_plot(controller_name, sim_result, timestep, fig=fig, city_boundary=city_boundary)
 	else:
-		for timestep,time in times:
+		for timestep,time in enumerate(times):
 			fig = plt.figure()
 			sim_plot(controller_name, sim_result, timestep, fig=fig, agent_colors=agent_colors)
 
@@ -543,43 +543,37 @@ def get_agent_colors(ni):
 	import matplotlib.colors as colors
 	import numpy as np
 
-	def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-		new_cmap = colors.LinearSegmentedColormap.from_list(
-			'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
-			cmap(np.linspace(minval, maxval, n)))
-		return new_cmap
 
-	min_v_blue = 0.2
-	max_v_blue = 0.6
-	min_v_orange = 0.5
-	max_v_orange = 0.6
+	color_variation = False 
 
-	blue_cmap = plt.get_cmap('Blues')
-	new_blue_cmap = truncate_colormap(blue_cmap, min_v_blue, max_v_blue)
-	orange_cmap = plt.get_cmap('Oranges')
-	new_orange_cmap = truncate_colormap(orange_cmap, min_v_orange, max_v_orange)
+	if color_variation:
+
+		def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+			new_cmap = colors.LinearSegmentedColormap.from_list(
+				'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+				cmap(np.linspace(minval, maxval, n)))
+			return new_cmap
+
+		min_v_blue = 0.2
+		max_v_blue = 0.6
+		min_v_orange = 0.5
+		max_v_orange = 0.6
+
+		blue_cmap = plt.get_cmap('Blues')
+		orange_cmap = plt.get_cmap('Oranges')
+
+		free_cmap = truncate_colormap(blue_cmap, min_v_blue, max_v_blue)
+		service_cmap = truncate_colormap(orange_cmap, min_v_orange, max_v_orange)
 	
 
-	# cvals  = [0,1] #[-2., -1, 2]
-	# blue_colors = ['#666FF','#666CC'] # ["red","violet","blue"]
-	# orange_colors = ['#FF9966','#FF6633']
+	else:
 
-	# norm=plt.Normalize(min(cvals),max(cvals))
-	# blue_tuples=list(zip(map(norm,cvals), blue_colors))
-	# hex doesnt work here 
-	# blue_cmap=matplotlib.colors.LinearSegmentedColormap.from_list("", blue_tuples)
+		free_cmap = plt.get_cmap('Blues')
+		service_cmap = plt.get_cmap('Reds')
 
-	# norm=plt.Normalize(min(cvals),max(cvals))
-	# orange_tuples=list(zip(map(norm,cvals), orange_colors))
-	# orange_cmap=matplotlib.colors.LinearSegmentedColormap.from_list("", orange_tuples)
 
-	return [new_blue_cmap,new_orange_cmap]
+	return [free_cmap,service_cmap]
 
-	# blue_colors = []
-	# orange_colors = []
-	# # indices to step through colormap 
-	# x = np.linspace(0.0, 1.0, ni)
-	# agent_colors.append()
 
 
 def sim_to_im_coordinate(im):
@@ -793,8 +787,11 @@ def plot_runtime_vs_number_of_agents(sim_results):
 def macro_plot_number_of_agents(sim_results):
 
 	fig = plt.figure()
-	ax2 = fig.add_subplot(1,2,1)
-	ax1 = fig.add_subplot(1,2,2)
+	ax2 = fig.add_subplot(2,1,1)
+	ax1 = fig.add_subplot(2,1,2)
+
+	# ax2 = plt.subplot(211)
+	# ax1 = plt.subplot(212, sharex = ax2)
 
 	# copy paste code from 'plot_runtime_vs_number_of_agents'
 	ni_lst = []
@@ -817,38 +814,43 @@ def macro_plot_number_of_agents(sim_results):
 		runtimes_by_controller_and_ni_dict[sim_result["controller_name"]][sim_result["param"]["ni"]].append(sim_result["sim_run_time"])
 
 	for controller_name,controller_dict in runtimes_by_controller_and_ni_dict.items():
-		plot_ni = []
-		plot_mean = []
-		plot_std = []
-		for ni,rt_values in controller_dict.items():
-			plot_ni.append(ni)
-			plot_mean.append(np.mean(rt_values))
-			plot_std.append(np.std(rt_values))
-		
-		# as numpy
-		plot_ni = np.asarray(plot_ni)
-		plot_mean = np.asarray(plot_mean)
-		plot_std = np.asarray(plot_std)
 
-		# sorted
-		idxs = plot_ni.argsort()
-		plot_ni = plot_ni[idxs]
-		plot_mean = plot_mean[idxs]
-		plot_std = plot_std[idxs]
+		if not 'RHC' in controller_name :
+			plot_ni = []
+			plot_mean = []
+			plot_std = []
+			for ni,rt_values in controller_dict.items():
+				plot_ni.append(ni)
+				plot_mean.append(np.mean(rt_values))
+				plot_std.append(np.std(rt_values))
+			
+			# as numpy
+			plot_ni = np.asarray(plot_ni)
+			plot_mean = np.asarray(plot_mean)
+			plot_std = np.asarray(plot_std)
 
-		ax1.plot( plot_ni, plot_mean, 
-			color = color_dict[controller_name], 
-			marker = marker_dict[controller_name], 
-			label = controller_name)
-		
-		ax1.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
-		ax1.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
+			# sorted
+			idxs = plot_ni.argsort()
+			plot_ni = plot_ni[idxs]
+			plot_mean = plot_mean[idxs]
+			plot_std = plot_std[idxs]
+
+			ax1.plot( plot_ni, plot_mean, 
+				color = color_dict[controller_name], 
+				# marker = marker_dict[controller_name], 
+				label = controller_name)
+			
+			# ax1.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+			ax1.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
 	# ax.set_xticks(plot_ni, True) # set minor ticks
 	ax1.set_xlabel('Number of Taxis')
-	ax1.set_title('Simulation Runtime [s]')
+
+	# ax1.set_title('Simulation Runtime [s]')
+	ax1.set_ylabel('Simulation Runtime [s]')
 	ax1.set_xscale('log')
 	ax1.set_yscale('log')
+
 	# ax1.set_aspect('equal')
 	ax1.grid(True)
 	ax1.legend()	
@@ -897,20 +899,26 @@ def macro_plot_number_of_agents(sim_results):
 
 		ax2.plot( plot_ni, plot_mean, 
 			color = color_dict[controller_name], 
-			marker = marker_dict[controller_name], 
+			# marker = marker_dict[controller_name], 
 			label = controller_name)
 		
-		ax2.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
+		# ax2.errorbar(plot_ni, plot_mean, yerr=plot_std, color = color_dict[controller_name], linewidth=1e-3)
 		ax2.fill_between(plot_ni,plot_mean-plot_std,plot_mean+plot_std,facecolor=color_dict[controller_name],linewidth=1e-3,alpha=0.2)
 	
-	ax2.set_xlabel('Number of Taxis')
-	ax2.set_title('Average Customer Waiting Time')
+	# ax2.set_xlabel('Number of Taxis')
+	# ax2.set_title('Average Customer Waiting Time')
+	ax2.set_ylabel('Average Customer Waiting Time')
 	ax2.set_xscale('log')
+	ax2.xaxis.set_ticks(plot_ni)
+	ax2.xaxis.set_ticklabels([])
 	# ax2.set_yscale('log')	
 	ax2.grid(True)
 	# ax2.get_yaxis().set_ticks([])
 	# ax2.set_aspect('equal')	
 	ax2.legend()
+
+	ax1.xaxis.set_ticks(plot_ni)
+	ax1.xaxis.set_ticklabels(plot_ni)	
 
 	plt.tight_layout()
 

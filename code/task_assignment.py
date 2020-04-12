@@ -120,46 +120,46 @@ def calc_J(env,agent_i,H,A,S):
 	return J 
 
 
-def centralized_linear_program(env,agents):
-	# input: 
-	#    - env
-	#    - agents: list of free agents
-	# ouput: 
-	#    - cell_assignments: integer variables corresponding to tabular actions that move agent to cell 
+# def centralized_linear_program(env,agents):
+# 	# input: 
+# 	#    - env
+# 	#    - agents: list of free agents
+# 	# ouput: 
+# 	#    - cell_assignments: integer variables corresponding to tabular actions that move agent to cell 
 	
-	cell_assignments = []
-	if not len(agents) == 0:
-		H = make_H(env,agents)
-		S = make_S(env,agents)
+# 	cell_assignments = []
+# 	if not len(agents) == 0:
+# 		H = make_H(env,agents)
+# 		S = make_S(env,agents)
 
-		# V = env.value_to_probability(env.agents[0].v)
-		V = env.value_to_probability(env.q_value_to_value_fnc(env.agents[0].q))
-		a = cp.Variable(env.param.env_naction*len(agents), integer=True)
-		obj = cp.Minimize( cp.sum_squares( S + H@a - V ))
+# 		# V = env.value_to_probability(env.agents[0].v)
+# 		V = env.value_to_probability(env.q_value_to_value_fnc(env.agents[0].q))
+# 		a = cp.Variable(env.param.env_naction*len(agents), integer=True)
+# 		obj = cp.Minimize( cp.sum_squares( S + H@a - V ))
 
-		# constrain action value to be between zero or one 
-		constr = [a <= 1, a >= 0]
+# 		# constrain action value to be between zero or one 
+# 		constr = [a <= 1, a >= 0]
 
-		# every agent only takes one action forces a to be zero or one
-		for i in range(len(agents)):
-			idx = np.arange(0,env.param.env_naction) + i*env.param.env_naction
-			constr.append(sum(a[idx]) == 1)
-		prob = cp.Problem(obj, constr)
+# 		# every agent only takes one action forces a to be zero or one
+# 		for i in range(len(agents)):
+# 			idx = np.arange(0,env.param.env_naction) + i*env.param.env_naction
+# 			constr.append(sum(a[idx]) == 1)
+# 		prob = cp.Problem(obj, constr)
 
-		# prob.solve(verbose = True, solver = cp.GUROBI)
-		prob.solve(verbose = False, solver = cp.GUROBI)
+# 		# prob.solve(verbose = True, solver = cp.GUROBI)
+# 		prob.solve(verbose = False, solver = cp.GUROBI)
 
-		a = np.array(a.value,dtype=bool)
-		a = a.reshape((len(agents),env.param.env_naction))
+# 		a = np.array(a.value,dtype=bool)
+# 		a = a.reshape((len(agents),env.param.env_naction))
 		
-		# print(a)
-		# exit()
-		for i in range(len(agents)):
-			agent = agents[i]
-			action = np.where(a[i,:]==True)[0][0]
-			cell_assignments.append((agent,action))
+# 		# print(a)
+# 		# exit()
+# 		for i in range(len(agents)):
+# 			agent = agents[i]
+# 			action = np.where(a[i,:]==True)[0][0]
+# 			cell_assignments.append((agent,action))
 
-	return cell_assignments
+# 	return cell_assignments
 
 
 def make_S(env,agents):
