@@ -373,22 +373,23 @@ class Env():
 	def solve_MDP(self,dataset,curr_time):
 
 		# only consider until curr_time
-		dataset = dataset[dataset[:,0] < curr_time,:]
+		eval_dataset = dataset[dataset[:,0] <= curr_time,:]
 
-		if dataset.shape[0] > self.param.mdp_max_data:
-			dataset = dataset[-self.param.mdp_max_data:,:]
+		if eval_dataset.shape[0] > self.param.mdp_max_data:
+			eval_dataset = eval_dataset[-self.param.mdp_max_data:,:]
+
+		print('MDP eval_dataset.shape: ',eval_dataset.shape)
 
 		# print('dataset[:,0]:',dataset[:,0])
 		# print('curr_time:',curr_time)
 		# print('self.param.sim_times:',self.param.sim_times)
-
 
 		self.P = self.get_MDP_P() # in AxSxS
 		# self.Pq = self.get_MDP_Pq()
 
 		P = self.P
 		# print('get_MDP_R...')
-		R = self.get_MDP_R(dataset,curr_time) # in SxA
+		R = self.get_MDP_R(eval_dataset,curr_time) # in SxA
 
 		# print('P: ',P)
 		# print('R: ',R)

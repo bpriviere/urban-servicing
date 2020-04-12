@@ -17,10 +17,15 @@ class NumpyEncoder(json.JSONEncoder):
 
 def make_dataset(env):
 
-	if env.name is 'gridworld':
+
+	if 'gridworld' in env.name:
 		return env.make_dataset()
-	elif env.name is 'citymap':
+	elif 'citymap' in env.name:
 		return make_citymap_dataset(env)
+	else:
+		print(type(env.name))
+		print('env.name not recognized:', env.name)
+		exit()
 
 def write_dataset(env, train_dataset, test_dataset):
 

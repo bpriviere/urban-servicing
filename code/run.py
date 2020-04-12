@@ -96,6 +96,9 @@ if __name__ == '__main__':
 
 
 	default_param = Param()
+
+	if default_param.load_param:
+		default_param.load_dict()
 	
 	# clean results directory
 	current_results_dir = '../current_results/*'
@@ -153,7 +156,7 @@ if __name__ == '__main__':
 				plotter.sim_plot_over_time(controller_name,sim_result,times)
 		else:
 			for sim_result in sim_results:
-				timestep = 15
+				timestep = 0
 				controller_name = sim_result["controller_name"]
 				plotter.render(controller_name,sim_result,timestep)
 				break
