@@ -408,6 +408,24 @@ class Env():
 		return self.v,self.q,self.r
 
 
+	def get_customer_demand(self,dataset,curr_time):
+
+		# only consider until curr_time
+		eval_dataset = dataset[dataset[:,0] <= curr_time,:]
+
+		if eval_dataset.shape[0] > self.param.mdp_max_data:
+			eval_dataset = eval_dataset[-self.param.mdp_max_data:,:]
+
+		print('customer demand eval_dataset.shape: ',eval_dataset.shape)
+
+		w = np.zeros((self.param.env_ncell))
+		for customer in eval_dataset:
+			s = self.coordinate_to_cell_index(customer[2],customer[3])
+			w[s] += 1 
+		w /= sum(w) 
+		return w 
+
+
 	def get_MDP_Q(self,R,V,gamma):
 
 		Q = np.zeros(self.param.env_naction*self.param.env_ncell)

@@ -25,9 +25,12 @@ def centralized_linear_program(env,agents):
 	# 	U_t[ij,t] is flattened array bc cvxpy doesnt accept > 2d
 	# ij = s*env_ncell + sp
 
+	if not hasattr(env, 'w'):
+		env.w = env.get_customer_demand(env.train_dataset,env.param.sim_times[0]) 
 
 	dbg = False
 	dbg_test = 0 
+	cell_assignments = [] 
 
 	if len(agents)>0:
 
@@ -39,17 +42,18 @@ def centralized_linear_program(env,agents):
 		q = agents[0].q
 
 		# normalized prediction in [ns x 1]
-		w = np.zeros((env.param.env_ncell,env.param.rhc_horizon))
-		for s in range(env.param.env_ncell):
+		# w = np.zeros((env.param.env_ncell,env.param.rhc_horizon))
+		# for s in range(env.param.env_ncell):
 
-			q_idx = env.sa_to_q_idx(s,0)
-			# w[s,:] = r[q_idx]
+		# 	q_idx = env.sa_to_q_idx(s,0)
+		# 	# w[s,:] = r[q_idx]
 
-			pi = env.global_boltzmann_policy(q)
-			w[s,:] = pi[q_idx]
+		# 	# pi = env.global_boltzmann_policy(q)
+		# 	# w[s,:] = pi[q_idx]
 
-		for t in range(env.param.rhc_horizon):
-			w[:,t] = w[:,t] / sum(w[:,t])
+		# for t in range(env.param.rhc_horizon):
+		# 	w[:,t] = w[:,t] / sum(w[:,t])
+		w = env.w 
 
 		# initial condition
 		x0 = np.zeros((env.param.env_ncell))
