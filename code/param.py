@@ -8,7 +8,7 @@ class Param:
 
 		self.verbose = True
 
-		self.load_param = True
+		self.load_param = False
 		self.load_param_fn = '../results/2020-04-12_testing_param_loader_2/sim_result_1/param.json'
 
 		self.env_name = 'gridworld'
@@ -23,14 +23,14 @@ class Param:
 		self.plot_arrows_on = False
 
 		self.n_trials = 1
-		self.htd_time_window = 2
-		self.htd_minimum_reset = 2
+		self.htd_time_window = 5
+		self.htd_minimum_reset = 5
 		self.rhc_horizon = 10
 		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
 			# 'D-TD',
-			# 'H-TD^2',
+			'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
 			'RHC'
@@ -41,14 +41,14 @@ class Param:
 		if self.env_name is 'gridworld':
 	
 			# learning rate
-			self.td_alpha = 0.6 #0.5			
+			self.td_alpha = 0.75 #0.5			
 			
 			# flags
 			self.make_dataset_on = True
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 2
+			self.sim_tf = 100
 			self.sim_dt = 0.5
 		
 			# parameter tuning with hand picked variables 
@@ -65,14 +65,14 @@ class Param:
 				self.cm_sigma_ratio = 0.25 # std = sigma_ratio * env_dx 
 				self.cm_ng = 2 # 1
 				self.cm_speed_ratio = 0.15 # speed = speed_ratio * taxi speed 
-				self.n_customers_per_time_ratio = 0.1 # 0.2 
+				self.n_customers_per_time_ratio = 0.15 # 0.2 
 				self.cm_linear_move = False 
 
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
 				self.desired_env_ncell = 100 # 150 #5*self.ni # 2
 				self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
-				self.desired_swarm_param = 1.75 # 1.2 
+				self.desired_swarm_param = 1.25 # 1.2 
 
 			elif self.swarm_parameters_ver == 4:
 				# recreate smallscale gridworld sim 
@@ -346,7 +346,7 @@ class Param:
 				self.test_end_microsecond) 
 
 			# sim 
-			self.sim_t0 = train_end.timestamp()
+			self.sim_t0 = train_end.timestamp() # in sec 
 			self.sim_tf = test_end.timestamp()
 			self.sim_dt = 5*60 # 1 minutes 
 
