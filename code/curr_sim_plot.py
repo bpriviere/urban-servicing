@@ -13,15 +13,31 @@ full_time = True
 
 # lst of dirs containing folders: sim_result_1
 # results_dir = ['../current_results/*']
-result_dirs = ['../results/2020-04-05_100_agent_gridworld/*']
+result_dirs = [
+	'../results/2020-04-12_rhc_micro_gridworld/*',
+	'../results/2020-04-05_100_agent_gridworld/*',
+	]
+
+controller_names = [
+	['RHC'],
+	['D-TD','H-TD^2','C-TD','Bellman']
+	]
 
 # load sim results 
+# sim_results = [] # lst of dicts
+# print('loading sim results...')
+# for result_dir in result_dirs:
+# 	for sim_result_dir in glob.glob(result_dir):
+# 		sim_result = datahandler.load_sim_result(sim_result_dir)
+# 		sim_results.append(sim_result)
+
 sim_results = [] # lst of dicts
 print('loading sim results...')
-for result_dir in result_dirs:
+for result_dir, controller_name in zip(result_dirs,controller_names):
 	for sim_result_dir in glob.glob(result_dir):
 		sim_result = datahandler.load_sim_result(sim_result_dir)
-		sim_results.append(sim_result)
+		if sim_result.param["controller_name"] in controller_name:
+			sim_results.append(sim_result)
 
 
 print('plotting sim results...')

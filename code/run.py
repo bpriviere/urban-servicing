@@ -99,6 +99,8 @@ if __name__ == '__main__':
 
 	if default_param.load_param:
 		default_param.load_dict()
+		default_param.n_trials = 1
+		default_param.controller_names = ['RHC']
 	
 	# clean results directory
 	current_results_dir = '../current_results/*'
@@ -117,7 +119,14 @@ if __name__ == '__main__':
 
 		for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
 			for varied_parameter_value in varied_parameter_values:
+
 				curr_param = Param()
+
+				if curr_param.load_param:
+					curr_param.load_dict()
+					curr_param.n_trials = 1
+					curr_param.controller_names = ['RHC']
+
 				setattr(curr_param,varied_parameter,varied_parameter_value)
 				curr_param.update()
 				run_instance(curr_param)
