@@ -673,7 +673,7 @@ class Env():
 
 		return im_agent
 
-	def calc_delta_e(self,K_kp1,A_k):
+	def calc_delta_e(self,A_k):
 		# input
 		# 	- K_kp1 in [1 x 1 x ni]
 		# 	- A_k in [ni x ni]
@@ -688,8 +688,7 @@ class Env():
 		for agent_i in self.agents:
 			update_lst = []
 			for agent_j in self.agents:
-				if A_k[agent_i.i,agent_j.i] > 0 and K_kp1[agent_j.i] > 0:
-					self.lambda_min[agent_i.i,self.timestep] = 1.0 
+				self.lambda_min[agent_i.i,self.timestep] = sum(A_k[agent_i.i,:])
 	
 		# moving average
 		moving_average = True

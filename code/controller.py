@@ -170,12 +170,19 @@ class Controller():
 		# measurements 
 		z_kp1,H_kp1 = self.get_measurements()
 
-		# get adjacency matrix 
-		A_k = self.make_adjacency_matrix()
 
 		# dtd 
 		print('dkif...')
 		r_kp1,p_kp1,K_kp1 = self.dkif(r_k,p_k,z_kp1,H_kp1)
+
+		# get A matrix 
+		A_k = self.make_A(K_kp1,H_kp1)
+
+		# 
+		for agent_i in self.env.agents:
+			r_kp1[:,agent_i.i] = agent_i.r 
+			for agent_j in self.env.agents:
+				r_kp1[:,agent_i.i] += A_k[agent_i.i,agent_j.i] * (z_kp1[:,agent_j.i] - agent_i.r)
 
 		# temporal difference
 		alpha = self.param.td_alpha
@@ -184,7 +191,7 @@ class Controller():
 			q_kp1[:,agent.i] = q_k[:,agent.i] + alpha*td_error
 
 		# error
-		delta_e = self.env.calc_delta_e(K_kp1,A_k)
+		delta_e = self.env.calc_delta_e(A_k)
 		delta_d = self.env.calc_delta_d()
 
 		print('delta_e: ', delta_e)
@@ -496,6 +503,7 @@ class Controller():
 		# output
 		# 	- r_kp1 : next estimate, numpy in nq x ni
 		# 	- p_kp1 : next covariance, numpy in nq x ni 
+		# 	- K_kp1 : next gains, numpy in ni 
 
 		measurements = self.get_measurements()
 		adjacency_matrix = self.make_adjacency_matrix()
@@ -551,7 +559,7 @@ class Controller():
 		return r_kp1,p_kp1,K_kp1
 
 	
-	def make_adjacency_matrix(self):
+	def make_A(self,K,H):
 
 		A = np.zeros((self.param.ni,self.param.ni))
 		for agent_i in self.env.agents:
@@ -560,7 +568,7 @@ class Controller():
 				p_j = np.array([agent_j.x,agent_j.y])
 				dist = np.linalg.norm(p_i-p_j)
 				if dist < self.param.r_comm:
-					A[agent_i.i,agent_j.i] = 1
+					A[agent_i.i,agent_j.i] = K[agent_j.i] * H[:,agent_j.i] 
 
 		# A = np.zeros((self.param.ni,self.param.ni))
 		# for agent_i in self.env.agents:
@@ -573,10 +581,22 @@ class Controller():
 		# 				A[agent_i.i,agent_j.i] = 1
 
 		# normalize 
-		# for agent_i in self.env.agents:
-		# 	A[agent_i.i,:] /= sum(A[agent_i.i,:])
-
+		for agent_i in self.env.agents:
+			if sum(A[agent_i.i,:]) > 0: 
+				A[agent_i.i,:] /= sum(A[agent_i.i,:])
 		return A
+
+	def make_adjacency_matrix(self):
+
+		A = np.zeros((self.param.ni,self.param.ni))
+		for agent_i in self.env.agents:
+			p_i = np.array([agent_i.x,agent_i.y])
+			for agent_j in self.env.agents:
+				p_j = np.array([agent_j.x,agent_j.y])
+				dist = np.linalg.norm(p_i-p_j)
+				if dist < self.param.r_comm:
+					A[agent_i.i,agent_j.i] = 1
+		return A		
 
 	def get_measurements(self):
 		# output
