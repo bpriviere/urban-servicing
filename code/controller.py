@@ -180,9 +180,7 @@ class Controller():
 
 		# 
 		for agent_i in self.env.agents:
-			r_kp1[:,agent_i.i] = agent_i.r 
-			for agent_j in self.env.agents:
-				r_kp1[:,agent_i.i] += A_k[agent_i.i,agent_j.i] * (z_kp1[:,agent_j.i] - agent_i.r)
+			r_kp1[:,agent_i.i] = agent_i.r + np.dot(A_k[agent_i.i,:], z_kp1.T - agent_i.r)
 
 		# temporal difference
 		alpha = self.param.td_alpha
@@ -536,14 +534,12 @@ class Controller():
 			y_kp1k = L * invF * y_kk 
 
 			# innovate 
-			mat_I = 0.0 # np.shape(H_kp1[0]) 
-			vec_I = np.zeros((self.param.nq))
-			for agent_j in self.env.agents: 
-				if adjacency_matrix[agent_i.i,agent_j.i] > 0:
-					measurement = z_kp1[:,agent_j.i] 
-					measurement_model = H_kp1[:,agent_j.i] 
-					mat_I += measurement_model * invR * measurement_model 
-					vec_I += measurement_model * invR * measurement
+			mat_I = sum(
+				np.dot(H_kp1[:,adjacency_matrix[agent_i.i,:] > 0],invR*H_kp1[:,adjacency_matrix[agent_i.i,:] > 0].T)
+				)
+			vec_I = sum(
+				np.dot(H_kp1[:,adjacency_matrix[agent_i.i,:] > 0],invR*z_kp1[:,adjacency_matrix[agent_i.i,:] > 0].T)
+				)
 
 			# get learning rate
 			S = H_kp1[:,agent_i.i]*Y_kp1k*H_kp1[:,agent_i.i]+R

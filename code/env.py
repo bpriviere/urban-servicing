@@ -685,35 +685,29 @@ class Env():
 			self.lambda_min[:,0] = np.ones((self.param.ni))
 			self.reset_timestep = 0 
 
-		for agent_i in self.agents:
-			update_lst = []
-			for agent_j in self.agents:
-				self.lambda_min[agent_i.i,self.timestep] = sum(A_k[agent_i.i,:])
-	
-		# moving average
-		moving_average = True
-		if moving_average:
+		if not self.timestep == self.reset_timestep:
 
-			# if within reset horizon 
+			# for agent_i in self.agents:
+			# 	self.lambda_min[agent_i.i,self.timestep] = sum(A_k[agent_i.i,:])
+
+			self.lambda_min[:,self.timestep] = np.sum(A_k,axis=1)
+		
+			# moving average
 			if self.timestep < self.reset_timestep + self.param.htd_time_window:
-				idx = np.arange(self.timestep+1)
+				idx = self.reset_timestep + np.arange(self.timestep - self.reset_timestep)
 			else:
-				idx = (self.timestep-self.param.htd_time_window) + np.arange(self.param.htd_time_window)
+				idx = self.timestep - self.param.htd_time_window + np.arange(self.param.htd_time_window)
 
 			ave_lambda_min = np.mean(self.lambda_min[:,idx],axis=1)
-			contraction = np.sqrt(1 - np.min(ave_lambda_min))
 
-			# if contraction == 1:
-			# 	print('self.timestep:',self.timestep)
-			# 	print('idx:',idx)
-			# 	print('self.lambda_min[:,idx]:',self.lambda_min[:,idx])
-				# exit()
-	
-		# no moving average
+			# delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/ \
+			# 	((1-self.param.mdp_gamma)*(1-np.sqrt(1 - np.min(ave_lambda_min))))
+			delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/ \
+				((1-self.param.mdp_gamma)*(1-np.sqrt(1 - np.mean(ave_lambda_min))))			
+
 		else:
-			contraction = np.sqrt(1.0 - np.min(self.lambda_min[:,self.timestep]))
 
-		delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/((1-self.param.mdp_gamma)*(1-contraction))
+			delta_e = 0 
 
 		if np.isnan(delta_e):
 			print('delta_e: ', delta_e)
