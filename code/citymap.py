@@ -80,8 +80,28 @@ class CityMap(Env):
 		self.reduce_map(full_mask)
 
 		# 
-		print('   refining map...')
+		# print('   refining map...')
 		# todo 
+		xmin = np.inf
+		xmax = -np.inf
+		ymin = np.inf
+		ymax = -np.inf
+		for i_x,x in enumerate(self.param.env_x):
+			for i_y,y in enumerate(self.param.env_y):
+				if full_mask[i_x,i_y]:
+					if self.param.env_x[i_x] > xmax:
+						xmax = self.param.env_x[i_x]
+					if self.param.env_x[i_x] < xmin:
+						xmin = self.param.env_x[i_x]
+					if self.param.env_y[i_y] > ymax:
+						ymax = self.param.env_y[i_y]
+					if self.param.env_y[i_y] < ymin:
+						ymin = self.param.env_y[i_y]			
+		self.valid_xmin = xmin
+		self.valid_xmax = xmax
+		self.valid_ymin = ymin
+		self.valid_ymax = ymax
+
 
 		# kind of awkward 
 		self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]

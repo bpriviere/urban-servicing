@@ -875,7 +875,7 @@ class Env():
 		return i_x,i_y
 
 	def coordinate_to_cell_index(self,x,y):
-		if x > self.param.env_x[-1] or x < self.param.env_x[0] or y > self.param.env_y[-1] or y < self.param.env_y[0]:
+		if x > self.valid_xmax or x < self.valid_xmin or y > self.valid_ymax or y < self.valid_ymin:
 			i = -1 
 		else:
 			i_x,i_y = self.coordinate_to_grid_index(x,y)
