@@ -55,7 +55,7 @@ def load_dataset(env):
 	train_idx = np.arange(0,train_dataset.shape[0],env.param.nc_dilution)
 	test_idx = np.arange(0,test_dataset.shape[0],env.param.nc_dilution)
 
-	env.train_dataset = train_dataset[test_idx,:]
+	env.train_dataset = train_dataset[train_idx,:]
 	env.test_dataset = test_dataset[test_idx,:]
 	env.dataset = np.vstack((env.train_dataset,env.test_dataset))
 
