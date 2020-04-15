@@ -353,20 +353,6 @@ class Env():
 		# reward = -1*(time_s_to_sp + time_sp_to_c)
 		reward = 1/(time_s_to_sp + time_sp_to_c)
 
-		# temp
-		# reward = -1*(time_s_to_sp + time_sp_to_c) * 100
-
-		
-		# reward = -1 * time_sp_to_c
-		# reward = 1 / time_sp_to_c
-
-		# discount 
-		# time_discount = self.param.lambda_r**time_diff
-		# reward = reward * time_discount
-		
-		# action_cost = param.lambda_a*(not a==0)
-		# cost = cwt + action_cost 
-
 		return reward 
 
 	# mdp stuff 

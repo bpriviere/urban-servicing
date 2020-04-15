@@ -33,7 +33,7 @@ class Param:
 			'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
-			# 'RHC'
+			'RHC'
 			]
 
 
@@ -121,7 +121,9 @@ class Param:
 
 		elif self.env_name is 'citymap':
 
-			self.make_dataset_on = True
+			self.make_dataset_on = False
+
+			self.sim_dt = 15*60 
 
 			# learning rate
 			self.td_alpha = 0.1 #0.5				
@@ -136,8 +138,8 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni_dilution = 20
-			self.nc_dilution = 40
+			self.ni_dilution = 200
+			self.nc_dilution = 400
 			self.ni = int(2000/self.ni_dilution)
 			
 			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
@@ -348,7 +350,6 @@ class Param:
 			# sim 
 			self.sim_t0 = train_end.timestamp() # in sec 
 			self.sim_tf = test_end.timestamp()
-			self.sim_dt = 5*60 # 1 minutes 
 
 
 		# common for all set of parameters
