@@ -102,7 +102,6 @@ class CityMap(Env):
 		self.valid_ymin = ymin
 		self.valid_ymax = ymax
 
-
 		# kind of awkward 
 		self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
 		self.param.nq = self.param.env_ncell*self.param.env_naction
@@ -114,13 +113,17 @@ class CityMap(Env):
 		# 	- contain an element of the boundary 
 
 		valid_cells_mask = np.zeros((len(self.param.env_x),len(self.param.env_y)),dtype=bool)
-		y_thresh = 41.85 
-		x_thresh = -87.8
 		
+		xmin_thresh = -87.8
+		xmax_thresh = -87.575
+		
+		ymin_thresh = 41.8 
+		ymax_thresh = 42.0 
+
 		# x,y are bottom left hand corner of cell 
 		for i_x,x in enumerate(self.param.env_x):
 			for i_y,y in enumerate(self.param.env_y):
-				if y > y_thresh and x > x_thresh:
+				if y > ymin_thresh and x > xmin_thresh and x < xmax_thresh and y < ymax_thresh:
 					cell_center = Point((x + self.param.env_dx/2, y + self.param.env_dy/2))
 					if cell_center.within(self.city_polygon): 
 						valid_cells_mask[i_x,i_y] = True
@@ -176,6 +179,11 @@ class CityMap(Env):
 			x += self.param.env_dx/2
 			y += self.param.env_dx/2
 			ax.scatter(x,y)
+
+		ax.axhline(self.valid_ymax)
+		ax.axhline(self.valid_ymin)
+		ax.axvline(self.valid_xmax)
+		ax.axvline(self.valid_xmin)
 
 		ax.grid(True)
 

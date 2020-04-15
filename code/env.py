@@ -876,7 +876,7 @@ class Env():
 
 	def coordinate_to_cell_index(self,x,y):
 		if x > self.valid_xmax or x < self.valid_xmin or y > self.valid_ymax or y < self.valid_ymin:
-			i = -1 
+			i = False
 		else:
 			i_x,i_y = self.coordinate_to_grid_index(x,y)
 			i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
