@@ -52,7 +52,9 @@ class Env():
 			
 			pickup_state = self.coordinate_to_cell_index(customer_requests[i,2],customer_requests[i,3])
 			dropoff_state = self.coordinate_to_cell_index(customer_requests[i,4],customer_requests[i,5])
-			self.observation.append(Service(customer_requests[i,:]))
+
+			if pickup_state != -1 and dropoff_state != -1:
+				self.observation.append(Service(customer_requests[i,:]))
 
 		return self.observation
 
@@ -868,19 +870,16 @@ class Env():
 
 	def coordinate_to_grid_index(self,x,y):
 		# takes in coordinate and returns which i_x,i_y cell it is in
-		try:
-			i_x = np.where(self.param.env_x <= x)[0][-1] # last index where input-x is larger than grid 
-			i_y = np.where(self.param.env_y <= y)[0][-1]
-		except:
-			print('invalid coordinate: ',x,y)
-			print('self.param.env_x: ', self.param.env_x)
-			print('self.param.env_y: ', self.param.env_y)
-			exit()
+		i_x = np.where(self.param.env_x <= x)[0][-1] # last index where input-x is larger than grid 
+		i_y = np.where(self.param.env_y <= y)[0][-1]
 		return i_x,i_y
 
 	def coordinate_to_cell_index(self,x,y):
-		i_x,i_y = self.coordinate_to_grid_index(x,y)
-		i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
+		if x > self.param.env_x[-1] or x < self.param.env_x[0] or y > self.param.env_y[-1] or y < self.param.env_y[0]:
+			i = -1 
+		else:
+			i_x,i_y = self.coordinate_to_grid_index(x,y)
+			i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
 		return i
 
 	def grid_index_to_coordinate(self,i_x,i_y):
