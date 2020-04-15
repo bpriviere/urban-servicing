@@ -465,7 +465,7 @@ class Env():
 			if 'gridworld' in self.param.env_name:
 				time_discount = self.param.lambda_r**time_diff
 			elif 'citymap' in self.param.env_name:
-				time_discount = self.param.lambda_r**(time_diff/self.param.sim_dt)
+				time_discount = self.param.lambda_r**max((time_diff/self.param.sim_dt,1))
 			time_discount_sum += time_discount
 
 			# if global update 

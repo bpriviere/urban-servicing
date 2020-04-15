@@ -49,8 +49,14 @@ def load_dataset(env):
 	f_train = "../current_data/{}/train_dataset.npy".format(env.name)
 	f_test = "../current_data/{}/test_dataset.npy".format(env.name)
 
-	env.train_dataset = np.load(f_train)
-	env.test_dataset = np.load(f_test)
+	train_dataset = np.load(f_train)
+	test_dataset = np.load(f_test)
+
+	train_idx = np.arange(0,train_dataset.shape[0],env.param.nc_dilution)
+	test_idx = np.arange(0,test_dataset.shape[0],env.param.nc_dilution)
+
+	env.train_dataset = train_dataset[test_idx,:]
+	env.test_dataset = test_dataset[test_idx,:]
 	env.dataset = np.vstack((env.train_dataset,env.test_dataset))
 
 	print('   train_dataset.shape: ', env.train_dataset.shape)
@@ -119,7 +125,7 @@ def make_citymap_dataset(env):
 	# time increment 
 	delta_minute = 15
 	# dilute data by factor
-	stepsize = param.nc_dilution
+	stepsize = 1 #param.nc_dilution
 
 	train_start = datetime(param.train_start_year, 
 		param.train_start_month, 

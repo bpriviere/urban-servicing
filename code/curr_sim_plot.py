@@ -1,5 +1,3 @@
-
-
 import plotter
 import datahandler
 import glob
@@ -12,32 +10,38 @@ default_param = Param()
 full_time = True
 
 # lst of dirs containing folders: sim_result_1
-# results_dir = ['../current_results/*']
+# result_dirs = ['../current_results/*']
 result_dirs = [
-	'../results/2020-04-12_rhc_micro_gridworld/*',
-	'../results/2020-04-05_100_agent_gridworld/*',
+	# '../results/2020-04-12_macro_rhc_part1/*',
+	'../current_results/*',
+	# '../results/2020-04-07_macro_gridworld_10_1000_agents/*',
+	# '../results/2020-04-07_macro_gridworld_50_100_500/*',
 	]
 
 controller_names = [
 	['RHC'],
-	['D-TD','H-TD^2','C-TD','Bellman']
+	# ['D-TD','H-TD^2','C-TD','Bellman']
+	# ['H-TD^2'],
+	# ['H-TD^2'],
 	]
 
 # load sim results 
-# sim_results = [] # lst of dicts
-# print('loading sim results...')
-# for result_dir in result_dirs:
-# 	for sim_result_dir in glob.glob(result_dir):
-# 		sim_result = datahandler.load_sim_result(sim_result_dir)
-# 		sim_results.append(sim_result)
-
 sim_results = [] # lst of dicts
 print('loading sim results...')
-for result_dir, controller_name in zip(result_dirs,controller_names):
+for result_dir in result_dirs:
 	for sim_result_dir in glob.glob(result_dir):
 		sim_result = datahandler.load_sim_result(sim_result_dir)
-		if sim_result.param["controller_name"] in controller_name:
-			sim_results.append(sim_result)
+		sim_results.append(sim_result)
+
+# sim_results = [] # lst of dicts
+# print('loading sim results...')
+# for result_dir, controller_name in zip(result_dirs,controller_names):
+# 	for sim_result_dir in glob.glob(result_dir):
+# 		if not 'plots.pdf' in sim_result_dir:
+
+# 			sim_result = datahandler.load_sim_result(sim_result_dir)
+# 			if sim_result["controller_name"] in controller_name:
+# 				sim_results.append(sim_result)
 
 
 print('plotting sim results...')
@@ -64,7 +68,7 @@ for sim_result in sim_results:
 
 # plotter.macro_plot_number_of_agents(sim_results)
 plotter.plot_cumulative_reward(sim_results)
-plotter.plot_q_error(sim_results)
+# plotter.plot_q_error(sim_results)
 
 print('saving and opening results...')
 plotter.save_figs(default_param.plot_fn)

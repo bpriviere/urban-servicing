@@ -72,6 +72,7 @@ def sim(param,env,controller,s0):
 	print('   running sim with {}...'.format(controller.name))	
 	for step,time in enumerate(param.sim_times[:-1]):
 		print('      t = {}/{}'.format(step,len(param.sim_times)))
+		print('      total customer waiting time = ', -1*sum(sim_result["rewards"]))
 		
 		observation = env.observe()
 		action = controller.policy(observation)

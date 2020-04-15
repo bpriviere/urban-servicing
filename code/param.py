@@ -11,8 +11,8 @@ class Param:
 		self.load_param = False
 		self.load_param_fn = '../results/2020-04-12_testing_param_loader_2/sim_result_1/param.json'
 
-		self.env_name = 'gridworld'
-		# self.env_name = 'citymap' 
+		# self.env_name = 'gridworld'
+		self.env_name = 'citymap' 
 
 		self.global_reward_on = True
 		self.macro_sim_on = False
@@ -33,7 +33,7 @@ class Param:
 			'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
-			'RHC'
+			# 'RHC'
 			]
 
 
@@ -48,8 +48,8 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 100
-			self.sim_dt = 0.5
+			self.sim_tf = 20
+			self.sim_dt = 0.1
 		
 			# parameter tuning with hand picked variables 
 			self.swarm_parameters_ver = 2
@@ -58,7 +58,7 @@ class Param:
 				# this one 
 
 				# fleet 
-				self.ni = 10 # 20 
+				self.ni = 200 # 20 
 
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
@@ -71,7 +71,7 @@ class Param:
 				# swarm param 
 				self.env_lengthscale = 1.0 # 
 				self.desired_env_ncell = 100 # 150 #5*self.ni # 2
-				self.desired_aspect_ratio = 3.0 # 2.0 # numx/numy
+				self.desired_aspect_ratio = 2.0 # 2.0 # numx/numy
 				self.desired_swarm_param = 1.25 # 1.2 
 
 			elif self.swarm_parameters_ver == 4:
@@ -127,17 +127,17 @@ class Param:
 			self.td_alpha = 0.1 #0.5				
 
 			# determine from data 
-			self.taxi_speed = 0.04 # temp 
-			self.process_noise = 0.00001 
-			self.measurement_noise = 0.1 
+			self.taxi_speed = 0.00009 # 22 mph 
+			self.process_noise = 0.01 
+			self.measurement_noise = 0.01 
 
 			# 
 			self.city = 'chicago'
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni_dilution = 2
-			self.nc_dilution = 10
+			self.ni_dilution = 20
+			self.nc_dilution = 40
 			self.ni = int(2000/self.ni_dilution)
 			
 			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
