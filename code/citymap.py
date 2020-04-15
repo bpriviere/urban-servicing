@@ -95,11 +95,12 @@ class CityMap(Env):
 
 		valid_cells_mask = np.zeros((len(self.param.env_x),len(self.param.env_y)),dtype=bool)
 		y_thresh = 41.85 
+		x_thresh = -87.8
 		
 		# x,y are bottom left hand corner of cell 
 		for i_x,x in enumerate(self.param.env_x):
 			for i_y,y in enumerate(self.param.env_y):
-				if y > y_thresh:
+				if y > y_thresh and x > x_thresh:
 					cell_center = Point((x + self.param.env_dx/2, y + self.param.env_dy/2))
 					if cell_center.within(self.city_polygon): 
 						valid_cells_mask[i_x,i_y] = True
