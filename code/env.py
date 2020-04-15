@@ -53,7 +53,8 @@ class Env():
 			pickup_state = self.coordinate_to_cell_index(customer_requests[i,2],customer_requests[i,3])
 			dropoff_state = self.coordinate_to_cell_index(customer_requests[i,4],customer_requests[i,5])
 
-			if pickup_state != -1 and dropoff_state != -1:
+			if self.check_valid(customer_requests[i,2],customer_requests[i,3]) and \
+				self.check_valid(customer_requests[i,4],customer_requests[i,5]):
 				self.observation.append(Service(customer_requests[i,:]))
 
 		return self.observation
@@ -519,50 +520,85 @@ class Env():
 		for s in range(self.param.env_ncell):
 
 			i_x,i_y = self.cell_index_to_grid_index_map[s]
+
+			for a in range(self.param.env_naction):
+				if a == 0:
+					# 'stay' 
+					i_x_tp1, i_y_tp1 = (i_x,i_y)
+				elif a == 1:
+					# 'right'
+					i_x_tp1, i_y_tp1 = (i_x+1,i_y)
+				elif a == 2:
+					# 'top'
+					i_x_tp1, i_y_tp1 = (i_x,i_y+1)
+				elif a == 3:
+					# 'left'
+					i_x_tp1, i_y_tp1 = (i_x-1,i_y)		
+				elif a == 4:
+					# 'down'
+					i_x_tp1, i_y_tp1 = (i_x,i_y-1)													
+
+				try:
+					# this will fail if 
+					# 	- outside grid index map dimensions (outside env_x, env_y)
+					# 	- corresponding cell index does not exist (invalid desired cell)
+					x,y = self.grid_index_to_coordinate(i_x_tp1,i_y_tp1)
+					if self.check_valid(x,y):
+						s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+						P[a,s,s_tp1] = 1.
+					else:
+						P[a,s,s] = 1.
+				except:
+					P[a,s,s] = 1.
+
 			
-			# 'empty' action 0
-			P[0,s,s] = 1.
+			# # 'empty' action 0
+			# P[0,s,s] = 1.
 
-			# 'right' action 1 
-			i_x_tp1, i_y_tp1 = (i_x+1,i_y)
-			try:
-				# this will fail if 
-				# 	- corresponding cell index does not exist (invalid desired cell)
-				# 	- outside grid index map dimensions (outside map)
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[1,s,s_tp1] = 1.
-			except:
-				P[1,s,s] = 1.
+			# # 'right' action 1 
+			# i_x_tp1, i_y_tp1 = (i_x+1,i_y)
+			# try:
+			# 	# this will fail if 
+			# 	# 	- outside grid index map dimensions (outside env_x, env_y)
+			# 	# 	- corresponding cell index does not exist (invalid desired cell)
+			# 	x,y = self.grid_index_to_coordinate(i_x_tp1,i_y_tp1)
+			# 	if self.check_valid(x,y):
+			# 		s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+			# 		P[1,s,s_tp1] = 1.
+			# 	else:
+			# 		P[1,s,s] = 1.
+			# except:
+			# 	P[1,s,s] = 1.
 
-			# 'up' action 2
-			i_x_tp1, i_y_tp1 = (i_x,i_y+1)
-			try:
-				s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-				P[2,s,s_tp1] = 1.
-			except:
-				P[2,s,s] = 1.
+			# # 'up' action 2
+			# i_x_tp1, i_y_tp1 = (i_x,i_y+1)
+			# try:
+			# 	s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+			# 	P[2,s,s_tp1] = 1.
+			# except:
+			# 	P[2,s,s] = 1.
 
-			# 'left' action 3
-			i_x_tp1, i_y_tp1 = (i_x-1,i_y)
-			if i_x_tp1 >= 0:
-				try:
-					s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-					P[3,s,s_tp1] = 1.
-				except:
-					P[3,s,s] = 1.
-			else:
-				P[3,s,s] = 1.
+			# # 'left' action 3
+			# i_x_tp1, i_y_tp1 = (i_x-1,i_y)
+			# if i_x_tp1 >= 0:
+			# 	try:
+			# 		s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+			# 		P[3,s,s_tp1] = 1.
+			# 	except:
+			# 		P[3,s,s] = 1.
+			# else:
+			# 	P[3,s,s] = 1.
 
-			# 'down' action 4
-			i_x_tp1, i_y_tp1 = (i_x,i_y-1)
-			if i_y_tp1 >= 0:				
-				try:
-					s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-					P[4,s,s_tp1] = 1.
-				except:
-					P[4,s,s] = 1.
-			else:
-				P[4,s,s] = 1.
+			# # 'down' action 4
+			# i_x_tp1, i_y_tp1 = (i_x,i_y-1)
+			# if i_y_tp1 >= 0:				
+			# 	try:
+			# 		s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+			# 		P[4,s,s_tp1] = 1.
+			# 	except:
+			# 		P[4,s,s] = 1.
+			# else:
+			# 	P[4,s,s] = 1.
 
 		# print(P)
 		# exit()
@@ -875,14 +911,14 @@ class Env():
 		return i_x,i_y
 
 	def coordinate_to_cell_index(self,x,y):
-		if x > self.valid_xmax or x < self.valid_xmin or y > self.valid_ymax or y < self.valid_ymin:
-			i = False
-		else:
-			i_x,i_y = self.coordinate_to_grid_index(x,y)
-			i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
+		i_x,i_y = self.coordinate_to_grid_index(x,y)
+		i = self.grid_index_to_cell_index_map[i_x,i_y] # i should always be a valid index 
 		return i
 
 	def grid_index_to_coordinate(self,i_x,i_y):
 		x = self.param.env_x[i_x]
 		y = self.param.env_y[i_y]
-		return x,y		
+		return x,y
+
+	def check_valid(self,x,y):
+		return x > self.valid_xmin and x < self.valid_xmax and y > self.valid_ymin and y < self.valid_ymax

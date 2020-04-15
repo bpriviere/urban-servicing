@@ -98,9 +98,9 @@ class CityMap(Env):
 					if self.param.env_y[i_y] < ymin:
 						ymin = self.param.env_y[i_y]			
 		self.valid_xmin = xmin
-		self.valid_xmax = xmax
+		self.valid_xmax = xmax + self.param.env_dx
 		self.valid_ymin = ymin
-		self.valid_ymax = ymax
+		self.valid_ymax = ymax + self.param.env_dy
 
 		# kind of awkward 
 		self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
