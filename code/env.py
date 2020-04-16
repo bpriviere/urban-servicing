@@ -343,15 +343,10 @@ class Env():
 		# print('self.param.sim_times:',self.param.sim_times)
 
 		self.P = self.get_MDP_P() # in AxSxS
-		# self.Pq = self.get_MDP_Pq()
 
 		P = self.P
-		# print('get_MDP_R...')
+		
 		R = self.get_MDP_R(eval_dataset,curr_time) # in SxA
-
-		# print('P: ',P)
-		# print('R: ',R)
-		# print('dataset: ',dataset)
 
 		mdp = ValueIteration(P,R,self.param.mdp_gamma,self.param.mdp_eps,self.param.mdp_max_iter)
 		# mdp = ValueIterationGS(P, R, self.param.mdp_gamma, epsilon=self.param.mdp_eps, max_iter=self.param.mdp_max_iter)
@@ -402,47 +397,80 @@ class Env():
 			v[s] = max(q[idx])
 		return v
 
-	def get_MDP_R(self,dataset,curr_time):
-		# R in SxA
-		R = np.zeros((self.param.env_ncell,self.param.env_naction))
-		P = self.P
+	# def get_MDP_R2(self,dataset,curr_time):
+	# 	# R in SxA
+	# 	R = np.zeros((self.param.env_ncell,self.param.env_naction))
+	# 	P = self.P
 
-		count = 0
-		time_discount_sum = 0.0 
-		for data in dataset:
+	# 	count = 0
+	# 	time_discount_sum = 0.0 
+	# 	for data in dataset:
 			
-			tor = data[0]
-			time_diff = curr_time - tor
+	# 		tor = data[0]
+	# 		time_diff = curr_time - tor
 
-			if time_diff < 0:
-				break
+	# 		if time_diff < 0:
+	# 			break
 
-			count += 1
-			px = data[2]
-			py = data[3]
+	# 		count += 1
+	# 		px = data[2]
+	# 		py = data[3]
 
-			time_discount = self.param.lambda_r**max((time_diff/self.param.sim_dt,1))
-			time_discount_sum += time_discount
+	# 		time_discount = self.param.lambda_r**max((time_diff/self.param.sim_dt,1))
+	# 		time_discount_sum += time_discount
+
+	# 		# print('time_discount:',time_discount)
+	# 		for s in range(self.param.env_ncell):
+	# 			for a in range(self.param.env_naction):
+	# 				reward = self.reward_instance(s,a,px,py,time_diff)
+					
+	# 				R[s,a] += reward*time_discount
+		
+	# 				# print('reward:',reward)
+
+	# 	if count > 0:
+	# 		R /= time_discount_sum 
+
+	# 	return R  
+
+	def get_MDP_R(self,dataset,curr_time):
+
+		idx = dataset[:,0] < curr_time
+		dataset = dataset[idx,:]
+		ndata = dataset.shape[0]
+		
+		R = np.zeros((self.param.env_ncell,self.param.env_naction))
+		if ndata > 0 :
+
+			tor = dataset[:,0]
+			px = dataset[:,2]
+			py = dataset[:,3] 
+
+			time_discount = self.param.lambda_r**np.maximum((curr_time-tor)/self.param.sim_dt,1)
 
 			for s in range(self.param.env_ncell):
+				
+				sx,sy = self.cell_index_to_cell_coordinate(s)
+				sx += self.param.env_dx/2
+				sy += self.param.env_dy/2
+
 				for a in range(self.param.env_naction):
-					reward = self.reward_instance(s,a,px,py,time_diff)*time_discount
-					R[s,a] += reward
-		
-		if count > 0:
-			R /= time_discount_sum 
 
-		return R  
+					sp = self.get_next_state(s,a)
+					spx,spy = self.cell_index_to_cell_coordinate(sp)
+					spx += self.param.env_dx/2
+					spy += self.param.env_dy/2
 
-	def reward_batch(self,dataset,curr_time):
+					time_s_to_sp = self.eta(sx,sy,spx,spy)
+					time_sp_to_c = np.linalg.norm((px-spx,py-spy),axis=0) / self.param.taxi_speed 
 
-		ndata = dataset.shape[0]
-		tor = dataset[:,0]
-		px = dataset[:,2]
-		py = dataset[:,3] 
+					reward = 1/(time_s_to_sp + time_sp_to_c)
+					
+					R[s,a] = sum(reward * time_discount)
 
-		
+			R /= sum(time_discount)
 
+		return R
 
 	def reward_instance(self,s,a,px,py,time_diff):
 
@@ -638,7 +666,7 @@ class Env():
 
 	def calc_delta_d(self):
 		# note this is env.q which is the result of solving the mdp 
-		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q) 
+		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q) * self.param.nq
 		# delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
 		# delta_d = 2.5 
 		return delta_d
