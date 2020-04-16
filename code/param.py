@@ -123,6 +123,11 @@ class Param:
 
 		elif self.env_name is 'citymap':
 
+			self.xmin_thresh = -87.8
+			self.xmax_thresh = -87.575
+			self.ymin_thresh = 41.8 
+			self.ymax_thresh = 42.0 			
+
 			self.make_dataset_on = False
 
 			self.sim_dt = 15*60 
