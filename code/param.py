@@ -23,14 +23,14 @@ class Param:
 		self.plot_arrows_on = False
 
 		self.n_trials = 1
-		self.htd_time_window = 5
-		self.htd_minimum_reset = 5
+		self.htd_time_window = 10
+		self.htd_minimum_reset = 10
 		self.rhc_horizon = 10
 		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
-			# 'D-TD',
-			'H-TD^2',
+			'D-TD',
+			# 'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
 			'RHC'
@@ -45,6 +45,8 @@ class Param:
 			
 			# flags
 			self.make_dataset_on = True
+			self.nc_dilution = 1 
+			self.ni_dilution = 1 
 
 			# sim 
 			self.sim_t0 = 0 
@@ -58,13 +60,13 @@ class Param:
 				# this one 
 
 				# fleet 
-				self.ni = 200 # 20 
+				self.ni = 50 # 20 
 
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
 				self.cm_sigma_ratio = 0.25 # std = sigma_ratio * env_dx 
 				self.cm_ng = 2 # 1
-				self.cm_speed_ratio = 0.15 # speed = speed_ratio * taxi speed 
+				self.cm_speed_ratio = 0 * 0.15 # speed = speed_ratio * taxi speed 
 				self.n_customers_per_time_ratio = 0.15 # 0.2 
 				self.cm_linear_move = False 
 
@@ -108,7 +110,7 @@ class Param:
 			self.mdp_eps = 1e-4
 
 			# task assignment 
-			self.ta_beta = 1 # 150 # 150.
+			self.ta_beta = 150 # 150 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
@@ -126,7 +128,7 @@ class Param:
 			self.sim_dt = 15*60 
 
 			# learning rate
-			self.td_alpha = 0.1 #0.5				
+			self.td_alpha = 0*0.1 #0.5				
 
 			# determine from data 
 			self.taxi_speed = 0.00009 # 22 mph 
@@ -142,7 +144,7 @@ class Param:
 			self.nc_dilution = 400
 			self.ni = int(2000/self.ni_dilution)
 			
-			self.desired_env_ncell = 1000 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 100 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 
@@ -151,7 +153,7 @@ class Param:
 			self.p0 = 0.01 
 
 			# mdp 
-			self.lambda_r = 0.2 #0.8
+			self.lambda_r = 0.8
 			self.mdp_gamma = 0.8
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
@@ -321,7 +323,7 @@ class Param:
 				self.cm_nsample_cm = 100
 
 			# estimation
-			self.process_noise = self.cm_speed
+			self.process_noise = self.cm_speed + 1e-9
 			self.measurement_noise = self.cm_sigma 
 
 		elif self.env_name is 'citymap':
@@ -378,45 +380,3 @@ class Param:
 			print('self.env_ncell: ', self.env_ncell)
 			if self.env_ncell > 150:
 				exit()
-
-		# print('self.env_dx',self.env_dx)
-		# print('self.env_nx',self.env_nx)
-		# print('self.env_ny',self.env_ny)
-		# print('self.env_ncell',self.env_ncell)
-		# exit()
-
-		# old code 
-		# if self.swarm_parameters_ver == 0:
-		# 	# swarm param 
-		# 	self.ni = 50
-		# 	self.desired_env_ncell = 100 # self.env_nx*self.env_ny
-		# 	self.desired_swarm_density = 1.0 # agents/m^2
-		# 	self.desired_swarm_param = 1.0 
-		# 	self.desired_agents_per_cell = 1.0 
-
-		# elif self.swarm_parameters_ver == 1:
-		# 	self.ni = 75
-		# 	self.taxi_speed = 0.5
-
-		# 	# swarm param 
-		# 	self.desired_agents_per_cell = 0.1 
-		# 	self.desired_aspect_ratio = 2.0 # numx/numy
-		# 	self.desired_swarm_param = 0.5 
-
-		# 	# customer model
-		# 	self.n_customers_per_time_ratio = 0.1 
-		# 	self.cm_taxi_speed_ratio = 0.1 
-		# elif self.swarm_parameters_ver == 3:
-
-		# 	self.ni = 75
-
-		# 	self.env_lengthscale = 1.0
-		# 	self.env_xlim = [0,self.env_lengthscale]
-		# 	self.env_ylim = [0,self.env_lengthscale]
-		# 	self.env_dx = 0.25
-		# 	self.env_dy = self.env_dx
-
-		# 	self.desired_swarm_param = 1.0 
-
-		# 	self.cm_taxi_speed_ratio = 0.1 
-		# 	self.n_customers_per_time_ratio = 0.1 	
