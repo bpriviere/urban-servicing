@@ -50,9 +50,6 @@ class Env():
 		customer_requests = self.test_dataset[idxs,:]
 		for i in range(customer_requests.shape[0]):
 			
-			pickup_state = self.coordinate_to_cell_index(customer_requests[i,2],customer_requests[i,3])
-			dropoff_state = self.coordinate_to_cell_index(customer_requests[i,4],customer_requests[i,5])
-
 			if self.check_valid(customer_requests[i,2],customer_requests[i,3]) and \
 				self.check_valid(customer_requests[i,4],customer_requests[i,5]):
 				self.observation.append(Service(customer_requests[i,:]))
@@ -92,7 +89,6 @@ class Env():
 			agents_operation[agent.i] = agent.mode # mode = 0 -> on dispatch 
 			agents_location[agent.i,:] = [agent.x,agent.y]
 			agents_value_fnc_vector[agent.i,:] = self.q_value_to_value_fnc(agent.q)
-			# agents_value_fnc_vector[agent.i,:] = self.boltzmann_policy(agent.q)
 			agents_q_value[agent.i,:] = agent.q
 
 		# - agent actions
@@ -331,33 +327,6 @@ class Env():
 				local_actions.append(a)
 		return local_states, local_actions
 
-
-	def reward_instance(self,s,a,px,py,time_diff):
-
-		# input 
-		# 	-env: 
-		#	-s: current state
-		# 	-a: action
-		# 	-px,py: x,y position of customer data
-		# output
-		# 	-reward: customer waiting time 
-		
-		sp = self.get_next_state(s,a)
-		spx,spy = self.cell_index_to_cell_coordinate(sp)
-		spx += self.param.env_dx/2
-		spy += self.param.env_dy/2
-		sx,sy = self.cell_index_to_cell_coordinate(s)
-		sx += self.param.env_dx/2
-		sy += self.param.env_dy/2
-
-		time_s_to_sp = self.eta(sx,sy,spx,spy)
-		time_sp_to_c = self.eta(spx,spy,px,py)
-
-		# reward = -1*(time_s_to_sp + time_sp_to_c)
-		reward = 1/(time_s_to_sp + time_sp_to_c)
-
-		return reward 
-
 	# mdp stuff 
 	def solve_MDP(self,dataset,curr_time):
 
@@ -409,8 +378,9 @@ class Env():
 
 		w = np.zeros((self.param.env_ncell))
 		for customer in eval_dataset:
-			s = self.coordinate_to_cell_index(customer[2],customer[3])
-			w[s] += 1 
+			if self.check_valid(customer[2],customer[3]):
+				s = self.coordinate_to_cell_index(customer[2],customer[3])
+				w[s] += 1 
 		w /= sum(w) 
 		return w 
 
@@ -438,7 +408,7 @@ class Env():
 		P = self.P
 
 		count = 0
-		time_discount_sum = 0.0 #.zeros(R.shape)
+		time_discount_sum = 0.0 
 		for data in dataset:
 			
 			tor = data[0]
@@ -451,67 +421,55 @@ class Env():
 			px = data[2]
 			py = data[3]
 
-			if 'gridworld' in self.param.env_name:
-				time_discount = self.param.lambda_r**time_diff
-			elif 'citymap' in self.param.env_name:
-				time_discount = self.param.lambda_r**max((time_diff/self.param.sim_dt,1))
+			time_discount = self.param.lambda_r**max((time_diff/self.param.sim_dt,1))
 			time_discount_sum += time_discount
 
-			# if global update 
-			if self.param.global_reward_on:
-				for s in range(self.param.env_ncell):
-					for a in range(self.param.env_naction):
-						
-						reward = self.reward_instance(s,a,px,py,time_diff)*time_discount
-
-						R[s,a] += reward
-
-						# print('reward: ', reward)
-						# print('time_discount_sum: ', time_discount_sum)
-						# print('self.reward_instance(s,a,px,py,time_diff): ', self.reward_instance(s,a,px,py,time_diff))
-
-
-						# else:
-						# 	print('not read')
-						# print('time_discount:', time_discount)
-						# print('reward:', reward)
-
-						# time_discount = self.param.lambda_r**time_diff
-						# R[s,a] += self.reward_instance(s,a,px,py,time_diff)
-						# time_discount_sum[s,a] += time_discount
-
-			# if local update 
-			else:
-
-				customer_state = self.coordinate_to_cell_index(px,py)
-				local_states = self.get_local_states(customer_state)
-					
-				for local_state in local_states:
-					a = self.s_sp_to_a(customer_state,local_state)
-					q_idx = self.sa_to_q_idx(local_state,a)
-
-					prime_idxs = local_state*self.param.env_naction+np.arange(self.param.env_naction,dtype=int)
-					reward_instance = self.reward_instance(local_state,a,px,py,time_diff)
-					R[local_state,a] += reward_instance
-
-		# if count > 0:
-		# 	R /= count
+			for s in range(self.param.env_ncell):
+				for a in range(self.param.env_naction):
+					reward = self.reward_instance(s,a,px,py,time_diff)*time_discount
+					R[s,a] += reward
 		
 		if count > 0:
 			R /= time_discount_sum 
 
-		# if self.param.global_reward_on:
-		# 	s_idx,a_idx = np.nonzero(time_discount_sum)
-		# 	R[s_idx,a_idx] /= time_discount_sum[s_idx,a_idx]
+		return R  
 
-		# 	# R /= time_discount_sum
+	def reward_batch(self,dataset,curr_time):
 
-		# else:
-		# 	# add noise for mdp stability 
-		# 	mean_R = np.mean(np.mean(R))
-		# 	R += mean_R/100 * np.random.random(R.shape)
+		ndata = dataset.shape[0]
+		tor = dataset[:,0]
+		px = dataset[:,2]
+		py = dataset[:,3] 
 
-		return R  	
+		
+
+
+	def reward_instance(self,s,a,px,py,time_diff):
+
+		# input 
+		# 	-env: 
+		#	-s: current state
+		# 	-a: action
+		# 	-px,py: x,y position of customer data
+		# output
+		# 	-reward: customer waiting time 
+		
+		sp = self.get_next_state(s,a)
+		spx,spy = self.cell_index_to_cell_coordinate(sp)
+		spx += self.param.env_dx/2
+		spy += self.param.env_dy/2
+		sx,sy = self.cell_index_to_cell_coordinate(s)
+		sx += self.param.env_dx/2
+		sy += self.param.env_dy/2
+
+		time_s_to_sp = self.eta(sx,sy,spx,spy)
+		time_sp_to_c = self.eta(spx,spy,px,py)
+
+		# reward = -1*(time_s_to_sp + time_sp_to_c)
+		reward = 1/(time_s_to_sp + time_sp_to_c)
+
+		return reward 
+
 
 	def get_MDP_P(self):
 		# P in AxSxS 
@@ -538,70 +496,20 @@ class Env():
 					# 'down'
 					i_x_tp1, i_y_tp1 = (i_x,i_y-1)													
 
-				try:
-					# this will fail if 
-					# 	- outside grid index map dimensions (outside env_x, env_y)
-					# 	- corresponding cell index does not exist (invalid desired cell)
+				
+				# if inside grid map dimensions 
+				if i_x_tp1 < len(self.param.env_x) and i_x_tp1 >= 0 and i_y_tp1 < len(self.param.env_y) and i_y_tp1 >= 0:
+
 					x,y = self.grid_index_to_coordinate(i_x_tp1,i_y_tp1)
+					
+					# if inside valid range (used only for citymap)
 					if self.check_valid(x,y):
 						s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
 						P[a,s,s_tp1] = 1.
 					else:
 						P[a,s,s] = 1.
-				except:
+				else:
 					P[a,s,s] = 1.
-
-			
-			# # 'empty' action 0
-			# P[0,s,s] = 1.
-
-			# # 'right' action 1 
-			# i_x_tp1, i_y_tp1 = (i_x+1,i_y)
-			# try:
-			# 	# this will fail if 
-			# 	# 	- outside grid index map dimensions (outside env_x, env_y)
-			# 	# 	- corresponding cell index does not exist (invalid desired cell)
-			# 	x,y = self.grid_index_to_coordinate(i_x_tp1,i_y_tp1)
-			# 	if self.check_valid(x,y):
-			# 		s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-			# 		P[1,s,s_tp1] = 1.
-			# 	else:
-			# 		P[1,s,s] = 1.
-			# except:
-			# 	P[1,s,s] = 1.
-
-			# # 'up' action 2
-			# i_x_tp1, i_y_tp1 = (i_x,i_y+1)
-			# try:
-			# 	s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-			# 	P[2,s,s_tp1] = 1.
-			# except:
-			# 	P[2,s,s] = 1.
-
-			# # 'left' action 3
-			# i_x_tp1, i_y_tp1 = (i_x-1,i_y)
-			# if i_x_tp1 >= 0:
-			# 	try:
-			# 		s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-			# 		P[3,s,s_tp1] = 1.
-			# 	except:
-			# 		P[3,s,s] = 1.
-			# else:
-			# 	P[3,s,s] = 1.
-
-			# # 'down' action 4
-			# i_x_tp1, i_y_tp1 = (i_x,i_y-1)
-			# if i_y_tp1 >= 0:				
-			# 	try:
-			# 		s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
-			# 		P[4,s,s_tp1] = 1.
-			# 	except:
-			# 		P[4,s,s] = 1.
-			# else:
-			# 	P[4,s,s] = 1.
-
-		# print(P)
-		# exit()
 
 		return P  		
 
@@ -641,16 +549,7 @@ class Env():
 
 		value_fnc_ims = np.zeros((self.param.ni,self.param.env_nx,self.param.env_ny))
 		for agent in self.agents:
-			
-			# old 
-			# # get value
-			# value_fnc_i = self.q_value_to_value_fnc(agent.q)
-			# # normalize
-			# value_fnc_i = (value_fnc_i - min(value_fnc_i))/(max(value_fnc_i)-min(value_fnc_i))
-
-			# new 
 			value_fnc_i = self.boltzmann_policy(agent.q)
-
 			# convert to im
 			im_v = np.zeros((self.param.env_nx,self.param.env_ny))
 			for i in range(self.param.env_ncell):
@@ -709,10 +608,9 @@ class Env():
 			self.lambda_min[:,0] = np.ones((self.param.ni))
 			self.reset_timestep = 0 
 
-		if not self.timestep == self.reset_timestep:
-
-			# for agent_i in self.agents:
-			# 	self.lambda_min[agent_i.i,self.timestep] = sum(A_k[agent_i.i,:])
+		if self.timestep == self.reset_timestep:
+			delta_e = 0 
+		else:
 
 			self.lambda_min[:,self.timestep] = np.sum(A_k,axis=1)
 		
@@ -726,12 +624,11 @@ class Env():
 
 			# delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/ \
 			# 	((1-self.param.mdp_gamma)*(1-np.sqrt(1 - np.min(ave_lambda_min))))
-			delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/ \
-				((1-self.param.mdp_gamma)*(1-np.sqrt(1 - np.mean(ave_lambda_min))))			
+			# delta_e = 2*(self.param.process_noise + self.param.measurement_noise)/ \
+			# 	((1-self.param.mdp_gamma)*(1-np.sqrt(1 - np.mean(ave_lambda_min))))
 
-		else:
-
-			delta_e = 0 
+			delta_e = 2 * np.sqrt ( self.param.nq * (self.param.process_noise + self.param.measurement_noise))/ \
+				((1-self.param.mdp_gamma)*(1-np.sqrt(1 - np.min(ave_lambda_min))))	
 
 		if np.isnan(delta_e):
 			print('delta_e: ', delta_e)
@@ -740,7 +637,9 @@ class Env():
 		return delta_e
 
 	def calc_delta_d(self):
-		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
+		# note this is env.q which is the result of solving the mdp 
+		delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q) 
+		# delta_d = self.param.delta_d_ratio * np.linalg.norm(self.q)
 		# delta_d = 2.5 
 		return delta_d
 

@@ -44,67 +44,99 @@ class CityMap(Env):
 		else:
 			self.city_polygon = union
 
-		# make negative polygon image 
-
-
 		# make boundary
 		x,y = self.city_polygon.exterior.coords.xy
 		self.city_boundary = np.asarray([x,y]).T # [npoints x 2]
 
 		# make grid 
-		city_bounds = self.city_polygon.bounds # [xmin,ymin,xmax,ymax]
-		eps = 0.001
-		self.param.env_xlim = [self.city_polygon.bounds[0]-eps,self.city_polygon.bounds[2]+eps]
-		self.param.env_ylim = [self.city_polygon.bounds[1]-eps,self.city_polygon.bounds[3]+eps]
+		new = True
 
-		# update parameters with xlim and ylim 
-		self.param.update()
+		if new:
+			xmin_thresh = -87.8
+			xmax_thresh = -87.575
+			ymin_thresh = 41.8 
+			ymax_thresh = 42.0 
 
-		# label valid cells where valid cells are either (inclusive OR)
-		# 	- center is in the self.city_polygon  
-		# 	- contain an element of the boundary 
-		print('   making geometry mask...')
-		valid_geometery_cell_mask = self.get_geometry_mask()
+			self.param.env_xlim = [xmin_thresh,xmax_thresh]
+			self.param.env_ylim = [ymin_thresh,ymax_thresh]
 
-		occupancy_grid_mask_on = False
-		if occupancy_grid_mask_on:
-			occupancy_cell_mask = self.get_occupancy_mask()
-			full_mask = np.logical_and(valid_geometery_cell_mask, occupancy_cell_mask)
-		else:
-			full_mask = valid_geometery_cell_mask
+			self.param.update()
 
-		# make utility maps 
-		# 	- grid_index_to_cell_index_map
-		# 	- cell_index_to_grid_index_map
-		print('   reducing map...')
-		self.reduce_map(full_mask)
-
-		# 
-		# print('   refining map...')
-		# todo 
-		xmin = np.inf
-		xmax = -np.inf
-		ymin = np.inf
-		ymax = -np.inf
-		for i_x,x in enumerate(self.param.env_x):
+			self.grid_index_to_cell_index_map = np.zeros((self.param.env_nx,self.param.env_ny),dtype=int)
+			self.cell_index_to_grid_index_map = np.zeros((self.param.env_ncell,2),dtype=int)
+			count = 0
 			for i_y,y in enumerate(self.param.env_y):
-				if full_mask[i_x,i_y]:
-					if self.param.env_x[i_x] > xmax:
-						xmax = self.param.env_x[i_x]
-					if self.param.env_x[i_x] < xmin:
-						xmin = self.param.env_x[i_x]
-					if self.param.env_y[i_y] > ymax:
-						ymax = self.param.env_y[i_y]
-					if self.param.env_y[i_y] < ymin:
-						ymin = self.param.env_y[i_y]			
-		self.valid_xmin = xmin
-		self.valid_xmax = xmax + self.param.env_dx
-		self.valid_ymin = ymin
-		self.valid_ymax = ymax + self.param.env_dy
+				for i_x,x in enumerate(self.param.env_x):
+					self.grid_index_to_cell_index_map[i_x,i_y] = count
+					self.cell_index_to_grid_index_map[count,:] = [i_x,i_y]
+					count += 1
 
-		# kind of awkward 
-		self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
-		self.param.nq = self.param.env_ncell*self.param.env_naction
+			self.valid_xmin = self.param.env_x[0]
+			self.valid_xmax = self.param.env_x[-1] + self.param.env_dx
+			self.valid_ymin = self.param.env_y[0]
+			self.valid_ymax = self.param.env_y[-1] + self.param.env_dy		
+
+			# kind of awkward 
+			self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
+			self.param.nq = self.param.env_ncell*self.param.env_naction
+
+			print('self.param.env_ncell:',self.param.env_ncell)
+
+		else:
+
+			city_bounds = self.city_polygon.bounds # [xmin,ymin,xmax,ymax]
+			eps = 0.001
+			self.param.env_xlim = [self.city_polygon.bounds[0]-eps,self.city_polygon.bounds[2]+eps]
+			self.param.env_ylim = [self.city_polygon.bounds[1]-eps,self.city_polygon.bounds[3]+eps]
+
+			# update parameters with xlim and ylim 
+			self.param.update()
+
+			# label valid cells where valid cells are either (inclusive OR)
+			# 	- center is in the self.city_polygon  
+			# 	- contain an element of the boundary 
+			print('   making geometry mask...')
+			valid_geometery_cell_mask = self.get_geometry_mask()
+
+			occupancy_grid_mask_on = False
+			if occupancy_grid_mask_on:
+				occupancy_cell_mask = self.get_occupancy_mask()
+				full_mask = np.logical_and(valid_geometery_cell_mask, occupancy_cell_mask)
+			else:
+				full_mask = valid_geometery_cell_mask
+
+			# make utility maps 
+			# 	- grid_index_to_cell_index_map
+			# 	- cell_index_to_grid_index_map
+			print('   reducing map...')
+			self.reduce_map(full_mask)
+
+			# 
+			# print('   refining map...')
+			# todo 
+			xmin = np.inf
+			xmax = -np.inf
+			ymin = np.inf
+			ymax = -np.inf
+			for i_x,x in enumerate(self.param.env_x):
+				for i_y,y in enumerate(self.param.env_y):
+					if full_mask[i_x,i_y]:
+						if self.param.env_x[i_x] > xmax:
+							xmax = self.param.env_x[i_x]
+						if self.param.env_x[i_x] < xmin:
+							xmin = self.param.env_x[i_x]
+						if self.param.env_y[i_y] > ymax:
+							ymax = self.param.env_y[i_y]
+						if self.param.env_y[i_y] < ymin:
+							ymin = self.param.env_y[i_y]			
+			self.valid_xmin = xmin
+			self.valid_xmax = xmax + self.param.env_dx
+			self.valid_ymin = ymin
+			self.valid_ymax = ymax + self.param.env_dy
+
+			# kind of awkward 
+			self.param.env_ncell = self.cell_index_to_grid_index_map.shape[0]
+			self.param.nq = self.param.env_ncell*self.param.env_naction
 
 
 	def get_geometry_mask(self):
@@ -193,18 +225,18 @@ class CityMap(Env):
 		x,y = self.cell_index_to_cell_coordinate(i)
 		x = self.param.env_dx*random() + x
 		y = self.param.env_dy*random() + y
-		while not Point((x,y)).within(self.city_polygon):
-			x,y = self.cell_index_to_cell_coordinate(i)
-			x = self.param.env_dx*random() + x
-			y = self.param.env_dy*random() + y
+		# while not Point((x,y)).within(self.city_polygon):
+		# 	x,y = self.cell_index_to_cell_coordinate(i)
+		# 	x = self.param.env_dx*random() + x
+		# 	y = self.param.env_dy*random() + y
 		return x,y
 
 	def random_position_in_world(self):
 		x = random()*(self.param.env_xlim[1] - self.param.env_xlim[0]) + self.param.env_xlim[0]
 		y = random()*(self.param.env_ylim[1] - self.param.env_ylim[0]) + self.param.env_ylim[0]
-		while not Point((x,y)).within(self.city_polygon):
-			x = random()*(self.param.env_xlim[1] - self.param.env_xlim[0]) + self.param.env_xlim[0]
-			y = random()*(self.param.env_ylim[1] - self.param.env_ylim[0]) + self.param.env_ylim[0]
+		# while not Point((x,y)).within(self.city_polygon):
+		# 	x = random()*(self.param.env_xlim[1] - self.param.env_xlim[0]) + self.param.env_xlim[0]
+		# 	y = random()*(self.param.env_ylim[1] - self.param.env_ylim[0]) + self.param.env_ylim[0]
 		return x,y 
 
 	def point_in_cell(self,point,x,y):

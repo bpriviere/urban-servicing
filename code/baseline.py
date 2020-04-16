@@ -43,12 +43,12 @@ def centralized_linear_program(env,agents):
 
 		# normalized prediction in [ns x 1]
 		w = np.zeros((env.param.env_ncell,env.param.rhc_horizon))
-		same_reward = False
+		same_reward = True
 		if same_reward: 
 			for s in range(env.param.env_ncell):
 
 				q_idx = env.sa_to_q_idx(s,0)
-				# w[s,:] = r[q_idx]
+				w[s,:] = r[q_idx]
 
 				# pi = env.global_boltzmann_policy(q)
 				# w[s,:] = pi[q_idx]
@@ -177,7 +177,9 @@ def centralized_linear_program(env,agents):
 			obj = cp.Minimize(cost)
 			prob = cp.Problem(obj, constr)
 			# prob.solve(verbose=True, solver=cp.GUROBI)
+			print('   solving LP...')
 			prob.solve(verbose=False, solver=cp.GUROBI)
+			# print('   solved LP')
 
 			# print('nfree:',nfree)
 			# print('U_t.value:',U_t.value)
