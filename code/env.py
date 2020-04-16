@@ -49,10 +49,20 @@ class Env():
 		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
 		customer_requests = self.test_dataset[idxs,:]
 		for i in range(customer_requests.shape[0]):
-			
-			if self.check_valid(customer_requests[i,2],customer_requests[i,3]) and \
-				self.check_valid(customer_requests[i,4],customer_requests[i,5]):
-				self.observation.append(Service(customer_requests[i,:]))
+
+			px = customer_requests[i,2]
+			py = customer_requests[i,3]
+			dx = customer_requests[i,4]
+			dy = customer_requests[i,5]
+
+			# check if points are in map 
+			if self.check_in_map(px,py) and self.check_in_map(dx,dy):
+
+				pickup_state = self.coordinate_to_cell_index(px,py)
+				dropoff_state = self.coordinate_to_cell_index(dx,dy)
+				
+				if pickup_state in self.valid_cells and dropoff_state in self.valid_cells:
+					self.observation.append(Service(customer_requests[i,:]))
 
 		return self.observation
 
@@ -338,19 +348,13 @@ class Env():
 
 		print('MDP eval_dataset.shape: ',eval_dataset.shape)
 
-		# print('dataset[:,0]:',dataset[:,0])
-		# print('curr_time:',curr_time)
-		# print('self.param.sim_times:',self.param.sim_times)
-
-		self.P = self.get_MDP_P() # in AxSxS
-
-		P = self.P
+		P = self.get_MDP_P() # in AxSxS
+		
+		self.P = P
 		
 		R = self.get_MDP_R(eval_dataset,curr_time) # in SxA
 
 		mdp = ValueIteration(P,R,self.param.mdp_gamma,self.param.mdp_eps,self.param.mdp_max_iter)
-		# mdp = ValueIterationGS(P, R, self.param.mdp_gamma, epsilon=self.param.mdp_eps, max_iter=self.param.mdp_max_iter)
-		# mdp.setVerbose()
 		mdp.run()
 		V = np.array(mdp.V)
 		Q = self.get_MDP_Q(R,V,self.param.mdp_gamma)
@@ -372,10 +376,21 @@ class Env():
 		print('customer demand eval_dataset.shape: ',eval_dataset.shape)
 
 		w = np.zeros((self.param.env_ncell))
-		for customer in eval_dataset:
-			if self.check_valid(customer[2],customer[3]):
-				s = self.coordinate_to_cell_index(customer[2],customer[3])
-				w[s] += 1 
+		for customer_request in eval_dataset:
+
+			px = customer_request[2]
+			py = customer_request[3]
+			dx = customer_request[4]
+			dy = customer_request[5]
+
+			# check if points are in map 
+			if self.check_in_map(px,py) and self.check_in_map(dx,dy):
+
+				pickup_state = self.coordinate_to_cell_index(px,py)
+				dropoff_state = self.coordinate_to_cell_index(dx,dy)
+				
+				if pickup_state in self.valid_cells and dropoff_state in self.valid_cells:
+					w[pickup_state] += 1
 		w /= sum(w) 
 		return w 
 
@@ -397,41 +412,6 @@ class Env():
 			v[s] = max(q[idx])
 		return v
 
-	# def get_MDP_R2(self,dataset,curr_time):
-	# 	# R in SxA
-	# 	R = np.zeros((self.param.env_ncell,self.param.env_naction))
-	# 	P = self.P
-
-	# 	count = 0
-	# 	time_discount_sum = 0.0 
-	# 	for data in dataset:
-			
-	# 		tor = data[0]
-	# 		time_diff = curr_time - tor
-
-	# 		if time_diff < 0:
-	# 			break
-
-	# 		count += 1
-	# 		px = data[2]
-	# 		py = data[3]
-
-	# 		time_discount = self.param.lambda_r**max((time_diff/self.param.sim_dt,1))
-	# 		time_discount_sum += time_discount
-
-	# 		# print('time_discount:',time_discount)
-	# 		for s in range(self.param.env_ncell):
-	# 			for a in range(self.param.env_naction):
-	# 				reward = self.reward_instance(s,a,px,py,time_diff)
-					
-	# 				R[s,a] += reward*time_discount
-		
-	# 				# print('reward:',reward)
-
-	# 	if count > 0:
-	# 		R /= time_discount_sum 
-
-	# 	return R  
 
 	def get_MDP_R(self,dataset,curr_time):
 
@@ -527,19 +507,17 @@ class Env():
 				
 				# if inside grid map dimensions 
 				if i_x_tp1 < len(self.param.env_x) and i_x_tp1 >= 0 and i_y_tp1 < len(self.param.env_y) and i_y_tp1 >= 0:
+					s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
 
-					x,y = self.grid_index_to_coordinate(i_x_tp1,i_y_tp1)
-					
-					# if inside valid range (used only for citymap)
-					if self.check_valid(x,y):
-						s_tp1 = self.grid_index_to_cell_index_map[i_x_tp1,i_y_tp1]
+					if s_tp1 in self.valid_cells:
 						P[a,s,s_tp1] = 1.
 					else:
 						P[a,s,s] = 1.
 				else:
 					P[a,s,s] = 1.
 
-		return P  		
+		return P
+
 
 	def get_MDP_Pq(self,q):
 
@@ -848,4 +826,8 @@ class Env():
 		return x,y
 
 	def check_valid(self,x,y):
-		return x > self.valid_xmin and x < self.valid_xmax and y > self.valid_ymin and y < self.valid_ymax
+		i = self.coordinate_to_cell_index(x,y)
+		return i in self.valid_cells
+
+	def check_in_map(self,x,y):
+		return x >= self.valid_xmin and x <= self.valid_xmax and y >= self.valid_ymin and y <= self.valid_ymax

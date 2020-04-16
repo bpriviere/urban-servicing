@@ -352,13 +352,15 @@ class Controller():
 
 	# ------------ helper fnc -------------
 	def cell_to_move_assignments(self,cell_assignments):
+
+		print('cell_to_move_assignments...')
 		
 		move_assignments = [] 
 		# transition = self.env.get_MDP_P(self.env)
 		transition = self.env.P
 		for agent,cell in cell_assignments:
 			i = np.where(transition[cell,self.env.coordinate_to_cell_index(agent.x,agent.y),:] == 1)[0][0]
-			
+						
 			if True:
 				x,y = self.env.random_position_in_cell(i)
 			else:

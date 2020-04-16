@@ -27,10 +27,19 @@ class GridWorld(Env):
 				self.cell_index_to_grid_index_map[count,:] = [i_x,i_y]
 				count += 1
 
+		self.valid_cells = self.get_valid_cells()
+
 		self.valid_xmin = self.param.env_x[0]
 		self.valid_xmax = self.param.env_x[-1] + self.param.env_dx
 		self.valid_ymin = self.param.env_y[0]
 		self.valid_ymax = self.param.env_y[-1] + self.param.env_dy		
+
+	def get_valid_cells(self):
+
+		valid_cells_lst = [] 
+		for s in self.param.env_ncells:
+			valid_cells_lst.append(s)
+		return valid_cells_lst
 
 
 	def make_dataset(self):

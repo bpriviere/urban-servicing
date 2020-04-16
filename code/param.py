@@ -29,7 +29,7 @@ class Param:
 		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
-			'D-TD',
+			# 'D-TD',
 			# 'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
@@ -133,23 +133,23 @@ class Param:
 			self.sim_dt = 15*60 
 
 			# learning rate
-			self.td_alpha = 0*0.1 #0.5				
+			self.td_alpha = 0.1 #0.5				
 
 			# determine from data 
 			self.taxi_speed = 0.00009 # 22 mph 
-			self.process_noise = 0.01 
-			self.measurement_noise = 0.01 
+			self.process_noise = 0.0001 
+			self.measurement_noise = 0.0001 
 
 			# 
 			self.city = 'chicago'
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni_dilution = 200
-			self.nc_dilution = 400
+			self.ni_dilution = 20
+			self.nc_dilution = 40
 			self.ni = int(2000/self.ni_dilution)
 			
-			self.desired_env_ncell = 100 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 150 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 
@@ -162,7 +162,7 @@ class Param:
 			self.mdp_gamma = 0.8
 			self.mdp_max_iter = 1000
 			self.mdp_eps = 1e-4
-			self.mdp_max_data = 1000			
+			self.mdp_max_data = 1000
 
 			# task assignment 
 			self.ta_beta = 150 # 150.
