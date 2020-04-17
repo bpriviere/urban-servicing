@@ -23,14 +23,14 @@ class Param:
 		self.plot_arrows_on = False
 
 		self.n_trials = 1
-		self.htd_time_window = 10
-		self.htd_minimum_reset = 10
+		self.htd_time_window = 5
+		self.htd_minimum_reset = 5
 		self.rhc_horizon = 10
 		self.delta_d_ratio = 0.025
 
 		self.controller_names = [
 			# 'D-TD',
-			# 'H-TD^2',
+			'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
 			'RHC'
@@ -145,11 +145,11 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni_dilution = 20
-			self.nc_dilution = 40
+			self.ni_dilution = 10
+			self.nc_dilution = 20
 			self.ni = int(2000/self.ni_dilution)
 			
-			self.desired_env_ncell = 150 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 200 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 
@@ -165,7 +165,7 @@ class Param:
 			self.mdp_max_data = 1000
 
 			# task assignment 
-			self.ta_beta = 150 # 150.
+			self.ta_beta = 1 # 150.
 			self.ta_converged = 20
 			self.ta_tau = 0.0001
 			self.ta_tau_decay = 0.1
