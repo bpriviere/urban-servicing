@@ -145,11 +145,11 @@ class Param:
 			self.shp_path = '../maps/{}.shp'.format(self.city)
 
 			# fleet 
-			self.ni_dilution = 10
-			self.nc_dilution = 20
+			self.ni_dilution = 1
+			self.nc_dilution = 5
 			self.ni = int(2000/self.ni_dilution)
 			
-			self.desired_env_ncell = 200 # self.env_nx*self.env_ny
+			self.desired_env_ncell = 300 # self.env_nx*self.env_ny
 			self.desired_swarm_density = 5.0 # agents/m^2
 			self.desired_swarm_param = 1.0 
 			self.desired_agents_per_cell = 1.0 

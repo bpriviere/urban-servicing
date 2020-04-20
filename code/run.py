@@ -24,16 +24,6 @@ def run_instance(param):
 		env = GridWorld(param)
 	elif param.env_name in 'citymap':
 		env = CityMap(param)
-
-		# temp 
-		# import matplotlib.pyplot as plt 
-
-		# fig,ax = plt.subplots()
-		# env.print_map(fig=fig,ax=ax)
-		# plotter.save_figs('temp.pdf')
-		# plotter.open_figs('temp.pdf')
-		# exit()
-
 	else:
 		exit('env_name not recognized: ', param.env_name)
 

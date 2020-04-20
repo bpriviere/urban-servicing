@@ -28,8 +28,6 @@ def centralized_linear_program(env,agents):
 	if not hasattr(env, 'w'):
 		env.w = env.get_customer_demand(env.train_dataset,env.param.sim_times[0]) 
 
-	dbg = False
-	dbg_test = 0 
 	cell_assignments = [] 
 
 	if len(agents)>0:
@@ -81,121 +79,45 @@ def centralized_linear_program(env,agents):
 			for sp in local_states:
 				banned_idx[s, i_j_to_ij(env,s,sp)] = 0
 
+		x_t = cp.Variable((env.param.env_ncell,env.param.rhc_horizon+1))
+		U_t = cp.Variable((env.param.env_ncell**2,env.param.rhc_horizon))
 
-		if dbg: 
-			U_t = np.zeros((env.param.env_ncell**2,env.param.rhc_horizon))
+		# init 
+		cost = 0
+		constr = []
 
+		# initial condition 
+		constr.append(x_t[:,0] == x0)
 
-			# U where each agent takes action 0 for all time 
-			if dbg_test == 0:
+		# always greater than zero
+		constr.append(U_t >= 0)
 
-				for agent in agents:
-					s = env.coordinate_to_cell_index(agent.x,agent.y)
-					U_t[i_j_to_ij(env,s,s),:] += 1
+		# sum to ni 
+		constr.append(cp.sum(U_t,axis=0)==nfree)
 
-			# U where each agent goes bottom left 
-			if dbg_test == 1:
+		for t in range(env.param.rhc_horizon):
 
-				for agent in agents:
-					s = env.coordinate_to_cell_index(agent.x,agent.y)
+			# conservation 1: taxis in 's' at next timestep = taxis curr in 's' + taxis going into cell 's'
+			constr.append(idxs_to_s @ U_t[:,t] == x_t[:,t+1])
 
-					for t in range(env.param.rhc_horizon):
+			# conservation 2: taxis leaving 's' less than or equal to taxis curr in 's' 
+			constr.append(idxs_from_s @ U_t[:,t] == x_t[:,t])
 
-						local_states,local_actions = env.get_local_transitions(s)
+			# dynamics: travel between banned indices are not allowed 
+			constr.append(banned_idx @ U_t[:,t] == 0)
 
-						# left 
-						if 3 in local_actions:
-							sp = env.get_next_state(s,3)
+			# cost fnc:
+			cost += env.param.mdp_gamma**t * cp.sum_squares(x_t[:,t+1]/nfree - w[:,t])
 
-						# down 
-						elif 4 in local_actions:
-							sp = env.get_next_state(s,4)
+		# solve 
+		obj = cp.Minimize(cost)
+		prob = cp.Problem(obj, constr)
+		# prob.solve(verbose=True, solver=cp.GUROBI)
+		print('   solving LP...')
+		prob.solve(verbose=False, solver=cp.GUROBI)
+		# print('   solved LP')
 
-						# stay 
-						else:
-							sp = s 
-
-						U_t[i_j_to_ij(env,s,sp),:] += 1 
-
-			# print('env.param.env_nx: ',env.param.env_nx)
-			# print('env.param.env_ny: ',env.param.env_ny)
-			# print('env.param.env_ncell: ',env.param.env_ncell)
-			# print('env.param.rhc_horizon: ',env.param.rhc_horizon)
-			# for s in range(env.param.env_ncell):
-			# 	print('s: ',s)
-			# 	print('   banned_idx[s,:]: ',banned_idx[s,:])
-			# 	print('   idxs_from_s[s,:]: ',idxs_from_s[s,:])
-			# 	print('   idxs_to_s[s,:]: ',idxs_to_s[s,:])
-			# print('idxs_from_s: ',idxs_from_s)
-			# print('idxs_to_s: ',idxs_to_s)
-
-			print('nfree:',nfree)
-			print('U_t:',U_t)
-			print('w:',w)
-			print('r:',r)
-			print('x0:',x0)
-			print('np.dot(idxs_to_s, U_t[:,t]):', np.dot(idxs_to_s, U_t[:,t]))
-			print('np.dot(idxs_from_s, U_t[:,t]):', np.dot(idxs_from_s, U_t[:,t]))
-			exit()
-
-
-			cell_assignments = U_to_cell_assignments(U_t[:,0],env,agents,idxs_from_s)
-
-
-		else:
-			x_t = cp.Variable((env.param.env_ncell,env.param.rhc_horizon+1))
-			U_t = cp.Variable((env.param.env_ncell**2,env.param.rhc_horizon))
-
-			# init 
-			cost = 0
-			constr = []
-
-			# initial condition 
-			constr.append(x_t[:,0] == x0)
-
-			# always greater than zero
-			constr.append(U_t >= 0)
-
-			# sum to ni 
-			constr.append(cp.sum(U_t,axis=0)==nfree)
-
-			for t in range(env.param.rhc_horizon):
-
-				# conservation 1: taxis in 's' at next timestep = taxis curr in 's' + taxis going into cell 's'
-				constr.append(idxs_to_s @ U_t[:,t] == x_t[:,t+1])
-
-				# conservation 2: taxis leaving 's' less than or equal to taxis curr in 's' 
-				constr.append(idxs_from_s @ U_t[:,t] == x_t[:,t])
-
-				# dynamics: travel between banned indices are not allowed 
-				constr.append(banned_idx @ U_t[:,t] == 0)
-
-				# cost fnc:
-				cost += env.param.mdp_gamma**t * cp.sum_squares(x_t[:,t+1]/nfree - w[:,t])
-
-			# solve 
-			obj = cp.Minimize(cost)
-			prob = cp.Problem(obj, constr)
-			# prob.solve(verbose=True, solver=cp.GUROBI)
-			print('   solving LP...')
-			prob.solve(verbose=False, solver=cp.GUROBI)
-			# print('   solved LP')
-
-			# print('nfree:',nfree)
-			# print('U_t.value:',U_t.value)
-			# print('x_t.value:',x_t.value)
-			# print('x0:',x0)
-			# print('w:',w)
-
-			# for t in range(env.param.rhc_horizon):
-			# 	print('t:',t)
-			# 	print('np.dot(idxs_to_s, U_t.value[:,t]):', np.dot(idxs_to_s, U_t.value[:,t]))
-			# 	print('np.dot(idxs_from_s, U_t.value[:,t]):', np.dot(idxs_from_s, U_t.value[:,t]))
-
-			cell_assignments = U_to_cell_assignments(U_t.value[:,0],env,agents,idxs_from_s)
-
-		# actions = [a for (_,a) in cell_assignments]
-		# print('actions:',actions)
+		cell_assignments = U_to_cell_assignments(U_t.value[:,0],env,agents,idxs_from_s)
 			
 	return cell_assignments	
 

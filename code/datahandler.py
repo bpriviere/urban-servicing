@@ -17,7 +17,6 @@ class NumpyEncoder(json.JSONEncoder):
 
 def make_dataset(env):
 
-
 	if 'gridworld' in env.name:
 		return env.make_dataset()
 	elif 'citymap' in env.name:

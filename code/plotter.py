@@ -10,7 +10,7 @@ import matplotlib
 
 # defaults
 plt.rcParams.update({'font.size': 10})
-plt.rcParams['lines.linewidth'] = 4
+plt.rcParams['lines.linewidth'] = 2.5
 
 
 def save_figs(filename):
@@ -372,6 +372,85 @@ def animate_plot(controller_name,sim_result,timestep,fig):
 	fig.suptitle('{} at t/T = {}/{} \n'.format(controller_name,t,T))
 	return axs	
 
+def animate_plot_2(controller_name,sim_result,timestep,fig):
+
+	gs = fig.add_gridspec(2,3)
+	# agents/customers
+	ax1 = fig.add_subplot(gs[0, 0:2])
+	# value fnc 
+	ax2 = fig.add_subplot(gs[1, 0:2])
+	# cumulative reward
+	ax3 = fig.add_subplot(gs[:, 2])
+
+	# 
+	param = sim_result["param"]	
+	agent_colors = get_agent_colors(param["ni"])
+
+	# subplot 1: agents/customers
+
+	# plot customers
+	customer_color = 'green'
+	customer_locations = sim_result["customers_location"][timestep]
+	# print('customer_locations:',customer_locations)
+	if len(customer_locations) > 0:
+		ax1.scatter(customer_locations[:,0],customer_locations[:,1],color=customer_color)
+
+	# plot servicing agents and free agents
+	service_agent_idx = np.asarray(sim_result["agents_operation"][timestep],dtype=bool)
+	x = np.linspace(0,1,param["ni"])
+	agent_locs = sim_result["agents_location"][timestep]
+	ax1.scatter(agent_locs[service_agent_idx,0],agent_locs[service_agent_idx,1],c=x[service_agent_idx],cmap=agent_colors[1])
+	ax1.scatter(agent_locs[~service_agent_idx,0],agent_locs[~service_agent_idx,1],c=x[~service_agent_idx],cmap=agent_colors[0])
+
+	# some axis stuff 
+	ax1.set_xticks(param["env_x"]) 
+	ax1.set_yticks(param["env_y"]) 
+	ax1.set_xlim(param["env_xlim"])
+	ax1.set_ylim(param["env_ylim"])
+	ax1.set_xlabel('x-position')
+	ax1.set_ylabel('y-position')	
+	ax1.set_title('State Space')	
+	ax1.set_aspect('equal')
+	ax1.grid(True)
+	plt.setp(ax1.get_xticklabels(), visible=False)
+	plt.setp(ax1.get_yticklabels(), visible=False)
+
+	# subplot 2: value function 
+	agent_idx = 0 
+	im_to_plot = sim_result["agents_value_fnc_distribution"][timestep][agent_idx]
+	im = ax2.imshow(sim_to_im_coordinate(im_to_plot),
+		vmin=0,vmax=1,cmap='gray_r',
+		extent=[param["env_xlim"][0],param["env_xlim"][1],param["env_ylim"][0],param["env_ylim"][1]])
+
+	ax2.set_xticks(param["env_x"])
+	ax2.set_yticks(param["env_y"])
+	ax2.set_xlim(param["env_xlim"])
+	ax2.set_ylim(param["env_ylim"])
+	ax2.set_aspect('equal')
+	ax2.set_xlabel('x-position')
+	ax2.set_ylabel('y-position')
+	ax2.set_title('Value Estimation')
+	ax2.grid(True)
+	plt.setp(ax2.get_xticklabels(), visible=False)
+	plt.setp(ax2.get_yticklabels(), visible=False)
+
+
+	# subplot 3: cumulative reward 
+	times = sim_result["times"][0:timestep]
+	rewards = -1*np.cumsum(sim_result["rewards"][0:timestep])
+	ax3.plot(times,rewards)
+	ax3.set_xlabel('Time')
+	ax3.set_title('Customer Waiting Time')
+	ax3.grid(True)
+	ax3.set_xlim([0,sim_result["times"][-1]])
+	ax3.set_ylim([0,-1*sum(sim_result["rewards"])])
+	plt.setp(ax3.get_yticklabels(), visible=False)	
+	# ax3.set_aspect('equal')
+
+	axs = [ax1,ax2,ax3]
+
+	return axs 
+
 def plot_distribution_over_time(results,env):
 	for timestep,time in enumerate(results.times):
 		plot_distribution(results, timestep, env)
@@ -465,7 +544,7 @@ def plot_heatmap(env,heatmap,ax):
 		# extent=[env.param.env_x[0],env.param.env_x[-1],env.param.env_y[0],env.param.env_y[-1]], 
 		cmap=cmap)
 	ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1,color='black')
-	ax.plot(wrigley_field[0],wrigley_field[1],color='green',marker="*")
+	ax.plot(wrigley_field[0]-0.01,wrigley_field[1]-0.01,color='green',marker="*")
 
 def plot_cell_demand_over_time(env,ax):
 
@@ -544,7 +623,7 @@ def get_agent_colors(ni):
 	import numpy as np
 
 
-	color_variation = False 
+	color_variation = True 
 
 	if color_variation:
 
