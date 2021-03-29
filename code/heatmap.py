@@ -12,6 +12,15 @@ import matplotlib.pyplot as plt
 def main():
 
 	param = Param()
+
+	param.desired_env_ncell = 2000
+	param.xmin_thresh = None
+	param.xmax_thresh = None
+	param.ymin_thresh = None
+	param.ymax_thresh = None
+
+	param.update()
+
 	env = CityMap(param)
 
 	# init datasets

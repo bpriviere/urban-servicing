@@ -37,7 +37,7 @@ class GridWorld(Env):
 	def get_valid_cells(self):
 
 		valid_cells_lst = [] 
-		for s in self.param.env_ncells:
+		for s in range(self.param.env_ncell):
 			valid_cells_lst.append(s)
 		return valid_cells_lst
 
@@ -47,7 +47,7 @@ class GridWorld(Env):
 		# training time: [tf_train,0]
 		# testing time:  [0,tf_sim]
 
-		tf_train = int(self.param.n_training_data/self.param.n_customers_per_time)
+		tf_train = max((int(self.param.n_training_data/self.param.n_customers_per_time),10))
 		tf_sim = max(1,int(np.ceil(self.param.sim_tf)))
 
 		# 'move' gaussians around for full simulation time 

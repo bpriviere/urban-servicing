@@ -11,14 +11,14 @@ class Param:
 		self.load_param = False
 		self.load_param_fn = '../results/2020-04-12_testing_param_loader_2/sim_result_1/param.json'
 
-		# self.env_name = 'gridworld'
-		self.env_name = 'citymap' 
+		self.env_name = 'gridworld'
+		# self.env_name = 'citymap' 
 
 		self.global_reward_on = True
 		self.macro_sim_on = False
 
 		# flags 
-		self.env_render_on = False
+		self.env_render_on = False # not implemented
 		self.plot_sim_over_time = False
 		self.plot_arrows_on = False
 
@@ -33,7 +33,7 @@ class Param:
 			'H-TD^2',
 			# 'C-TD',
 			# 'Bellman',
-			'RHC'
+			# 'RHC'
 			]
 
 
@@ -50,7 +50,7 @@ class Param:
 
 			# sim 
 			self.sim_t0 = 0 
-			self.sim_tf = 20
+			self.sim_tf = 10 # 20
 			self.sim_dt = 0.1
 		
 			# parameter tuning with hand picked variables 
@@ -60,7 +60,7 @@ class Param:
 				# this one 
 
 				# fleet 
-				self.ni = 50 # 20 
+				self.ni = 500 # 20 
 
 				# customer model
 				self.cm_taxi_speed_ratio = 0.1
@@ -126,9 +126,9 @@ class Param:
 			self.xmin_thresh = -87.8
 			self.xmax_thresh = -87.575
 			self.ymin_thresh = 41.8 
-			self.ymax_thresh = 42.0 			
+			self.ymax_thresh = 42.0
 
-			self.make_dataset_on = False
+			self.make_dataset_on = True
 
 			self.sim_dt = 15*60 
 
@@ -220,6 +220,7 @@ class Param:
 		self.state_keys = [
 			# 'gmm_distribution',
 			'customers_location',
+			'waiting_customers_location',
 			'agents_value_fnc_distribution',
 			# 'agents_q_value',
 			'agents_location',
@@ -231,6 +232,7 @@ class Param:
 
 		self.plot_keys = [
 			'customers_location',
+			'waiting_customers_location',
 			'agents_value_fnc_distribution',
 			'agents_location',
 			'reward',

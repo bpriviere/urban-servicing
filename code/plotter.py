@@ -485,10 +485,10 @@ def render(controller_name,sim_result,timestep):
 
 	# plot customers
 	customer_color = 'green'
-	customer_locations = sim_result["customers_location"][timestep]
+	waiting_customer_locations = np.array(sim_result["waiting_customers_location"][timestep])
 	# print('customer_locations:',customer_locations)
-	if len(customer_locations) > 0:
-		ax1.scatter(customer_locations[:,0],customer_locations[:,1],color=customer_color)
+	if len(waiting_customer_locations) > 0:
+		ax1.scatter(waiting_customer_locations[:,0],waiting_customer_locations[:,1],color=customer_color)
 
 	# plot servicing agents and free agents
 	service_agent_idx = np.asarray(sim_result["agents_operation"][timestep],dtype=bool)
@@ -544,7 +544,7 @@ def plot_heatmap(env,heatmap,ax):
 		# extent=[env.param.env_x[0],env.param.env_x[-1],env.param.env_y[0],env.param.env_y[-1]], 
 		cmap=cmap)
 	ax.plot(city_boundary[:,0],city_boundary[:,1],linewidth=1,color='black')
-	ax.plot(wrigley_field[0]-0.01,wrigley_field[1]-0.01,color='green',marker="*")
+	ax.plot(wrigley_field[0]-0.01,wrigley_field[1]-0.01,markersize=12,color='green',marker="*")
 
 def plot_cell_demand_over_time(env,ax):
 

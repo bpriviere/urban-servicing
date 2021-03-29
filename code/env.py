@@ -18,6 +18,7 @@ class Env():
 		self.name = param.env_name 
 		self.timestep = 0
 		self.observation = []
+		self.waiting_customer_locations = dict()
 
 	def init_agents(self,s0):
 		
@@ -62,7 +63,9 @@ class Env():
 				dropoff_state = self.coordinate_to_cell_index(dx,dy)
 				
 				if pickup_state in self.valid_cells and dropoff_state in self.valid_cells:
-					self.observation.append(Service(customer_requests[i,:]))
+					service = Service(customer_requests[i,:])
+					self.observation.append(service)
+					self.waiting_customer_locations[service] = (service.x_p,service.y_p)
 
 		return self.observation
 
@@ -107,6 +110,11 @@ class Env():
 
 		# - customer states
 		customers_location = self.get_curr_customer_locations()
+
+		# save customer times 
+		waiting_customers_location = []
+		for service, location in self.waiting_customer_locations.items():
+			waiting_customers_location.append(location)
 
 		# - distributions 
 		# gmm_distribution = self.get_curr_im_gmm()
@@ -206,6 +214,7 @@ class Env():
 				if next_time > agent.pickup_finish_time:
 					agent.x = agent.service.x_p
 					agent.y = agent.service.y_p 
+					self.waiting_customer_locations.pop(agent.service, None) 
 				
 				# continue
 				else:
@@ -719,82 +728,6 @@ class Env():
 			im_agent = im_agent / count_agent
 
 		return im_agent
-
-	def get_curr_customer_locations(self):		
-		customers_location = []
-		t0 = self.param.sim_times[self.timestep]
-		t1 = self.param.sim_times[self.timestep+1]
-		idxs = np.multiply(self.test_dataset[:,0] >= t0, self.test_dataset[:,0] < t1, dtype=bool)
-		count = 0 
-		for data in self.test_dataset[idxs,:]:
-			count += 1
-
-			tor = data[0]
-			px = data[2]
-			py = data[3]
-
-			customers_location.append([px,py])
-
-		customers_location = np.asarray(customers_location)
-		return customers_location	
-
-	def get_agents_int_action(self,actions):
-		# pass in list of objects
-		# pass out list of integers 
-		int_actions_lst = []
-		# for i,agent in enumerate(self.agents):
-		# 	action = actions[i]
-		for agent,action in actions:
-			if isinstance(action,Dispatch): 
-				s = self.coordinate_to_cell_index(agent.x,agent.y)
-				sp = self.coordinate_to_cell_index(action.x,action.y)
-				int_a = self.s_sp_to_a(s,sp)
-				int_actions_lst.append(int_a)
-			elif isinstance(action,Service) or isinstance(action,Empty):
-				int_actions_lst.append(-1)
-			else:
-				exit('get_agents_int_action type error')
-		return np.asarray(int_actions_lst)
-
-	def get_agents_vec_action(self,actions):
-		# pass in list of action objects
-		# pass out np array of move vectors
-
-		agents_vec_action = np.zeros((self.param.ni,2))
-		# for i,agent in enumerate(agents):
-		# action = action
-		for agent,action in actions:
-			if isinstance(action,Dispatch):
-				# agents_vec_action[i,0] = action.x - agent.x
-				# agents_vec_action[i,1] = action.y - agent.y
-				sx,sy = self.cell_index_to_cell_coordinate(
-					self.coordinate_to_cell_index(agent.x,agent.y))
-				agents_vec_action[agent.i,0] = action.x - (sx + self.param.env_dx/2)
-				agents_vec_action[agent.i,1] = action.y - (sy + self.param.env_dy/2)
-
-			elif isinstance(action,Service) or isinstance(action,Empty):
-				agents_vec_action[agent.i,0] = 0
-				agents_vec_action[agent.i,1] = 0
-			else:
-				print(action)
-				exit('get_agents_vec_action type error')
-		return agents_vec_action
-
-	def get_curr_ave_vec_action(self,locs,vec_action):
-		# locs is (ni,2)
-		# vec_actions is (ni,2)
-		ni = locs.shape[0]
-		im_a = np.zeros((self.param.env_nx,self.param.env_ny,2))
-		count = np.zeros((self.param.env_nx,self.param.env_ny,1))
-		for i in range(ni):
-			idx_x,idx_y = self.coordinate_to_grid_index(locs[i][0],locs[i][1])
-			im_a[idx_x,idx_y,:] += vec_action[i][:]
-			count[idx_x,idx_y] += 1
-
-		idx = np.nonzero(count)
-		# im_a[idx] = (im_a[idx].T/count[idx]).T
-		im_a[idx] = im_a[idx]/count[idx]
-		return im_a
 
 	# Utility Stuff
 		# 'cell_index' : element of [0,...,env_ncell]

@@ -49,8 +49,28 @@ class CityMap(Env):
 		self.city_boundary = np.asarray([x,y]).T # [npoints x 2]
 
 		# make grid 
-		self.param.env_xlim = [self.param.xmin_thresh,self.param.xmax_thresh]
-		self.param.env_ylim = [self.param.ymin_thresh,self.param.ymax_thresh]
+		if self.param.xmin_thresh is not None: 
+			xmin = self.param.xmin_thresh 
+		else: 
+			xmin = np.min(self.city_boundary[:,0])
+		if self.param.xmax_thresh is not None: 
+			xmax = self.param.xmax_thresh 
+		else: 
+			xmax = np.max(self.city_boundary[:,0])
+		if self.param.ymin_thresh is not None: 
+			ymin = self.param.ymin_thresh 
+		else: 
+			ymin = np.min(self.city_boundary[:,1])
+		if self.param.ymax_thresh is not None: 
+			ymax = self.param.ymax_thresh 
+		else: 
+			ymax = np.max(self.city_boundary[:,1])
+
+		# self.param.env_xlim = [self.param.xmin_thresh,self.param.xmax_thresh]
+		# self.param.env_ylim = [self.param.ymin_thresh,self.param.ymax_thresh]
+
+		self.param.env_xlim = [xmin,xmax]
+		self.param.env_ylim = [ymin,ymax]
 
 		self.param.update()
 

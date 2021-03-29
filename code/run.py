@@ -102,41 +102,45 @@ if __name__ == '__main__':
 		default_param.load_dict()
 		default_param.n_trials = 1
 		default_param.controller_names = ['RHC']
-	
-	# clean results directory
+
 	current_results_dir = '../current_results/*'
-	if not os.path.exists('../current_results/*'):
-		os.makedirs('../current_results/*',exist_ok=True)
-	for old_sim_result_dir in glob.glob(current_results_dir):
-		shutil.rmtree(old_sim_result_dir)
-		
-	# macro sim 
-	if default_param.macro_sim_on: 
-		
-		varied_parameter_dict = dict()
-		# varied_parameter_dict["env_dx"] = [0.1,0.3,0.5,1.0] 
-		varied_parameter_dict["ni"] = [10,1000] #10,50,100,150]
-		controller_names = default_param.controller_names
 
-		for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
-			for varied_parameter_value in varied_parameter_values:
+	run_on = True
+	if run_on: 
+	
+		# clean results directory
+		if not os.path.exists('../current_results/*'):
+			os.makedirs('../current_results/*',exist_ok=True)
+		for old_sim_result_dir in glob.glob(current_results_dir):
+			shutil.rmtree(old_sim_result_dir)
+			
+		# macro sim 
+		if default_param.macro_sim_on: 
+			
+			varied_parameter_dict = dict()
+			# varied_parameter_dict["env_dx"] = [0.1,0.3,0.5,1.0] 
+			varied_parameter_dict["ni"] = [10,1000] #10,50,100,150]
+			controller_names = default_param.controller_names
 
-				curr_param = Param()
+			for varied_parameter, varied_parameter_values in varied_parameter_dict.items():
+				for varied_parameter_value in varied_parameter_values:
 
-				if curr_param.load_param:
-					curr_param.load_dict()
-					curr_param.n_trials = 1
-					curr_param.controller_names = ['RHC']
+					curr_param = Param()
 
-				setattr(curr_param,varied_parameter,varied_parameter_value)
-				curr_param.update()
-				run_instance(curr_param)
+					if curr_param.load_param:
+						curr_param.load_dict()
+						curr_param.n_trials = 1
+						curr_param.controller_names = ['RHC']
 
-	# micro sim 
-	else:
-		if default_param.env_name in 'gridworld':
-			default_param.update()
-		run_instance(default_param)
+					setattr(curr_param,varied_parameter,varied_parameter_value)
+					curr_param.update()
+					run_instance(curr_param)
+
+		# micro sim 
+		else:
+			if default_param.env_name in 'gridworld':
+				default_param.update()
+			run_instance(default_param)
 
 	# load sim results 
 	sim_results = [] # lst of dicts
@@ -166,10 +170,10 @@ if __name__ == '__main__':
 				plotter.sim_plot_over_time(controller_name,sim_result,times)
 		else:
 			for sim_result in sim_results:
-				timestep = 0
-				controller_name = sim_result["controller_name"]
-				plotter.render(controller_name,sim_result,timestep)
-				break
+				for timestep,time in enumerate(sim_result["times"]):
+					controller_name = sim_result["controller_name"]
+					plotter.render(controller_name,sim_result,timestep)
+					# break
 				
 		# 	- plot reward
 		plotter.plot_cumulative_reward(sim_results)
